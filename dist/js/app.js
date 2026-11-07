@@ -455,17 +455,68 @@ function channelStep(delta) {
   initVirtualScroll();
   initTVNavigation();
   if (typeof tvSetBackUrl === "function") tvSetBackUrl("../index.html");
-  // TEST CHANNEL: local catalog; no remote playlist fetch or IPTV credentials.
-  // The TV fetches video segments directly from this single provider endpoint.
+  // Fixed local channels: there is no account or remote configuration service.
+  // The live streams below are the publicly listed Toonami Aftermath HLS feeds.
+  var toonamiChannels = [
+    { stream_id: "toonami-aftermath-east", name: "Toonami Aftermath East",  category_id: "toonami", stream_icon: "", stream_url: "http://api.toonamiaftermath.com:3000/est/playlist.m3u8",    _source: "m3u" },
+    { stream_id: "toonami-aftermath-west", name: "Toonami Aftermath West",  category_id: "toonami", stream_icon: "", stream_url: "http://api.toonamiaftermath.com:3000/pst/playlist.m3u8",    _source: "m3u" },
+    { stream_id: "toonami-aftermath-movies", name: "Toonami Aftermath Movies", category_id: "toonami", stream_icon: "", stream_url: "http://api.toonamiaftermath.com:3000/movies/playlist.m3u8", _source: "m3u" },
+    { stream_id: "toonami-aftermath-radio", name: "Toonami Aftermath Radio", category_id: "toonami", stream_icon: "", stream_url: "http://api.toonamiaftermath.com:3000/radio/playlist.m3u8",  _source: "m3u" }
+  ];
+  var japanPlaylistUrl = "https://iptv-org.github.io/iptv/countries/jp.m3u";
+  var categories = [
+    { category_id: "toonami", category_name: "Toonami Aftermath" },
+    { category_id: "japan", category_name: "Japan TV" }
+  ];
+  var status = document.getElementById("status");
+
+  // Only accept direct HTTP(S) stream URLs from the external M3U list.
+  // Source URL, names and logos are data, not scripts or executable code.
+  function showJapaneseChannels(list, cached) {
+    var japanese = [];
+    for (var i = 0; i < list.length; i++) {
+      var ch = list[i];
+      var url = String(ch.stream_url || "").trim();
+      if (!/^https?:\/\/[^\s]+$/i.test(url)) continue;
+      japanese.push({
+        stream_id: "japan-" + i,
+        name: String(ch.name || "Japan TV"),
+        category_id: "japan",
+        stream_icon: String(ch.stream_icon || ""),
+        epg_channel_id: String(ch.epg_channel_id || ""),
+        stream_url: url,
+        _source: "m3u"
+      });
+    }
+    if (!japanese.length) return false;
+    allChannels = toonamiChannels.concat(japanese);
+    updateSidebarActive();
+    applyFilters(true);
+    status.textContent = allChannels.length + " channels (4 Toonami + " +
+        japanese.length + " Japan" + (cached ? ", cached" : "") + ")";
+    return true;
+  }
+
   epgCache = loadEpgDiskCache();
-  allChannels = [{
-    stream_id: "toonami-aftermath-east",
-    name: "Toonami Aftermath East",
-    category_id: "toonami-test",
-    stream_icon: "",
-    stream_url: "http://api.toonamiaftermath.com:3000/est/playlist.m3u8",
-    _source: "m3u"
-  }];
-  document.getElementById("status").textContent = "1 test channel";
-  _bootUI([{ category_id: "toonami-test", category_name: "Test Channel" }], "");
+  allChannels = toonamiChannels.slice();
+  status.textContent = "4 Toonami channels - loading Japan TV...";
+  _bootUI(categories, "");
+
+  // Load any previously downloaded Japanese directory immediately, then
+  // refresh it from the public iptv-org playlist (without sending credentials).
+  var cachedJapan = m3uLoadCache(japanPlaylistUrl);
+  var hasJapan = cachedJapan && showJapaneseChannels(cachedJapan.channels, true);
+  m3uFetchPlaylist(japanPlaylistUrl).then(function (parsed) {
+    if (!parsed.channels.length) throw new Error("empty playlist");
+    m3uSaveCache(japanPlaylistUrl, parsed);
+    if (!showJapaneseChannels(parsed.channels, false)) {
+      throw new Error("no compatible streams");
+    }
+  }).catch(function (err) {
+    // Keep all working channels visible when a directory or network is offline.
+    status.textContent = hasJapan
+      ? "Japan TV: using cached channels (refresh failed)"
+      : "4 Toonami channels - Japan TV unavailable (" + (err.message || "network error") + ")";
+  });
+
 })();
