@@ -283,10 +283,42 @@ function channelStep(delta) {
     { stream_id: "toonami-aftermath-movies", name: "Toonami Aftermath Movies", category_id: "toonami", stream_icon: "", stream_url: "http://api.toonamiaftermath.com:3000/movies/playlist.m3u8", _source: "m3u" },
     { stream_id: "toonami-aftermath-radio", name: "Toonami Aftermath Radio", category_id: "toonami", stream_icon: "", stream_url: "http://api.toonamiaftermath.com:3000/radio/playlist.m3u8",  _source: "m3u" }
   ];
-  var japanPlaylistUrl = "https://iptv-org.github.io/iptv/countries/jp.m3u";
+// Supplemental streams tested on 2026-11-07 from a US GitHub runner:
+  // each URL returned an HLS playlist AND a reachable media segment.
+  // This does not prove that playback will work on every LG TV or network.
+  // These are free-to-view FAST streams, not subscription-TV relays.
+  var verifiedJapanExtras = [
+    { stream_id: "japan-extra-01", name: "日テレNEWS", category_id: "japan-news", stream_icon: "", stream_url: "https://cdn-apne1.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-news1hlscmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-02", name: "FNNプライムオンライン", category_id: "japan-news", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-news4-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-03", name: "MBSニュース", category_id: "japan-news", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-news5-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-04", name: "日テレNEWSセレクト", category_id: "japan-news", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-ntv-newsselect-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-05", name: "共同通信News", category_id: "japan-news", stream_icon: "", stream_url: "https://cdn-apne1.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-news3hlscmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-06", name: "オリコンニュース", category_id: "japan-news", stream_icon: "", stream_url: "https://cdn-apne1.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-news2cmafhls-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-07", name: "ムビドラTV", category_id: "japan-entertainment", stream_icon: "", stream_url: "https://cdn-apne1.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-moviecmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-08", name: "手塚プロダクションTV", category_id: "japan-anime", stream_icon: "", stream_url: "https://cdn-apne1.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-anime5-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-09", name: "キッズ", category_id: "japan-anime", stream_icon: "", stream_url: "https://cdn-apne1.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-kids-english-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-10", name: "NTV Pro Wrestling", category_id: "japan-entertainment", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-ntv-pro-wrestling-hls-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-11", name: "that’s 70s", category_id: "japan-music", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01076-lightningintern-lightningnow70s-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-12", name: "that’s 80s", category_id: "japan-music", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01076-lightningintern-lightningnow80s-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-13", name: "that’s 90s00s", category_id: "japan-music", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01076-lightningintern-lightning-now90s00s-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-14", name: "that’s Rock", category_id: "japan-music", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01076-lightningintern-lightningnowrock-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-15", name: "囲碁・将棋ライト", category_id: "japan-lifestyle", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-igo-shogi-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-16", name: "麻雀", category_id: "japan-lifestyle", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-mahjong-cmaf1-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-17", name: "パチンコ・パチスロ", category_id: "japan-lifestyle", stream_icon: "", stream_url: "https://cdn-apne1.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-pachislocmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-18", name: "ぷれいば！", category_id: "japan-lifestyle", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-game-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-19", name: "ワンニャンチャンネル", category_id: "japan-lifestyle", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-pet-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-20", name: "九州・沖縄 街ネタ", category_id: "japan-lifestyle", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-local-contents-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" }
+  ];
+
+    var japanPlaylistUrl = "https://iptv-org.github.io/iptv/countries/jp.m3u";
   var categories = [
     { category_id: "toonami", category_name: "Toonami Aftermath" },
-    { category_id: "japan", category_name: "Japan TV" }
+    { category_id: "japan", category_name: "Japan TV (IPTV-org)" },
+    { category_id: "japan-news", category_name: "Japan — News" },
+    { category_id: "japan-anime", category_name: "Japan — Anime & Kids" },
+    { category_id: "japan-entertainment", category_name: "Japan — Entertainment" },
+    { category_id: "japan-music", category_name: "Japan — Music" },
+    { category_id: "japan-lifestyle", category_name: "Japan — Lifestyle" }
   ];
   var status = document.getElementById("status");
 
@@ -309,17 +341,24 @@ function channelStep(delta) {
       });
     }
     if (!japanese.length) return false;
-    allChannels = toonamiChannels.concat(japanese);
+    // Keep all previous Toonami and Japan TV channels, and avoid URL duplicates.
+    var seenUrls = {};
+    for (var v = 0; v < verifiedJapanExtras.length; v++) {
+      seenUrls[verifiedJapanExtras[v].stream_url] = true;
+    }
+    japanese = japanese.filter(function (ch) { return !seenUrls[ch.stream_url]; });
+    allChannels = toonamiChannels.concat(verifiedJapanExtras, japanese);
     updateSidebarActive();
     applyFilters(true);
     status.textContent = allChannels.length + " channels (4 Toonami + " +
-        japanese.length + " Japan" + (cached ? ", cached" : "") + ")";
+        verifiedJapanExtras.length + " verified extras + " + japanese.length +
+        " Japan directory" + (cached ? ", cached" : "") + ")";
     return true;
   }
 
   epgCache = loadEpgDiskCache();
-  allChannels = toonamiChannels.slice();
-  status.textContent = "4 Toonami channels - loading Japan TV...";
+  allChannels = toonamiChannels.concat(verifiedJapanExtras);
+  status.textContent = allChannels.length + " channels - loading Japan TV directory...";
   _bootUI(categories, "");
 
   // Load any previously downloaded Japanese directory immediately, then
@@ -336,7 +375,7 @@ function channelStep(delta) {
     // Keep all working channels visible when a directory or network is offline.
     status.textContent = hasJapan
       ? "Japan TV: using cached channels (refresh failed)"
-      : "4 Toonami channels - Japan TV unavailable (" + (err.message || "network error") + ")";
+      : allChannels.length + " channels - Japan directory unavailable (" + (err.message || "network error") + ")";
   });
 
 }());
