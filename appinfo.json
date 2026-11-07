@@ -1,15 +1,16 @@
 {
   "id": "com.oxhyashi.toonamitest",
-  "version": "1.0.33",
+  "version": "1.0.34",
   "vendor": "0xhyashi",
   "type": "web",
   "main": "index.html",
-  "title": "Toonami Test",
+  "title": "Toonami + Japan TV",
   "icon": "icon.png",
   "largeIcon": "icon_large.png",
   "iconColor": "#000000",
   "disableBackHistoryAPI": true,
   "requiredPermissions": [
     "com.webos.media"
-  ]
+  ],
+  "requiredACG": []
 }
