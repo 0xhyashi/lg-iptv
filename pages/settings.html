@@ -41,11 +41,10 @@
             <button class="tab-btn" data-value="livetv"  role="tab" aria-selected="false">Live TV</button>
             <button class="tab-btn" data-value="vod"     role="tab" aria-selected="false">VOD</button>
             <button class="tab-btn" data-value="cache"   role="tab" aria-selected="false">Cache</button>
-            <button class="tab-btn" data-value="updates" role="tab" aria-selected="false">Updates</button>
             <button class="tab-btn" data-value="diag"    role="tab" aria-selected="false">Diagnostics</button>
         </div>
 
-        <!-- Body row: panels on left, QR panel always on right -->
+        <!-- Local settings, no third-party remote configuration -->
         <div id="settings-body">
 
             <!-- ── Panels ── -->
@@ -361,30 +360,8 @@
                     </div>
                 </div>
 
-                <!-- Panel: Updates -->
-                <div class="settings-panel" id="panel-updates" role="tabpanel">
-                    <p class="panel-hint">Check GitHub for a newer version and install it.</p>
-                    <div class="cache-row">
-                        <div class="cache-info">
-                            <span class="cache-label">Current version</span>
-                            <span class="cache-desc" id="upd-current">—</span>
-                        </div>
-                        <button class="settings-btn settings-btn-secondary" id="upd-check-btn">Check for Updates</button>
-                    </div>
-                    <div id="upd-status" class="settings-status"></div>
-                    <div id="upd-available" style="display:none">
-                        <div class="cache-row">
-                            <div class="cache-info">
-                                <span class="cache-label">Update available</span>
-                                <span class="cache-desc" id="upd-new-version"></span>
-                            </div>
-                            <button class="settings-btn settings-btn-primary" id="upd-install-btn">⬇ Install</button>
-                        </div>
-                        <div id="upd-progress" class="settings-status"></div>
-                    </div>
-                </div>
-
-                <!-- Panel: Diagnostics -->
+                /* Privacy fork: upstream updates UI removed. */
+    <!-- Panel: Diagnostics -->
                 <div class="settings-panel" id="panel-diag" role="tabpanel">
                     <p class="panel-hint">
                         What this TV actually reports, gathered on the device. Read this instead of
@@ -397,20 +374,8 @@
 
             </div><!-- /panels-wrap -->
 
-            <!-- QR panel — always visible, right of all panels -->
-            <div id="remote-qr-section">
-                <div id="remote-qr-inner">
-                    <p class="remote-qr-hint">Scan on your phone or computer to configure settings remotely.</p>
-                    <div id="remote-qr-wrap">
-                        <img id="remote-qr-img" src="" alt="QR Code" width="190" height="190" />
-                    </div>
-                    <div id="remote-qr-url"></div>
-                    <div id="remote-qr-status" class="settings-status"></div>
-                    <button class="settings-btn settings-btn-secondary" id="remote-new-code-btn">New Code</button>
-                </div>
-            </div>
-
-        </div><!-- /settings-body -->
+            /* Privacy fork: remote QR UI removed. */
+    </div><!-- /settings-body -->
 
     </div><!-- /settings-modal -->
 </div><!-- /settings-page -->
@@ -421,7 +386,6 @@
 <script src="../dist/js/core/dom.js"></script>
 <script src="../dist/js/core/config.js"></script>
 <script src="../dist/js/data/favourites.js"></script>
-<script src="../assets/qrcode.js"></script>
 <script src="../dist/js/opensubtitles.js"></script>
 <script src="../dist/js/settings.js"></script>
 </body>
