@@ -205,7 +205,6 @@
         if (!profile) {
             emptyEl.style.display = '';
             formEl.hidden = true;
-            startRemoteSession();   /* still offer remote setup with no profiles */
             return;
         }
         emptyEl.style.display = 'none';
@@ -218,7 +217,6 @@
         document.getElementById('prof-epg-match').value = profile.epg_match   || 'tvg-id';
         setEditorType(profile.type || 'xtream');
         renderUrlList(profile.server_urls || []);
-        startRemoteSession();
     }
 
     function renderUrlList(urls) {
@@ -991,185 +989,7 @@
         });
     }());
 
-    /* ── Remote QR setup — always-visible right panel ──────────────────────── */
-    var REMOTE_BASE_URL   = 'https://lgiptv-remote.vercel.app';
-    var REMOTE_POLL_MS     = 3000;        // gap between cfg polls
-    var REMOTE_POLL_MAX_MS = 4 * 60 * 1000; // stop polling after 4 min idle
-    var _remoteToken      = null;
-    var _remotePollTimer  = null;
-
-    function _genToken() {
-        var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        var t = '';
-        for (var i = 0; i < 8; i++) t += chars.charAt(Math.floor(Math.random() * chars.length));
-        return t;
-    }
-
-    document.getElementById('remote-new-code-btn').addEventListener('click', function () {
-        startRemoteSession();
-    });
-
-
-    function startRemoteSession() {
-        stopRemoteSession();
-        _remoteToken = _genToken();
-
-        /* Gather category data */
-        var cachedCats = load('iptv_cat_v2', null);
-        var liveCats   = (cachedCats && Array.isArray(cachedCats.data))
-            ? cachedCats.data.map(function (c) { return { id: String(c.category_id), name: c.category_name || '' }; })
-            : [];
-
-        var vodScope = Config.scope();
-        var rawM = load('vod_cats_movie_'  + vodScope, null);
-        var rawS = load('vod_cats_series_' + vodScope, null);
-        var mArr = Array.isArray(rawM) ? rawM : (rawM && rawM.data ? rawM.data : []);
-        var sArr = Array.isArray(rawS) ? rawS : (rawS && rawS.data ? rawS.data : []);
-        var vodCatsM = mArr.map(function (c) { return { id: String(c.category_id), name: c.category_name || '' }; });
-        var vodCatsS = sArr.map(function (c) { return { id: String(c.category_id), name: c.category_name || '' }; });
-
-        /* Send all profiles so phone can pick one */
-        var ctx = {
-            active_profile_id: activeId || selectedId || '',
-            profiles: profiles.map(function (p) {
-                return {
-                    id:           p.id,
-                    name:         p.name         || '',
-                    type:         p.type         || 'xtream',
-                    server_urls:  p.server_urls  || [],
-                    username:     p.username     || '',
-                    password:     p.password     || '',
-                    playlist_url: p.playlist_url || '',
-                    epg_url:      p.epg_url      || '',
-                    epg_match:    p.epg_match    || 'tvg-id',
-                };
-            }),
-            hidden_live:  load('iptv_hidden_cats_live',  []) || [],
-            hidden_vod_m: load('iptv_hidden_cats_vod_m', []) || [],
-            hidden_vod_s: load('iptv_hidden_cats_vod_s', []) || [],
-            cats_live:    liveCats,
-            cats_vod_m:   vodCatsM,
-            cats_vod_s:   vodCatsS,
-        };
-
-        /* Show QR immediately so user can scan while ctx uploads. Generated
-           on-device (qrcode.js) so the session token never leaves the TV and
-           the user's phone — no third-party QR service involved. */
-        var setupUrl = REMOTE_BASE_URL + '/?s=' + _remoteToken;
-        var img   = document.getElementById('remote-qr-img');
-        var urlEl = document.getElementById('remote-qr-url');
-        if (img) {
-            try {
-                var qr = qrcode(0, 'M');           // type 0 = auto-size, ECC level M
-                qr.addData(setupUrl);
-                qr.make();
-                img.src = qr.createDataURL(5, 12); // ~190px native, minimal scaling
-            } catch (e) {
-                img.removeAttribute('src');        // URL text below is the fallback
-            }
-        }
-        if (urlEl) urlEl.textContent = setupUrl;
-        setStatus('remote-qr-status', 'Uploading…', '');
-
-        /* Push context — capture token so closure is stable across restarts */
-        var token = _remoteToken;
-        fetch(REMOTE_BASE_URL + '/api/session?s=' + token + '&t=ctx', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(ctx)
-        })
-        .then(function (r) {
-            if (token !== _remoteToken) return;   /* session restarted — ignore */
-            if (!r.ok) throw new Error('HTTP ' + r.status);
-            setStatus('remote-qr-status', 'Waiting for phone…', '');
-        })
-        .catch(function (err) {
-            if (token !== _remoteToken) return;
-            setStatus('remote-qr-status', 'Upload failed: ' + (err && err.message ? err.message : 'network error'), 'err');
-        });
-
-        /* Poll for incoming config. 3s interval keeps the request count low on
-           the free KV tier; auto-stop after a few minutes so an abandoned
-           Settings screen doesn't poll forever and burn the daily quota. */
-        var pollStart = Date.now();
-        _remotePollTimer = setInterval(function () {
-            if (!_remoteToken) return;
-            if (Date.now() - pollStart > REMOTE_POLL_MAX_MS) {
-                stopRemoteSession();
-                setStatus('remote-qr-status', 'Code expired — tap New Code.', '');
-                return;
-            }
-            fetch(REMOTE_BASE_URL + '/api/session?s=' + _remoteToken + '&t=cfg')
-                .then(function (r) {
-                    if (r.status === 404) return null;
-                    if (!r.ok) throw new Error('HTTP ' + r.status);
-                    return r.json();
-                })
-                .then(function (data) {
-                    if (!data) return;
-                    var usedToken = _remoteToken;
-                    stopRemoteSession();
-                    applyRemoteConfig(data, usedToken);
-                })
-                .catch(function () {});
-        }, REMOTE_POLL_MS);
-    }
-
-    function stopRemoteSession() {
-        if (_remotePollTimer) { clearInterval(_remotePollTimer); _remotePollTimer = null; }
-        _remoteToken = null;
-    }
-
-    /* Wipe both relay keys from the store as soon as we're done with them. */
-    function deleteRemoteSession(token) {
-        if (!token) return;
-        fetch(REMOTE_BASE_URL + '/api/session?s=' + token, { method: 'DELETE' }).catch(function () {});
-    }
-
-    function applyRemoteConfig(cfg, usedToken) {
-        /* Credentials are no longer needed in the store — wipe them now. */
-        deleteRemoteSession(usedToken);
-        /* Phone sends back the profile id it edited — find or create */
-        var profile = (cfg.profile_id && profiles.find(function (p) { return p.id === cfg.profile_id; }))
-            || profiles.find(function (p) { return p.id === selectedId; });
-        if (!profile) {
-            profile = { id: makeId(), name: 'Remote Profile', type: 'xtream', username: '', password: '', server_urls: [], playlist_url: '', epg_url: '', epg_match: 'tvg-id' };
-            profiles.push(profile);
-            selectedId = profile.id;
-        }
-
-        profile.name        = cfg.name         || profile.name;
-        profile.type        = cfg.profile_type === 'm3u' ? 'm3u' : 'xtream';
-        profile.server_urls = Array.isArray(cfg.server_urls) ? cfg.server_urls : profile.server_urls;
-        profile.username    = cfg.username     !== undefined ? cfg.username    : profile.username;
-        profile.password    = cfg.password     !== undefined ? cfg.password    : profile.password;
-        profile.playlist_url = cfg.playlist_url || profile.playlist_url;
-        profile.epg_url     = cfg.epg_url      !== undefined ? cfg.epg_url    : profile.epg_url;
-        profile.epg_match   = cfg.epg_match    || profile.epg_match;
-        saveProfiles(profiles);
-
-        /* Apply hidden categories */
-        if (Array.isArray(cfg.hidden_live))  save('iptv_hidden_cats_live',  cfg.hidden_live);
-        if (Array.isArray(cfg.hidden_vod_m)) save('iptv_hidden_cats_vod_m', cfg.hidden_vod_m);
-        if (Array.isArray(cfg.hidden_vod_s)) save('iptv_hidden_cats_vod_s', cfg.hidden_vod_s);
-
-        /* Set as active if it's an Xtream profile with URLs */
-        activeId = profile.id;
-        setActiveId(activeId);
-        save('iptv_source_type', profile.type);
-        if (profile.type === 'xtream' && profile.server_urls.length) {
-            save('iptv_active_resolved_url', profile.server_urls[0]);
-        } else if (profile.type === 'm3u' && profile.playlist_url) {
-            save('iptv_m3u_config', { playlist_url: profile.playlist_url });
-        }
-        try { localStorage.removeItem('iptv_ch_v2');  } catch (e) {}
-        try { localStorage.removeItem('iptv_cat_v2'); } catch (e) {}
-
-        stopRemoteSession();
-        setStatus('profile-status', 'Remote config applied — returning…', 'ok');
-        setTimeout(function () { tvGoBack('../index.html'); }, 1500);
-    }
-
+    /* Privacy fork: remote QR sync / credential relay removed. */
     /* ── Cache panel ─────────────────────────────────────────────────────────
        Both buttons used to miss most of what they named. The guide cache has
        been stored per profile ("iptv_epg_v2:<profile>") for a while, so
@@ -1189,112 +1009,7 @@
         setStatus('cfg-clear-epg-status', 'EPG cache cleared.', 'ok', 3000);
     });
 
-    /* ── Updates panel (replaces the old auto-updater modal) ───────────────── */
-    var UPD_MANIFEST   = 'https://github.com/sharktie/lg-iptv/releases/latest/download/manifest.json';
-    var UPD_FALLBACK   = 'https://raw.githubusercontent.com/sharktie/lg-iptv/main/manifest.json';
-    var UPD_APP_ID     = 'com.sharktie.iptv';
-    var _localVer = null, _pendingIpk = null;
-
-    function updFetch(url) {
-        return Net.json(url, { timeout: 12000, cache: 'no-store' });
-    }
-    /* appinfo.json is a file in the app package, and native fetch refuses
-       file:// URLs outright — so on every webOS with native fetch the version
-       read as "unknown" and "Check for updates" always failed before it had
-       asked GitHub anything. Net.local reads it with XHR. */
-    function updLocalVersion() { return Net.localJSON('../appinfo.json').then(function (d) { return d.version; }); }
-    function updRemoteManifest() {
-        return updFetch(UPD_MANIFEST + '?t=' + Date.now())
-            .catch(function () { return updFetch(UPD_FALLBACK + '?t=' + Date.now()); });
-    }
-    function updCmp(a, b) {
-        var x = String(a).split('.'), y = String(b).split('.');
-        for (var i = 0; i < Math.max(x.length, y.length); i++) {
-            var d = (parseInt(x[i], 10) || 0) - (parseInt(y[i], 10) || 0);
-            if (d !== 0) return d > 0 ? 1 : -1;
-        }
-        return 0;
-    }
-    function updSetCurrent(v) { _localVer = v; var el = document.getElementById('upd-current'); if (el) el.textContent = 'v' + v; }
-
-    updLocalVersion().then(updSetCurrent).catch(function () { var el = document.getElementById('upd-current'); if (el) el.textContent = 'unknown'; });
-
-    document.getElementById('upd-check-btn').addEventListener('click', function () {
-        setStatus('upd-status', 'Checking for updates…', '');
-        document.getElementById('upd-available').style.display = 'none';
-        var localP = _localVer ? Promise.resolve(_localVer) : updLocalVersion();
-        Promise.all([localP, updRemoteManifest()]).then(function (res) {
-            var local = res[0], manifest = res[1];
-            updSetCurrent(local);
-            if (!manifest || !manifest.version) { setStatus('upd-status', 'Could not read the latest version.', 'err'); return; }
-            if (updCmp(manifest.version, local) > 0) {
-                _pendingIpk = manifest.ipkUrl || manifest.ipk_url || '';
-                document.getElementById('upd-new-version').textContent = 'v' + local + '  →  v' + manifest.version;
-                document.getElementById('upd-available').style.display = '';
-                setStatus('upd-status', '', '');
-                rebuildFocusables();
-            } else {
-                setStatus('upd-status', 'You’re on the latest version (v' + local + ').', 'ok');
-            }
-        }).catch(function () {
-            setStatus('upd-status', 'Update check failed — check your connection.', 'err');
-        });
-    });
-
-    /* The install request goes straight to the platform's service bus.
-       `webOS.service` only exists when LG's webOSTV.js is loaded, which this
-       app never does, so the old check always answered "isn't available" —
-       and its URI ended in /dev/install with method "install" appended,
-       which would have addressed a method that doesn't exist even if it had
-       run. PalmServiceBridge is what webOSTV.js uses underneath. */
-    function lunaSubscribe(uri, params, onMessage) {
-        if (typeof PalmServiceBridge === 'undefined') return false;
-        var bridge = new PalmServiceBridge();
-        bridge.onservicecallback = function (raw) {
-            var msg;
-            try { msg = JSON.parse(raw); } catch (e) { msg = { returnValue: false, errorText: String(raw) }; }
-            onMessage(msg, bridge);
-        };
-        bridge.call(uri, JSON.stringify(params));
-        return bridge;
-    }
-
-    document.getElementById('upd-install-btn').addEventListener('click', function () {
-        if (!_pendingIpk) return;
-        var done = false;
-        function finish(ok, text) {
-            if (done) return;
-            done = true;
-            setStatus('upd-progress', text, ok ? 'ok' : 'err');
-            if (ok) setTimeout(function () { Dom.exitApp(); }, 2000);
-        }
-        var bridge = lunaSubscribe('luna://com.webos.appInstallService/dev/install',
-            { id: UPD_APP_ID, ipkUrl: _pendingIpk, subscribe: true },
-            function (msg) {
-                if (msg.returnValue === false) {
-                    finish(false, 'Install failed: ' + (msg.errorText || msg.errorCode || 'unknown error'));
-                    return;
-                }
-                var state = String((msg.details && (msg.details.state || msg.details.status)) || msg.state || '').toLowerCase();
-                if (/fail|error|cancel/.test(state)) {
-                    finish(false, 'Install failed: ' +
-                        ((msg.details && (msg.details.errorText || msg.details.reason)) || state));
-                } else if (state === 'installed') {
-                    finish(true, 'Installed — restarting…');
-                } else if (state) {
-                    setStatus('upd-progress', 'Installing… (' + state + ')', '');
-                }
-            });
-        if (!bridge) {
-            setStatus('upd-progress', 'Install service isn’t available on this device — install the new version with Dev Manager or Homebrew Channel.', 'err');
-            return;
-        }
-        setStatus('upd-progress', 'Installing… the app will restart when done.', '');
-        setTimeout(function () {
-            finish(false, 'No answer from the TV’s installer — install the new version with Dev Manager or Homebrew Channel.');
-        }, 180000);
-    });
-
+    /* Privacy fork: upstream update/download/install code removed. */
     /* ── Back navigation ───────────────────────────────────────────────────── */
     if (typeof tvGoBack !== 'function') {
         window.tvGoBack = function (backUrl) {
@@ -1303,7 +1018,7 @@
         };
     }
     document.getElementById('back-btn').addEventListener('click', function () {
-        stopRemoteSession();
+        
         tvGoBack('../index.html');
     });
 
@@ -1480,7 +1195,7 @@
     }
 
     function handleNavKey(kc) {
-        if (kc === KEY.BACK) { stopRemoteSession(); tvGoBack('../index.html'); return; }
+        if (kc === KEY.BACK) {  tvGoBack('../index.html'); return; }
 
         if (isProfilesPanel() && _inProfileContent) {
             if (kc === KEY.UP) {
@@ -1638,7 +1353,7 @@
 
     /* ── Boot ──────────────────────────────────────────────────────────────── */
     renderProfileList();
-    renderEditor();   /* calls startRemoteSession() internally */
+    renderEditor();   /* local settings only */
     var bootTab = load('iptv_last_tab', 'profiles');
     if (bootTab === 'm3u' || bootTab === 'remote') bootTab = 'profiles';
     _inProfileContent = (bootTab === 'profiles');
