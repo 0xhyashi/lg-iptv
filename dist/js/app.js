@@ -455,5 +455,17 @@ function channelStep(delta) {
   initVirtualScroll();
   initTVNavigation();
   if (typeof tvSetBackUrl === "function") tvSetBackUrl("../index.html");
-  initApp();
+  // TEST CHANNEL: local catalog; no remote playlist fetch or IPTV credentials.
+  // The TV fetches video segments directly from this single provider endpoint.
+  epgCache = loadEpgDiskCache();
+  allChannels = [{
+    stream_id: "toonami-aftermath-east",
+    name: "Toonami Aftermath East",
+    category_id: "toonami-test",
+    stream_icon: "",
+    stream_url: "http://api.toonamiaftermath.com:3000/est/playlist.m3u8",
+    _source: "m3u"
+  }];
+  document.getElementById("status").textContent = "1 test channel";
+  _bootUI([{ category_id: "toonami-test", category_name: "Test Channel" }], "");
 })();
