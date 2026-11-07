@@ -1,9 +1,9 @@
 {
   "id": "com.oxhyashi.toonamitest",
-  "title": "Toonami Test (privacy fork)",
-  "version": "1.0.33",
-  "appDescription": "Local one-channel Toonami Aftermath test. No third-party configuration relay or upstream updater.",
-  "iconUri": "https://raw.githubusercontent.com/sharktie/lg-iptv/main/icon.png",
+  "title": "Toonami + Japan TV",
+  "version": "1.0.34",
+  "appDescription": "Privacy-focused LG webOS player with Toonami Aftermath and Japanese public IPTV streams; remote credential relay and upstream updater removed.",
+  "iconUri": "https://raw.githubusercontent.com/0xhyashi/lg-iptv/privacy/toonami-single-stream-test/icon.png",
   "sourceUrl": "https://github.com/0xhyashi/lg-iptv",
   "rootRequired": false
 }
