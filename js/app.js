@@ -200,6 +200,126 @@ function startRadio(ch) {
     RadioDeck.play(ch);
 }
 
+/* ── Bunkhouse TV / Radio quick navigation ────────────────────────────────────
+ * TV retains the existing category browser and channel grid. Radio puts the
+ * dedicated 90s media interface in the main panel and a station list in the
+ * sidebar. Direct buttons and D-pad both work; no custom webOS service.
+ */
+var _bkLastTVChannel = null;
+var _bkLastTVCategory = "all";
+var _bkStationIndex = 0;
+var _bkRadioButtons = [];
+function bunkhouseRadioChannels() {
+    return allChannels.filter(function (c) { return c && c._radio; });
+}
+function bunkhouseSetMode(mode) {
+    var radio = mode === "radio";
+    document.body.classList.toggle("radio-mode", radio);
+    var tv = document.getElementById("media-tv"), r = document.getElementById("media-radio");
+    if (tv) tv.classList.toggle("active", !radio);
+    if (r) r.classList.toggle("active", radio);
+    if (radio) {
+        if (activeCategory !== "radio") _bkLastTVCategory = activeCategory;
+        activeCategory = "radio";
+    } else {
+        activeCategory = _bkLastTVCategory === "radio" ? "all" : _bkLastTVCategory;
+    }
+    updateSidebarActive();
+    applyFilters(true);
+    if (radio) bunkhouseHighlightStation();
+}
+function bunkhouseHighlightStation() {
+    var sid = currentChannel && currentChannel._radio ? String(currentChannel.stream_id) : "";
+    _bkRadioButtons.forEach(function (btn, index) {
+        var selected = btn.getAttribute("data-station-id") === sid;
+        btn.classList.toggle("selected", selected);
+        if (selected) _bkStationIndex = index;
+    });
+}
+function bunkhouseChangeMode(mode) {
+    if (mode === "radio") {
+        bunkhouseSetMode("radio");
+        if (!currentChannel || !currentChannel._radio) {
+            var first = bunkhouseRadioChannels()[0];
+            if (first) selectChannel(first);
+        }
+        if (_bkRadioButtons[_bkStationIndex]) _bkRadioButtons[_bkStationIndex].focus();
+    } else {
+        bunkhouseSetMode("tv");
+        if (currentChannel && currentChannel._radio) {
+            stopRadio();
+            currentChannel = null;
+        }
+        if (_bkLastTVChannel) selectChannel(_bkLastTVChannel);
+        else {
+            player.stop();
+            var msg = document.getElementById("player-msg");
+            if (msg) { msg.style.display = "flex"; msg.textContent = "Select a TV channel"; }
+        }
+        if (typeof setTVZone === "function") setTVZone("channel-list");
+    }
+}
+function bunkhouseStationStep(delta) {
+    if (!_bkRadioButtons.length) return;
+    _bkStationIndex = (_bkStationIndex + delta + _bkRadioButtons.length) % _bkRadioButtons.length;
+    _bkRadioButtons[_bkStationIndex].focus();
+    _bkRadioButtons[_bkStationIndex].click();
+}
+function bunkhouseHandleKey(e, key) {
+    if (!document.body.classList.contains("radio-mode") || isFullscreen()) return false;
+    var focus = document.activeElement;
+    if (key === 38 || key === 40) {
+        e.preventDefault();
+        bunkhouseStationStep(key === 38 ? -1 : 1);
+        return true;
+    }
+    if (key === 37) { // LEFT selects the media navigation
+        e.preventDefault();
+        document.getElementById("media-tv").focus();
+        return true;
+    }
+    if (key === 39) { // RIGHT focuses pause / resume control
+        e.preventDefault();
+        document.getElementById("radio-toggle").focus();
+        return true;
+    }
+    if (key === 13) { // ENTER
+        if (focus && /^(media-tv|media-radio|radio-toggle|radio-prev|radio-next)$/.test(focus.id)) {
+            e.preventDefault();focus.click();return true;
+        }
+        if (_bkRadioButtons[_bkStationIndex]) {
+            e.preventDefault();_bkRadioButtons[_bkStationIndex].click();return true;
+        }
+    }
+    if (key === 461 || key === 27 || key === 8) {
+        e.preventDefault();bunkhouseChangeMode("tv");return true;
+    }
+    return false;
+}
+function setupBunkhouseNavigation() {
+    var tv=document.getElementById("media-tv"),radio=document.getElementById("media-radio");
+    if (!tv || !radio) return;
+    tv.addEventListener("click",function(){bunkhouseChangeMode("tv");});
+    radio.addEventListener("click",function(){bunkhouseChangeMode("radio");});
+    var panel=document.getElementById("radio-stations");
+    if (!panel) return;
+    panel.innerHTML="";
+    _bkRadioButtons=[];
+    bunkhouseRadioChannels().forEach(function(ch,index) {
+        var btn=document.createElement("button");
+        btn.type="button";btn.className="bk-station";
+        btn.setAttribute("data-station-id",String(ch.stream_id));
+        var title=document.createElement("span");title.textContent=ch.name;
+        btn.appendChild(title);
+        btn.addEventListener("click",function(){
+            _bkStationIndex=index;selectChannel(ch);btn.focus();
+        });
+        panel.appendChild(btn);
+        _bkRadioButtons.push(btn);
+    });
+    RadioDeck.init();
+}
+
 // ── Channel selection ─────────────────────────────────────────────────────────
 
 async function selectChannel(ch) {
@@ -209,6 +329,8 @@ async function selectChannel(ch) {
     document.getElementById("preview-channel-name").textContent = ch.name || "Unknown";
     document.getElementById("pip-channel-name").textContent     = ch.name || "Unknown";
     if (ch._radio) {
+        bunkhouseSetMode("radio");
+        bunkhouseHighlightStation();
         startRadio(ch);
         setEPG("now", "Live radio", "", "");
         setEPG("next", "—", "", "");
@@ -218,6 +340,8 @@ async function selectChannel(ch) {
         return;
     }
     stopRadio();
+    _bkLastTVChannel = ch;
+    if (document.body.classList.contains("radio-mode")) bunkhouseSetMode("tv");
     const playUrl = ch._source === "m3u" ? m3uBuildLiveURL(ch) : xtreamBuildLiveURL(cfg, ch.stream_id);
     // The key lets the player remember which engine actually worked for THIS
     // channel, so a 4K/HEVC channel that only plays on HLS starts there.
@@ -401,6 +525,7 @@ function channelStep(delta) {
   allChannels = toonamiChannels.concat(verifiedJapanExtras, radioChannels);
   status.textContent = allChannels.length + " channels - loading Japan TV directory...";
   _bootUI(categories, "");
+  setupBunkhouseNavigation();
 
   // Load any previously downloaded Japanese directory immediately, then
   // refresh it from the public iptv-org playlist (without sending credentials).
