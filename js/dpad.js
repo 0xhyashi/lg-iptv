@@ -32,7 +32,7 @@ let _assignPanelIndex = 0;
 
 /** Navigate out of Live TV to its previous page.
  * @param {string} backUrl - Back navigation URL.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function tvGoBack(backUrl) {
     if (backUrl) {
@@ -48,14 +48,14 @@ function tvGoBack(backUrl) {
 // Usage (at page init):  tvSetBackUrl("../index.html");
 /** Remember where Back should return.
  * @param {string} url - Target URL.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function tvSetBackUrl(url) {
     window._tvBackUrl = url;
 }
 
 /** Install the single Live TV remote key handler.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function initTVNavigation() {
     window.addEventListener("keydown", onTVKeyDown, { capture: true, passive: false });
@@ -78,7 +78,7 @@ function initTVNavigation() {
 }
 
 /** Restore focus for the active UI zone.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function _restoreZoneFocus() {
     if      (tvFocusZone === "sidebar-header") _focusSidebarHeader();
@@ -91,14 +91,14 @@ function _restoreZoneFocus() {
    dispatch those with keyCode 0 — the simulator among them. */
 /** Normalize remote or keyboard key codes.
  * @param {KeyboardEvent} e - Remote or keyboard event.
- * @returns {number} Value described above.
+ * @returns {number} Calculated numeric value.
  */
 function _keyCode(e) {
     return (typeof Dom !== "undefined") ? Dom.keyCode(e) : (e.keyCode || e.which);
 }
 /** Identify the LG Back key.
  * @param {KeyboardEvent} e - Remote or keyboard event.
- * @returns {boolean} Value described above.
+ * @returns {boolean} Whether the requested condition is met.
  */
 function _isBack(e)  { return _keyCode(e) === 461; }
 
@@ -112,7 +112,7 @@ const _KEY = {
 
 /** Route one remote key to modal, radio, weather or TV navigation.
  * @param {KeyboardEvent} e - Remote or keyboard event.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function onTVKeyDown(e) {
     const kc = _keyCode(e);
@@ -378,7 +378,7 @@ const _UNHANDLED_KEYS_KEY = "iptv_unhandled_keys";
 
 /** Record an unsupported key for diagnostics.
  * @param {*} kc - Input for _noteUnhandledKey().
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function _noteUnhandledKey(kc) {
     if (!kc || typeof Store === "undefined") return;
@@ -392,7 +392,7 @@ function _noteUnhandledKey(kc) {
 
 /** Switch the focused TV navigation region.
  * @param {*} zone - Input for setTVZone().
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function setTVZone(zone) {
     tvFocusZone = zone; tvRowSubZone = "row"; tvSidebarSubZone = "item";
@@ -415,7 +415,7 @@ function setTVZone(zone) {
 }
 
 /** Focus the sidebar's search or header controls.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function _focusSidebarHeader() {
     _clearFocus();
@@ -438,7 +438,7 @@ function getSidebarFocusables() {
 }
 
 /** Remove all TV focus highlights.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function _clearFocus() { document.querySelectorAll(".tv-focus-visible").forEach(el => el.classList.remove("tv-focus-visible")); }
 
@@ -446,7 +446,7 @@ function _clearFocus() { document.querySelectorAll(".tv-focus-visible").forEach(
    button, section headers, "+ New Group"). */
 /** Find a sidebar category favorite control.
  * @param {number} idx - Zero-based selection index.
- * @returns {HTMLElement|null} Value described above.
+ * @returns {HTMLElement|null} Matching element, or null.
  */
 function _sidebarStarFor(idx) {
     const el = getSidebarFocusables()[idx];
@@ -456,7 +456,7 @@ function _sidebarStarFor(idx) {
 
 /** Focus a sidebar row by index.
  * @param {number} idx - Zero-based selection index.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function tvFocusSidebarItem(idx) {
     _clearFocus();
@@ -469,7 +469,7 @@ function tvFocusSidebarItem(idx) {
 
 /** Focus a TV channel row by index.
  * @param {number} idx - Zero-based selection index.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function tvFocusRow(idx) {
     _clearFocus();
@@ -484,7 +484,7 @@ function tvFocusRow(idx) {
 }
 
 /** Move focus among row-specific actions.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function tvFocusRowButtons() {
     _clearFocus();
@@ -515,7 +515,7 @@ function tvFocusRowButtons() {
    that window; the later scroll-driven render is then a no-op repaint. */
 /** Scroll to a virtualized channel row.
  * @param {number} idx - Zero-based selection index.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function scrollTVRowIntoView(idx) {
     const wrap = document.getElementById("channel-list-wrap");
@@ -531,7 +531,7 @@ function scrollTVRowIntoView(idx) {
 /** Handle keyboard movement in a modal.
  * @param {KeyboardEvent} e - Remote or keyboard event.
  * @param {HTMLElement} modal - Open modal DOM node.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function _handleModalKey(e, modal) {
     if (_isBack(e)) {
@@ -560,7 +560,7 @@ function _handleModalKey(e, modal) {
 /** Focus a specific modal control.
  * @param {HTMLElement} modal - Open modal DOM node.
  * @param {HTMLElement} el - Element to focus.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function _setModalFocus(modal, el) {
     modal.querySelectorAll(".tv-focus-visible").forEach(x => x.classList.remove("tv-focus-visible"));
@@ -572,7 +572,7 @@ function _setModalFocus(modal, el) {
 /** Navigate the favorites assignment panel.
  * @param {KeyboardEvent} e - Remote or keyboard event.
  * @param {HTMLElement} panel - Open sidebar panel.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function _handleAssignPanelKey(e, panel) {
     if (_isBack(e)) {
@@ -605,7 +605,7 @@ function _handleAssignPanelKey(e, panel) {
 /** Focus an assignment panel item.
  * @param {HTMLElement} panel - Open sidebar panel.
  * @param {Array<HTMLElement>} items - Selectable menu items.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function _focusAssignItem(panel, items) {
     panel.querySelectorAll(".tv-focus-visible").forEach(el => el.classList.remove("tv-focus-visible"));
@@ -618,7 +618,7 @@ function _focusAssignItem(panel, items) {
 /** Navigate a sidebar context menu.
  * @param {KeyboardEvent} e - Remote or keyboard event.
  * @param {HTMLElement} menu - Open context menu.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function _handleCtxMenuKey(e, menu) {
     if (_isBack(e)) {
@@ -643,7 +643,7 @@ function _handleCtxMenuKey(e, menu) {
 /** Focus an item in a context menu.
  * @param {HTMLElement} menu - Open context menu.
  * @param {Array<HTMLElement>} items - Selectable menu items.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function _focusCtxItem(menu, items) {
     menu.querySelectorAll(".tv-focus-visible").forEach(el => el.classList.remove("tv-focus-visible"));
