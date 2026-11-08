@@ -73,7 +73,7 @@ window.Store = (function () {
        that could never fit would wipe the channel list on its way to failing.
        User data may displace any cache. */
     /** List eligible caches in safe, oldest-first eviction order.
-     * @param {*} except - Input to evictionOrder().
+     * @param {string} except - Storage key currently being written; never evict it.
      * @returns {Array<Object>} Candidate keys, ordered cheapest and stalest first.
      */
     function evictionOrder(except) {
@@ -100,7 +100,7 @@ window.Store = (function () {
 
     /** Write a string to localStorage, evicting cache data if the quota is full.
      * @param {string} key - Stored key or key-code.
-     * @param {*} str - Input to write().
+     * @param {string} str - Serialized value to store.
      * @returns {boolean} True if the write succeeded.
      */
     function write(key, str) {
@@ -143,7 +143,7 @@ window.Store = (function () {
     /* ── Bare strings ─────────────────────────────────────────────────────── */
     /** Read a plain string without JSON parsing.
      * @param {string} key - Stored key or key-code.
-     * @param {*} fallback - Input to getRaw().
+     * @param {string} fallback - String to return if the key is missing or unreadable.
      * @returns {string} Stored string or the provided fallback.
      */
     function getRaw(key, fallback) {
@@ -154,7 +154,7 @@ window.Store = (function () {
     }
     /** Write a plain string without JSON serialization.
      * @param {string} key - Stored key or key-code.
-     * @param {*} value - Input to setRaw().
+     * @param {string} value - Plain string value to store.
      * @returns {boolean} True if the write succeeded.
      */
     function setRaw(key, value) {
@@ -164,7 +164,7 @@ window.Store = (function () {
     /* ── JSON values ──────────────────────────────────────────────────────── */
     /** Read a JSON-serialized value, returning the fallback if unavailable.
      * @param {string} key - Stored key or key-code.
-     * @param {*} fallback - Input to get().
+     * @param {*} fallback - Default value if the key is absent or invalid JSON.
      * @returns {*} Parsed value, or the provided fallback.
      */
     function get(key, fallback) {
@@ -175,7 +175,7 @@ window.Store = (function () {
     }
     /** Store a JSON-serialized value.
      * @param {string} key - Stored key or key-code.
-     * @param {*} value - Input to set().
+     * @param {*} value - Value to encode as JSON.
      * @returns {boolean} True if serialization and storage succeeded.
      */
     function set(key, value) {
@@ -191,7 +191,7 @@ window.Store = (function () {
         try { localStorage.removeItem(key); } catch (e) {}
     }
     /** Remove each key supplied by the caller.
-     * @param {*} keys - Input to removeAll().
+     * @param {Array<string>} keys - Storage keys to remove.
      * @returns {void} No return value.
      */
     function removeAll(keys) {
@@ -265,7 +265,7 @@ window.Store = (function () {
        leaving another server's channel and VOD caches behind shows one
        account's content under another's credentials. */
     /** Remove storage entries whose keys begin with the prefix.
-     * @param {*} prefix - Input to removeByPrefix().
+     * @param {string} prefix - Key prefix identifying entries to remove.
      * @returns {number} Number of removed keys.
      */
     function removeByPrefix(prefix) {
