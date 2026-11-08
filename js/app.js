@@ -162,6 +162,7 @@ function _bootUI(categories, playlistEpgUrl) {
     renderCategories(categories);
     setupSearch();
     setupPip();
+    setupRadioUI();
     setupTimelineNav();
 
     activeCategory = Favourites.isEmpty() ? "all" : "favs";
@@ -183,6 +184,100 @@ function _bootUI(categories, playlistEpgUrl) {
 }
 
 
+
+/* ── Native audio-radio playback ────────────────────────────────────────────
+ * The regular IPTVPlayer drives a <video> decoder. An Internet radio
+ * Icecast/Airtime endpoint returns continuous MP3/AAC bytes, not HLS video.
+ * Use one native <audio> element, as recommended in LG's webOS audio guide.
+ * Release the video decoder before radio, and close the radio connection
+ * before returning to video playback.
+ */
+function stopRadio() {
+    var audio = document.getElementById("radio-audio");
+    var visual = document.getElementById("radio-visual");
+    if (audio) {
+        try { audio.pause(); } catch (_) {}
+        audio.removeAttribute("src");
+        try { audio.load(); } catch (_) {}
+    }
+    if (visual) visual.style.display = "none";
+    var video = document.getElementById("player");
+    if (video) video.style.display = "block";
+}
+
+function setupRadioUI() {
+    var audio = document.getElementById("radio-audio");
+    var status = document.getElementById("radio-status");
+    var toggle = document.getElementById("radio-toggle");
+    function radioActive() { return currentChannel && currentChannel._radio; }
+    audio.addEventListener("playing", function () {
+        if (!radioActive()) return;
+        status.textContent = "LIVE · Listening";
+        toggle.textContent = "Pause";
+    });
+    audio.addEventListener("waiting", function () {
+        if (radioActive()) status.textContent = "Buffering live radio…";
+    });
+    audio.addEventListener("pause", function () {
+        if (!radioActive() || !audio.getAttribute("src")) return;
+        status.textContent = "Paused";
+        toggle.textContent = "Play";
+    });
+    audio.addEventListener("error", function () {
+        if (!radioActive()) return;
+        status.textContent = "Stream unavailable — try again later";
+        toggle.textContent = "Retry";
+    });
+    toggle.addEventListener("click", function (event) {
+        event.stopPropagation();
+        if (!radioActive()) return;
+        if (audio.paused) {
+            status.textContent = "Connecting…";
+            toggle.textContent = "Pause";
+            var attempt;
+            try { attempt = audio.play(); }
+            catch (_) { status.textContent = "Press Play to start audio"; toggle.textContent = "Play"; return; }
+            if (attempt && typeof attempt.catch === "function") {
+                attempt.catch(function () {
+                    if (radioActive()) { status.textContent = "Couldn't start audio"; toggle.textContent = "Retry"; }
+                });
+            }
+        } else {
+            audio.pause();
+        }
+    });
+}
+
+function startRadio(ch) {
+    player.stop(); // release TV/video decoder first
+    var audio = document.getElementById("radio-audio");
+    var visual = document.getElementById("radio-visual");
+    document.getElementById("player").style.display = "none";
+    document.getElementById("player-msg").style.display = "none";
+    document.getElementById("radio-name").textContent = ch.name;
+    document.getElementById("radio-status").textContent = "Connecting…";
+    document.getElementById("radio-toggle").textContent = "Pause";
+    visual.style.display = "flex";
+
+    try { audio.pause(); } catch (_) {}
+    audio.src = ch.stream_url;
+    var attempt;
+    try { attempt = audio.play(); }
+    catch (_) {
+        document.getElementById("radio-status").textContent = "Press Play to start audio";
+        document.getElementById("radio-toggle").textContent = "Play";
+        return;
+    }
+    if (attempt && typeof attempt.catch === "function") {
+        attempt.catch(function () {
+            if (currentChannel === ch) {
+                document.getElementById("radio-status").textContent = "Press Play to start audio";
+                document.getElementById("radio-toggle").textContent = "Play";
+            }
+        });
+    }
+}
+
 // ── Channel selection ─────────────────────────────────────────────────────────
 
 async function selectChannel(ch) {
@@ -191,6 +286,16 @@ async function selectChannel(ch) {
     rowCache.forEach((entry, sid) => entry.row.classList.toggle("selected", sid === _selSid));
     document.getElementById("preview-channel-name").textContent = ch.name || "Unknown";
     document.getElementById("pip-channel-name").textContent     = ch.name || "Unknown";
+    if (ch._radio) {
+        startRadio(ch);
+        setEPG("now", "Live radio", "", "");
+        setEPG("next", "—", "", "");
+        document.getElementById("epg-bar-fill").style.width = "0%";
+        showPreviewInfo();
+        showOSD();
+        return;
+    }
+    stopRadio();
     const playUrl = ch._source === "m3u" ? m3uBuildLiveURL(ch) : xtreamBuildLiveURL(cfg, ch.stream_id);
     // The key lets the player remember which engine actually worked for THIS
     // channel, so a 4K/HEVC channel that only plays on HLS starts there.
@@ -311,8 +416,17 @@ function channelStep(delta) {
   ];
 
     var japanPlaylistUrl = "https://iptv-org.github.io/iptv/countries/jp.m3u";
+  // Direct public audio endpoints (MP3). All three returned audio bytes in
+  // a US network check on 2026-11-07. Shonan's URL comes from its official site.
+  var radioChannels = [
+    { stream_id: "radio-wtmd", name: "WTMD 89.7 FM", category_id: "radio", stream_icon: "", stream_url: "https://wtmd-ice.streamguys1.com/wtmd.mp3", _radio: true, _source: "m3u" },
+    { stream_id: "radio-wtmd-hd2", name: "WTMD HD2 — The Baltimore Channel", category_id: "radio", stream_icon: "", stream_url: "https://wtmd-ice.streamguys1.com/hd2.mp3", _radio: true, _source: "m3u" },
+    { stream_id: "radio-shonan", name: "Shonan Beach FM 78.9", category_id: "radio", stream_icon: "", stream_url: "https://shonanbeachfm.out.airtime.pro/shonanbeachfm_c", _radio: true, _source: "m3u" }
+  ];
+
   var categories = [
     { category_id: "toonami", category_name: "Toonami Aftermath" },
+    { category_id: "radio", category_name: "Radio Stations" },
     { category_id: "japan", category_name: "Japan TV (IPTV-org)" },
     { category_id: "japan-news", category_name: "Japan — News" },
     { category_id: "japan-anime", category_name: "Japan — Anime & Kids" },
@@ -347,17 +461,17 @@ function channelStep(delta) {
       seenUrls[verifiedJapanExtras[v].stream_url] = true;
     }
     japanese = japanese.filter(function (ch) { return !seenUrls[ch.stream_url]; });
-    allChannels = toonamiChannels.concat(verifiedJapanExtras, japanese);
+    allChannels = toonamiChannels.concat(verifiedJapanExtras, radioChannels, japanese);
     updateSidebarActive();
     applyFilters(true);
     status.textContent = allChannels.length + " channels (4 Toonami + " +
-        verifiedJapanExtras.length + " verified extras + " + japanese.length +
+        verifiedJapanExtras.length + " verified extras + 3 radio + " + japanese.length +
         " Japan directory" + (cached ? ", cached" : "") + ")";
     return true;
   }
 
   epgCache = loadEpgDiskCache();
-  allChannels = toonamiChannels.concat(verifiedJapanExtras);
+  allChannels = toonamiChannels.concat(verifiedJapanExtras, radioChannels);
   status.textContent = allChannels.length + " channels - loading Japan TV directory...";
   _bootUI(categories, "");
 
