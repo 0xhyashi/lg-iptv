@@ -231,8 +231,56 @@ var WeatherChannel = (function () {
         }
         updateControls();
     }
+    function cycleSound(step) {
+        var options = ["nightwave", "classic", "soma"];
+        var index = options.indexOf(soundtrack);
+        changeSound(options[(index + options.length + (step || 1)) % options.length]);
+        updateControls();
+    }
     function handleKey(e, key) {
         if (!active) return false;
+        var focus = document.activeElement;
+        var fid = focus && focus.id || "";
+        if (fid === "weatherstar-city" && key !== 461 && key !== 27 && key !== 8
+            && key !== 415 && key !== 19 && key !== 179) {
+            // Let the native TV keyboard edit the City/ZIP field.
+            return false;
+        }
+        if (key === 38 || key === 40) {
+            e.preventDefault();
+            if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+            if (fid === "weatherstar-soundtrack") {
+                cycleSound(key === 38 ? -1 : 1);
+            } else {
+                var select = $("weatherstar-soundtrack");
+                if (select) select.focus();
+            }
+            return true;
+        }
+        if (key === 37 || key === 39) {
+            e.preventDefault();
+            if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+            var ids = ["weatherstar-city","weatherstar-location-go",
+                "weatherstar-soundtrack","weatherstar-music","weatherstar-source",
+                "weatherstar-fullscreen","weatherstar-exit"];
+            var idx = ids.indexOf(fid);
+            var newIdx = idx === -1 ? 2 : (idx + ids.length + (key === 37 ? -1 : 1)) % ids.length;
+            var target = $(ids[newIdx]);
+            if (target) target.focus();
+            return true;
+        }
+        if (key === 13) {
+            if (fid === "weatherstar-soundtrack") {
+                e.preventDefault();
+                if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+                cycleSound(1);return true;
+            }
+            if (/^weatherstar-(?:music|source|fullscreen|exit|location-go)$/.test(fid)) {
+                e.preventDefault();
+                if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+                focus.click();return true;
+            }
+        }
         if (key === 461 || key === 27 || key === 8) {
             e.preventDefault();
             if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
@@ -323,6 +371,6 @@ var WeatherChannel = (function () {
         frame.addEventListener("load",onFrameLoaded);
     }
     return {setup:setup,open:open,close:close,
-        isOpen:function(){return active;},changeSound:changeSound,
+        isOpen:function(){return active;},changeSound:changeSound,cycleSound:cycleSound,
         handleKey:handleKey,backToChannels:backToChannels};
 }());
