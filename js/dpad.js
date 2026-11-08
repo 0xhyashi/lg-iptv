@@ -1,5 +1,8 @@
-// D-pad / LG TV Remote Navigation
-// Requires "disableBackHistoryAPI": true in appinfo.json
+/* dpad.js — routes LG remote keys to TV, Bunkhouse radio and WeatherStar.
+ * Owns focus zones, numeric entry and back navigation for Live TV.
+ * Requires disableBackHistoryAPI: true in appinfo.json.
+ * Uses DOM globals from livetv/state.js and frontend modules.
+ */
 
 let tvFocusZone       = "channel-list";
 let tvRowIndex        = 0;
@@ -27,6 +30,10 @@ let _assignPanelIndex = 0;
 //   tvGoBack();                    // exit app → webOS Home / exit popup
 //   tvGoBack("../index.html");     // navigate back to homepage
 
+/** Navigate out of Live TV to its previous page.
+ * @param {string} backUrl - Back navigation URL.
+ * @returns {void} Updates module state or the UI.
+ */
 function tvGoBack(backUrl) {
     if (backUrl) {
         window.location.href = backUrl;
@@ -39,10 +46,17 @@ function tvGoBack(backUrl) {
 // If not called, Back exits the app via webOS.platformBack().
 //
 // Usage (at page init):  tvSetBackUrl("../index.html");
+/** Remember where Back should return.
+ * @param {string} url - Target URL.
+ * @returns {void} Updates module state or the UI.
+ */
 function tvSetBackUrl(url) {
     window._tvBackUrl = url;
 }
 
+/** Install the single Live TV remote key handler.
+ * @returns {void} Updates module state or the UI.
+ */
 function initTVNavigation() {
     window.addEventListener("keydown", onTVKeyDown, { capture: true, passive: false });
 
@@ -63,6 +77,9 @@ function initTVNavigation() {
     });
 }
 
+/** Restore focus for the active UI zone.
+ * @returns {void} Updates module state or the UI.
+ */
 function _restoreZoneFocus() {
     if      (tvFocusZone === "sidebar-header") _focusSidebarHeader();
     else if (tvFocusZone === "sidebar-cats")   tvFocusSidebarItem(tvSidebarIndex);
@@ -72,9 +89,17 @@ function _restoreZoneFocus() {
 
 /* Delegates to Dom, which also maps named keys (`e.key`) for environments that
    dispatch those with keyCode 0 — the simulator among them. */
+/** Normalize remote or keyboard key codes.
+ * @param {KeyboardEvent} e - Remote or keyboard event.
+ * @returns {number} Value described above.
+ */
 function _keyCode(e) {
     return (typeof Dom !== "undefined") ? Dom.keyCode(e) : (e.keyCode || e.which);
 }
+/** Identify the LG Back key.
+ * @param {KeyboardEvent} e - Remote or keyboard event.
+ * @returns {boolean} Value described above.
+ */
 function _isBack(e)  { return _keyCode(e) === 461; }
 
 // webOS TV remote key codes
@@ -85,6 +110,10 @@ const _KEY = {
     CH_UP_ALT: 33, CH_DN_ALT: 34
 };
 
+/** Route one remote key to modal, radio, weather or TV navigation.
+ * @param {KeyboardEvent} e - Remote or keyboard event.
+ * @returns {void} Updates module state or the UI.
+ */
 function onTVKeyDown(e) {
     const kc = _keyCode(e);
 
@@ -319,6 +348,9 @@ function onTVKeyDown(e) {
 /* What a typed channel number means on the Live TV page: pick that row out of
    the list currently on screen, play it, and move the focus ring to it so the
    list agrees with what is playing. */
+/** Expose the filtered channel list for numeric remote entry.
+ * @returns {Object} Value described above.
+ */
 function _liveChannelTarget() {
     return {
         total:  () => _vsChannels.length,
@@ -344,6 +376,10 @@ function _liveChannelTarget() {
    next mystery button takes one look instead of a guess. */
 const _UNHANDLED_KEYS_KEY = "iptv_unhandled_keys";
 
+/** Record an unsupported key for diagnostics.
+ * @param {*} kc - Input for _noteUnhandledKey().
+ * @returns {void} Updates module state or the UI.
+ */
 function _noteUnhandledKey(kc) {
     if (!kc || typeof Store === "undefined") return;
     const seen = Store.get(_UNHANDLED_KEYS_KEY, []) || [];
@@ -354,6 +390,10 @@ function _noteUnhandledKey(kc) {
 
 // ── Zone management ───────────────────────────────────────────────────────────
 
+/** Switch the focused TV navigation region.
+ * @param {*} zone - Input for setTVZone().
+ * @returns {void} Updates module state or the UI.
+ */
 function setTVZone(zone) {
     tvFocusZone = zone; tvRowSubZone = "row"; tvSidebarSubZone = "item";
     document.querySelectorAll(".tv-focus-visible").forEach(el => el.classList.remove("tv-focus-visible"));
@@ -374,6 +414,9 @@ function setTVZone(zone) {
     }
 }
 
+/** Focus the sidebar's search or header controls.
+ * @returns {void} Updates module state or the UI.
+ */
 function _focusSidebarHeader() {
     _clearFocus();
     const btns = [document.getElementById("home-btn"), document.getElementById("settings-btn")];
@@ -383,6 +426,9 @@ function _focusSidebarHeader() {
 
 // ── Focus helpers ─────────────────────────────────────────────────────────────
 
+/** Collect selectable sidebar entries.
+ * @returns {Array<HTMLElement>} Value described above.
+ */
 function getSidebarFocusables() {
     const panel = document.querySelector(".sidebar-panel.active");
     if (!panel) return [];
@@ -391,16 +437,27 @@ function getSidebarFocusables() {
     )).filter(el => el.offsetParent !== null);
 }
 
+/** Remove all TV focus highlights.
+ * @returns {void} Updates module state or the UI.
+ */
 function _clearFocus() { document.querySelectorAll(".tv-focus-visible").forEach(el => el.classList.remove("tv-focus-visible")); }
 
 /* The ★ belonging to a sidebar row, or null when that row has none (the All
    button, section headers, "+ New Group"). */
+/** Find a sidebar category favorite control.
+ * @param {number} idx - Zero-based selection index.
+ * @returns {HTMLElement|null} Value described above.
+ */
 function _sidebarStarFor(idx) {
     const el = getSidebarFocusables()[idx];
     const row = el?.closest?.(".cat-row");
     return row ? row.querySelector(".cat-star-btn") : null;
 }
 
+/** Focus a sidebar row by index.
+ * @param {number} idx - Zero-based selection index.
+ * @returns {void} Updates module state or the UI.
+ */
 function tvFocusSidebarItem(idx) {
     _clearFocus();
     const el = getSidebarFocusables()[idx];
@@ -410,6 +467,10 @@ function tvFocusSidebarItem(idx) {
     el.scrollIntoView({ block: "nearest" });
 }
 
+/** Focus a TV channel row by index.
+ * @param {number} idx - Zero-based selection index.
+ * @returns {void} Updates module state or the UI.
+ */
 function tvFocusRow(idx) {
     _clearFocus();
     document.querySelectorAll(".tv-row-active").forEach(el => el.classList.remove("tv-row-active"));
@@ -422,6 +483,9 @@ function tvFocusRow(idx) {
     });
 }
 
+/** Move focus among row-specific actions.
+ * @returns {void} Updates module state or the UI.
+ */
 function tvFocusRowButtons() {
     _clearFocus();
     const ch = _vsChannels[tvRowIndex];
@@ -449,6 +513,10 @@ function tvFocusRowButtons() {
    lookup ran against a row that had not been built yet, found nothing, and
    silently drew no ring at all. Syncing _vsScrollTop and rendering here closes
    that window; the later scroll-driven render is then a no-op repaint. */
+/** Scroll to a virtualized channel row.
+ * @param {number} idx - Zero-based selection index.
+ * @returns {void} Updates module state or the UI.
+ */
 function scrollTVRowIntoView(idx) {
     const wrap = document.getElementById("channel-list-wrap");
     if (!wrap) return;
@@ -460,6 +528,11 @@ function scrollTVRowIntoView(idx) {
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
+/** Handle keyboard movement in a modal.
+ * @param {KeyboardEvent} e - Remote or keyboard event.
+ * @param {HTMLElement} modal - Open modal DOM node.
+ * @returns {void} Updates module state or the UI.
+ */
 function _handleModalKey(e, modal) {
     if (_isBack(e)) {
         e.preventDefault(); e.stopImmediatePropagation();
@@ -484,6 +557,11 @@ function _handleModalKey(e, modal) {
     if (kc === _KEY.ENTER) { if (focused) { focused.click(); return; } inp?.focus(); return; }
 }
 
+/** Focus a specific modal control.
+ * @param {HTMLElement} modal - Open modal DOM node.
+ * @param {HTMLElement} el - Element to focus.
+ * @returns {void} Updates module state or the UI.
+ */
 function _setModalFocus(modal, el) {
     modal.querySelectorAll(".tv-focus-visible").forEach(x => x.classList.remove("tv-focus-visible"));
     if (el) { el.classList.add("tv-focus-visible"); if (el.tagName === "INPUT") el.focus(); }
@@ -491,6 +569,11 @@ function _setModalFocus(modal, el) {
 
 // ── Assign panel ──────────────────────────────────────────────────────────────
 
+/** Navigate the favorites assignment panel.
+ * @param {KeyboardEvent} e - Remote or keyboard event.
+ * @param {HTMLElement} panel - Open sidebar panel.
+ * @returns {void} Updates module state or the UI.
+ */
 function _handleAssignPanelKey(e, panel) {
     if (_isBack(e)) {
         e.preventDefault(); e.stopImmediatePropagation();
@@ -519,6 +602,11 @@ function _handleAssignPanelKey(e, panel) {
     e.preventDefault();
 }
 
+/** Focus an assignment panel item.
+ * @param {HTMLElement} panel - Open sidebar panel.
+ * @param {Array<HTMLElement>} items - Selectable menu items.
+ * @returns {void} Updates module state or the UI.
+ */
 function _focusAssignItem(panel, items) {
     panel.querySelectorAll(".tv-focus-visible").forEach(el => el.classList.remove("tv-focus-visible"));
     const el = items[_assignPanelIndex];
@@ -527,6 +615,11 @@ function _focusAssignItem(panel, items) {
 
 // ── Context menu ──────────────────────────────────────────────────────────────
 
+/** Navigate a sidebar context menu.
+ * @param {KeyboardEvent} e - Remote or keyboard event.
+ * @param {HTMLElement} menu - Open context menu.
+ * @returns {void} Updates module state or the UI.
+ */
 function _handleCtxMenuKey(e, menu) {
     if (_isBack(e)) {
         e.preventDefault(); e.stopImmediatePropagation();
@@ -547,6 +640,11 @@ function _handleCtxMenuKey(e, menu) {
     e.preventDefault();
 }
 
+/** Focus an item in a context menu.
+ * @param {HTMLElement} menu - Open context menu.
+ * @param {Array<HTMLElement>} items - Selectable menu items.
+ * @returns {void} Updates module state or the UI.
+ */
 function _focusCtxItem(menu, items) {
     menu.querySelectorAll(".tv-focus-visible").forEach(el => el.classList.remove("tv-focus-visible"));
     const el = items[_ctxMenuIndex];
