@@ -38,6 +38,7 @@ jobs:
             'https://wtmd-ice.streamguys1.com/wtmd.mp3',
             'https://wtmd-ice.streamguys1.com/hd2.mp3',
             'https://shonanbeachfm.out.airtime.pro/shonanbeachfm_c',
+            'https://live.amperwave.net/direct/audacy-wezbfmmp3-imc',
             'radioChannels, japanese',
             '/est/playlist.m3u8',
             '/pst/playlist.m3u8',
@@ -47,6 +48,6 @@ jobs:
           ]) if (!js.includes(str)) throw new Error('Missing source: ' + str);
           if (!html.includes('id="radio-audio"') || !html.includes('id="radio-visual"')) throw new Error('Missing audio UI');
           if (!css.includes('#radio-visual')) throw new Error('Missing compiled CSS');
-          if (info.version !== '1.0.36') throw new Error('Wrong version: '+info.version);
+          if (info.version !== '1.0.37') throw new Error('Wrong version: '+info.version);
           console.log('Radio build check passed: v'+info.version);
           NODE
