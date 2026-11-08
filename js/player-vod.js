@@ -774,6 +774,7 @@
      */
     function searchAll(q) {
         var providers = searchProviders();
+        var errors = [];
         var jobs = providers.map(function (p) {
             return p.api.search(q).then(function (rows) {
                 return (rows || []).map(function (r) {
@@ -782,19 +783,19 @@
                     return r;
                 });
             })['catch'](function (err) {
-                _searchErrors.push(p.label + ': ' + ((err && err.message) || 'failed'));
+                errors.push(p.label + ': ' + ((err && err.message) || 'failed'));
                 return null;   // null = this provider never answered; [] = it answered with nothing
             });
         });
         return Promise.all(jobs).then(function (lists) {
             var merged = [];
-            _searchOk = 0;
+            var searched = 0;
             for (var i = 0; i < lists.length; i++) {
                 if (lists[i] === null) continue;
-                _searchOk++;
+                searched++;
                 merged = merged.concat(lists[i]);
             }
-            return rankResults(merged, providers);
+            return { results: rankResults(merged, providers), errors: errors, searched: searched };
         });
     }
 
@@ -834,15 +835,14 @@
         });
     }
 
-    var _searchErrors = [];
-    var _searchOk = 0;          // providers that actually answered, however emptily
+    var _osSearchId = 0; // Ignore results from an earlier search or download.
 
     /** Open Os Search for VOD playback and remote controls.
      * @returns {void} Updates module or UI state.
      */
     function openOsSearch() {
+        var searchId = ++_osSearchId;
         menuMode = 'os';
-        _searchErrors = [];
         subsOptions = [{ kind: 'note', label: 'Searching…' }];
         renderMenu('Online subtitles');
 
@@ -860,8 +860,9 @@
             return;
         }
 
-        searchAll(q).then(function (results) {
-            if (menuMode !== 'os') return;                  // user moved on
+        searchAll(q).then(function (answer) {
+            if (searchId !== _osSearchId || menuMode !== 'os' || !subsOpen) return;
+            var results = answer.results;
             if (!results.length) {
                 /* "No subtitles found" is a claim about the TITLE, and it is
                    only true if something actually searched. When every provider
@@ -869,11 +870,11 @@
                    had — reporting a refusal as an absence — so the error leads
                    instead and the claim is dropped entirely. */
                 var why;
-                if (!_searchOk && _searchErrors.length) {
-                    why = 'Could not search: ' + _searchErrors.join('  ·  ');
+                if (!answer.searched && answer.errors.length) {
+                    why = 'Could not search: ' + answer.errors.join('  ·  ');
                 } else {
                     why = 'No subtitles found for "' + q.title + '".';
-                    if (_searchErrors.length) why += '  ' + _searchErrors.join('  ·  ');
+                    if (answer.errors.length) why += '  ' + answer.errors.join('  ·  ');
                 }
                 subsOptions = [{ kind: 'note', label: why }];
             } else {
@@ -904,7 +905,7 @@
             }
             renderMenu('Online subtitles');
         })['catch'](function (err) {
-            if (menuMode !== 'os') return;
+            if (searchId !== _osSearchId || menuMode !== 'os' || !subsOpen) return;
             subsOptions = [{ kind: 'note', label: (err && err.message) ? err.message : 'Search failed.' }];
             renderMenu('Online subtitles');
         });
@@ -915,12 +916,13 @@
      * @returns {*} Value produced by the operation.
      */
     function downloadOsSubtitle(opt) {
+        var searchId = ++_osSearchId;
         subsOptions = [{ kind: 'note', label: 'Downloading subtitle…' }];
         renderMenu('Online subtitles');
 
         var api = (opt.provider === 'assrt' && typeof Assrt !== 'undefined') ? Assrt : OpenSubtitles;
         api.download(opt.fileId, opt.lang).then(function (res) {
-            if (menuMode !== 'os') return;
+            if (searchId !== _osSearchId || menuMode !== 'os' || !subsOpen) return;
             /* Providers hand back different things: OpenSubtitles a URL to
                fetch, Assrt the decoded text (it has to decode — its files are
                frequently GB18030). addExternalSubs accepts either, and `format`
@@ -942,6 +944,7 @@
             /* addExternalSubs fetches and converts before the track appears, so
                poll briefly for it rather than assuming it's there. */
             waitForTrack(_osLabel(opt), function (found) {
+                if (searchId !== _osSearchId || menuMode !== 'os' || !subsOpen) return;
                 if (found && player.setSubtitle) {
                     var subs = player.listSubtitles();
                     for (var i = 0; i < subs.length; i++) {
@@ -959,7 +962,7 @@
                 }
             });
         })['catch'](function (err) {
-            if (menuMode !== 'os') return;
+            if (searchId !== _osSearchId || menuMode !== 'os' || !subsOpen) return;
             subsOptions = [{ kind: 'note', label: (err && err.message) ? err.message : 'Download failed.' }];
             renderMenu('Online subtitles');
         });
@@ -1081,7 +1084,13 @@
     /** Close Subs for VOD playback and remote controls.
      * @returns {void} Updates module or UI state.
      */
-    function closeSubs() { subsMenu.hidden = true; subsOpen = false; paintFocus(); showOsd(); }
+    function closeSubs() {
+        ++_osSearchId;
+        subsMenu.hidden = true;
+        subsOpen = false;
+        paintFocus();
+        showOsd();
+    }
 
     /* Transient message over the video — used when an action silently fails and
        there's no menu left open to report into. */
