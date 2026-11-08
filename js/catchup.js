@@ -466,6 +466,9 @@
      * @returns {void} No return value.
      */
     function openHome() {
+        // Invalidate any archive response from a channel we just left.
+        ++epgReqKey;
+        pendingMainFocus = false;
         mainMode = 'cw';
         currentCh = null;
         elArchive.hidden = true; elCw.hidden = false;
