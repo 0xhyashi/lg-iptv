@@ -99,11 +99,8 @@ function onTVKeyDown(e) {
     // button free to mean something at the page level.
     if (kc === 406 /* BLUE */ || kc === 77 /* 'm' — desktop testing */) {
         e.preventDefault();
-        // When listening to audio, BLUE cycles Headspace / Scope / Tuner.
-        // Multiview is for video only, so this does not steal a working action.
-        if (currentChannel && currentChannel._radio && typeof RadioDeck !== "undefined") {
-            RadioDeck.cycleMode(1);
-        } else if (typeof openMultiview === "function") {
+        // Radio has a single Saturn view; BLUE remains reserved for video Multiview.
+        if ((!currentChannel || !currentChannel._radio) && typeof openMultiview === "function") {
             openMultiview();
         }
         return;
@@ -115,6 +112,10 @@ function onTVKeyDown(e) {
     if (modal)       { _handleModalKey(e, modal);             return; }
     if (assignPanel) { _handleAssignPanelKey(e, assignPanel); return; }
     if (ctxMenu)     { _handleCtxMenuKey(e, ctxMenu);         return; }
+    // Bunkhouse radio mode is a real separate navigation surface; station
+    // buttons in the sidebar own UP/DOWN/ENTER rather than the hidden TV grid.
+    if (typeof bunkhouseHandleKey === "function" && bunkhouseHandleKey(e, kc)) return;
+
 
     // If an input/select is focused (on-screen keyboard open), only handle Back
     // to dismiss — all other keys go to the input as normal.
