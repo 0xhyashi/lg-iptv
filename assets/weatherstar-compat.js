@@ -7,6 +7,11 @@
 (function () {
     'use strict';
     var W = window;
+    /** Send for WeatherStar iframe compatibility and local diagnostics.
+     * @param {*} type - Input for send().
+     * @param {*} message - Input for send().
+     * @returns {*} Function result.
+     */
     function send(type, message) {
         try {
             if (W.parent !== W) W.parent.postMessage({
