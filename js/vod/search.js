@@ -71,8 +71,8 @@ function initSearchEngine() {
 
 /** Append searchable movie or series entries to an index.
  * @param {number} idx - Index.
- * @param {*} arr - Input for buildIndexInto().
- * @param {*} type - Input for buildIndexInto().
+ * @param {Array<Object>} arr - Movie or series records to index.
+ * @param {string} type - Record kind, movie or series.
  * @returns {void} No return value.
  */
 function buildIndexInto(idx, arr, type) {
@@ -90,8 +90,8 @@ function buildIndexInto(idx, arr, type) {
     }
 }
 /** Init Fallback Search for VOD catalog search.
- * @param {*} movieUrl - Input for initFallbackSearch().
- * @param {*} seriesUrl - Input for initFallbackSearch().
+ * @param {string} movieUrl - URL for movie catalog records.
+ * @param {string} seriesUrl - URL for series catalog records.
  * @returns {void} No return value.
  */
 function initFallbackSearch(movieUrl, seriesUrl) {
@@ -106,7 +106,7 @@ function initFallbackSearch(movieUrl, seriesUrl) {
     fetchJSON(seriesUrl).then(function (d) { buildIndexInto(searchIndex, d, 'series'); done(); }).catch(done);
 }
 /** Find matching local VOD entries without a worker.
- * @param {*} q - Input for mainThreadSearch().
+ * @param {string} q - Search query, case-insensitive.
  * @returns {Array<Object>} Matching movie and series items, capped at the search limit.
  */
 function mainThreadSearch(q) {
@@ -144,9 +144,9 @@ function runSearch() {
 }
 
 /** Render Search Results for VOD catalog search.
- * @param {*} items - Input for renderSearchResults().
- * @param {*} q - Input for renderSearchResults().
- * @param {*} ready - Input for renderSearchResults().
+ * @param {Array<Object>} items - Matching catalog entries.
+ * @param {string} q - Normalized query to highlight.
+ * @param {boolean} ready - Whether search indexing is complete.
  * @returns {void} No return value.
  */
 function renderSearchResults(items, q, ready) {
