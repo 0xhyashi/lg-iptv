@@ -228,6 +228,17 @@ function setupRadioUI() {
         status.textContent = "Stream unavailable — try again later";
         toggle.textContent = "Retry";
     });
+    // LG remote transport keys: Play (415), Pause (19), Play/Pause (179).
+    // Handle only radio mode; regular video keeps its original key controls.
+    window.addEventListener("keydown", function (event) {
+        if (!radioActive()) return;
+        var key = event.keyCode || event.which;
+        if (key !== 415 && key !== 19 && key !== 179) return;
+        if ((key === 415 && !audio.paused) || (key === 19 && audio.paused)) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        toggle.click();
+    }, true);
     toggle.addEventListener("click", function (event) {
         event.stopPropagation();
         if (!radioActive()) return;
