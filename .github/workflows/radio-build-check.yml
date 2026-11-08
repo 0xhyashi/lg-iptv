@@ -76,7 +76,7 @@ jobs:
             'retro-weather',
             'WeatherChannel.open'
           ]) if (!js.includes(str)) throw new Error('Missing station or TV/navigation feature: '+str);
-          for (const id of ['media-tv','media-radio','radio-stations','radio-audio','radio-visual','bk-saturn','bk-equalizer','radio-history-list','radio-track','radio-artist','radio-cover','radio-toggle','radio-prev','radio-next','weatherstar-view','weatherstar-frame','weatherstar-city','weatherstar-location-go','weatherstar-source','weatherstar-exit']) {
+          for (const id of ['media-tv','media-radio','radio-stations','radio-audio','radio-visual','bk-saturn','bk-equalizer','radio-history-list','radio-track','radio-artist','radio-cover','radio-toggle','radio-prev','radio-next','weatherstar-view','weatherstar-frame','weatherstar-city','weatherstar-location-go','weatherstar-retry','weatherstar-exit']) {
             if (!html.includes('id="'+id+'"')) throw new Error('Missing Bunkhouse UI element: '+id);
           }
           if (!html.includes('dist/css/bunkhouse.css') || !html.includes('assets/bunkhouse-saturn.jpg') || !html.includes('dist/js/livetv/radio.js')) throw new Error('Bunkhouse styles, image, or module is not linked');
