@@ -42,9 +42,9 @@ window.Store = (function () {
        entry older than this is dead weight whatever it is. */
     var STALE_MS = 26 * 60 * 60 * 1000;
 
-    /** Family Of for safe localStorage and cache operations.
+    /** Identify which evictable cache family owns a storage key.
      * @param {string} key - Stored key or key-code.
-     * @returns {*} Result of the operation.
+     * @returns {number} Cache family index, or -1 for non-cache/user data.
      */
     function familyOf(key) {
         for (var f = 0; f < CACHE_FAMILIES.length; f++) {
@@ -57,9 +57,9 @@ window.Store = (function () {
 
     /* Every cache entry starts {"ts":<ms>, … — JSON.stringify keeps key order —
        so the age is read off the front without parsing a multi-megabyte value. */
-    /** Entry Ts for safe localStorage and cache operations.
+    /** Read the timestamp prefix of a cached entry without parsing its full data.
      * @param {string} key - Stored key or key-code.
-     * @returns {*} Result of the operation.
+     * @returns {number} Entry timestamp in milliseconds, or zero.
      */
     function entryTs(key) {
         try {
@@ -72,9 +72,9 @@ window.Store = (function () {
        rebuild than itself (plus anything stale) — otherwise one oversized guide
        that could never fit would wipe the channel list on its way to failing.
        User data may displace any cache. */
-    /** Eviction Order for safe localStorage and cache operations.
+    /** List eligible caches in safe, oldest-first eviction order.
      * @param {*} except - Input to evictionOrder().
-     * @returns {*} Result of the operation.
+     * @returns {Array<Object>} Candidate keys, ordered cheapest and stalest first.
      */
     function evictionOrder(except) {
         var all = keys(), list = [];
@@ -98,10 +98,10 @@ window.Store = (function () {
         return list;
     }
 
-    /** Write for safe localStorage and cache operations.
+    /** Write a string to localStorage, evicting cache data if the quota is full.
      * @param {string} key - Stored key or key-code.
      * @param {*} str - Input to write().
-     * @returns {*} Result of the operation.
+     * @returns {boolean} True if the write succeeded.
      */
     function write(key, str) {
         try { localStorage.setItem(key, str); return true; } catch (e) {}
@@ -116,8 +116,8 @@ window.Store = (function () {
     /* Drops cache entries past any TTL. Run once per launch from the homepage
        (prewarm.js), so space is reclaimed before anything needs it rather than
        only when a write has already failed. */
-    /** Sweep for safe localStorage and cache operations.
-     * @returns {*} Result of the operation.
+    /** Discard old cached entries that are past all known TTLs.
+     * @returns {number} Number of expired entries removed.
      */
     function sweep() {
         var stale = Date.now() - STALE_MS, n = 0, all = keys();
@@ -129,8 +129,8 @@ window.Store = (function () {
     }
 
     /* Every cache the app keeps, for Settings → "Clear cache". */
-    /** Clear Caches for safe localStorage and cache operations.
-     * @returns {void} Updates the relevant state or UI.
+    /** Remove all evictable cache entries without deleting user settings.
+     * @returns {number} Number of cache entries removed.
      */
     function clearCaches() {
         var all = keys(), n = 0;
@@ -141,10 +141,10 @@ window.Store = (function () {
     }
 
     /* ── Bare strings ─────────────────────────────────────────────────────── */
-    /** Get Raw for safe localStorage and cache operations.
+    /** Read a plain string without JSON parsing.
      * @param {string} key - Stored key or key-code.
      * @param {*} fallback - Input to getRaw().
-     * @returns {*} Result of the operation.
+     * @returns {string} Stored string or the provided fallback.
      */
     function getRaw(key, fallback) {
         try {
@@ -152,20 +152,20 @@ window.Store = (function () {
             return v === null || v === undefined ? (fallback || '') : v;
         } catch (e) { return fallback || ''; }
     }
-    /** Set Raw for safe localStorage and cache operations.
+    /** Write a plain string without JSON serialization.
      * @param {string} key - Stored key or key-code.
      * @param {*} value - Input to setRaw().
-     * @returns {void} Updates the relevant state or UI.
+     * @returns {boolean} True if the write succeeded.
      */
     function setRaw(key, value) {
         return write(key, String(value));
     }
 
     /* ── JSON values ──────────────────────────────────────────────────────── */
-    /** Get for safe localStorage and cache operations.
+    /** Read a JSON-serialized value, returning the fallback if unavailable.
      * @param {string} key - Stored key or key-code.
      * @param {*} fallback - Input to get().
-     * @returns {*} Result of the operation.
+     * @returns {*} Parsed value, or the provided fallback.
      */
     function get(key, fallback) {
         try {
@@ -173,26 +173,26 @@ window.Store = (function () {
             return v !== null && v !== undefined ? JSON.parse(v) : fallback;
         } catch (e) { return fallback; }
     }
-    /** Set for safe localStorage and cache operations.
+    /** Store a JSON-serialized value.
      * @param {string} key - Stored key or key-code.
      * @param {*} value - Input to set().
-     * @returns {void} Updates the relevant state or UI.
+     * @returns {boolean} True if serialization and storage succeeded.
      */
     function set(key, value) {
         var str;
         try { str = JSON.stringify(value); } catch (e) { return false; }
         return write(key, str);
     }
-    /** Remove for safe localStorage and cache operations.
+    /** Remove one storage key; ignore platforms that forbid storage.
      * @param {string} key - Stored key or key-code.
-     * @returns {void} Updates the relevant state or UI.
+     * @returns {void} No return value.
      */
     function remove(key) {
         try { localStorage.removeItem(key); } catch (e) {}
     }
-    /** Remove All for safe localStorage and cache operations.
+    /** Remove each key supplied by the caller.
      * @param {*} keys - Input to removeAll().
-     * @returns {void} Updates the relevant state or UI.
+     * @returns {void} No return value.
      */
     function removeAll(keys) {
         for (var i = 0; i < keys.length; i++) remove(keys[i]);
@@ -205,10 +205,10 @@ window.Store = (function () {
        for hours, EPG for half an hour. */
     var DEFAULT_TTL = 5 * 60 * 60 * 1000;   // 5h
 
-    /** Cache Get for safe localStorage and cache operations.
+    /** Read unexpired cached data and remove it if stale.
      * @param {string} key - Stored key or key-code.
      * @param {number} ttl - Maximum cached age in milliseconds.
-     * @returns {*} Result of the operation.
+     * @returns {*} Cached data, or null if missing or expired.
      */
     function cacheGet(key, ttl) {
         var entry = get(key, null);
@@ -216,19 +216,19 @@ window.Store = (function () {
         if (Date.now() - entry.ts > (ttl || DEFAULT_TTL)) { remove(key); return null; }
         return entry.data;
     }
-    /** Cache Set for safe localStorage and cache operations.
+    /** Store data with a timestamp and quota-aware eviction.
      * @param {string} key - Stored key or key-code.
      * @param {Object} data - Input data.
-     * @returns {*} Result of the operation.
+     * @returns {boolean} True if the cache was saved.
      */
     function cacheSet(key, data) {
         return set(key, { ts: Date.now(), data: data });
     }
     /* Age of a cache entry in ms, or -1 when there isn't one. Used by the
        diagnostics panel, which wants to report staleness without evicting. */
-    /** Cache Age for safe localStorage and cache operations.
+    /** Calculate how long ago a cache entry was written.
      * @param {string} key - Stored key or key-code.
-     * @returns {*} Result of the operation.
+     * @returns {number} Age in milliseconds, or -1 if absent.
      */
     function cacheAge(key) {
         var entry = get(key, null);
@@ -236,8 +236,8 @@ window.Store = (function () {
     }
 
     /* ── Housekeeping ─────────────────────────────────────────────────────── */
-    /** Keys for safe localStorage and cache operations.
-     * @returns {*} Result of the operation.
+    /** Read all accessible localStorage key names.
+     * @returns {Array<string>} Storage key names.
      */
     function keys() {
         var out = [];
@@ -250,8 +250,8 @@ window.Store = (function () {
     /* Approximate bytes used. Reported in Settings → Diagnostics: when a TV
        starts dropping caches it is almost always because this is near the
        platform's ~5 MB ceiling. */
-    /** Bytes Used for safe localStorage and cache operations.
-     * @returns {*} Result of the operation.
+    /** Estimate localStorage usage using stored string lengths.
+     * @returns {number} Approximate character count, not UTF-8 bytes.
      */
     function bytesUsed() {
         var total = 0, all = keys();
@@ -264,9 +264,9 @@ window.Store = (function () {
     /* Drop every key matching a prefix — used when switching profiles, where
        leaving another server's channel and VOD caches behind shows one
        account's content under another's credentials. */
-    /** Remove By Prefix for safe localStorage and cache operations.
+    /** Remove storage entries whose keys begin with the prefix.
      * @param {*} prefix - Input to removeByPrefix().
-     * @returns {void} Updates the relevant state or UI.
+     * @returns {number} Number of removed keys.
      */
     function removeByPrefix(prefix) {
         var all = keys(), n = 0;
