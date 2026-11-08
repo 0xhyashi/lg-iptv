@@ -160,7 +160,7 @@ var elCategoryGrid = document.getElementById('vod-category-grid');
 
 /* ── Status helpers ──────────────────────────────────────────────── */
 /** Show Status for VOD shared state.
- * @param {string} text - Input for showStatus().
+ * @param {string} text - Status message displayed above the VOD catalog.
  * @param {boolean} spinner - Whether to show a loading spinner.
  * @returns {void} No return value.
  */
