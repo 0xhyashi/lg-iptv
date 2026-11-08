@@ -11,7 +11,8 @@ function node(id) {
     if (!nodes[id]) nodes[id]={
       id:id,style:{},value:'',textContent:'',src:'',
       setAttribute:function(){},removeAttribute:function(){},
-      addEventListener:function(){},
+      handlers:{},
+      addEventListener:function(type,handler){this.handlers[type]=handler;},
       focus:function(){},getAttribute:function(){return '';},
     };
     return nodes[id];
@@ -52,6 +53,15 @@ assert(ch && typeof ch.open==='function');
     await Promise.resolve();
     const initial=new URL(node('weatherstar-frame').src,'file:///mnt/app/pages/livetv.html');
     assert(initial.searchParams.has('latLon'),'default city MUST include latLon');
+    assert(initial.pathname.endsWith('/weatherstar/index.html'),
+        'WeatherStar must use the packaged copy rather than the black hosted iframe');
+    ch.setup();
+    assert.strictEqual(node('weatherstar-retry').textContent,'RETRY FORECAST');
+    node('weatherstar-retry').handlers.click({stopPropagation:function(){}});
+    await Promise.resolve();
+    assert(new URL(node('weatherstar-frame').src,'file:///mnt/app/pages/livetv.html')
+        .pathname.endsWith('/weatherstar/index.html'),
+        'Retry must reload the local WeatherStar, never navigate online');
     assert(initial.searchParams.get('latLonQuery')==='Ellicott City, Maryland, USA');
     assert.deepStrictEqual(JSON.parse(initial.searchParams.get('latLon')),{lat:39.2673,lon:-76.7983});
     assert.strictEqual(requests.length,0,'default location must not call a remote geocoder');
