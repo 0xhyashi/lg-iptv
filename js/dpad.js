@@ -99,8 +99,11 @@ function onTVKeyDown(e) {
     // button free to mean something at the page level.
     if (kc === 406 /* BLUE */ || kc === 77 /* 'm' — desktop testing */) {
         e.preventDefault();
-        // Radio has a single Saturn view; BLUE remains reserved for video Multiview.
-        if ((!currentChannel || !currentChannel._radio) && typeof openMultiview === "function") {
+        // In Retro Weather, BLUE cycles Nightwave / Classic / SomaFM.
+        // For regular TV BLUE remains Multiview; radio keeps Saturn mode.
+        if (currentChannel && currentChannel._weatherstar && typeof WeatherChannel !== "undefined") {
+            WeatherChannel.cycleSound(1);
+        } else if ((!currentChannel || !currentChannel._radio) && typeof openMultiview === "function") {
             openMultiview();
         }
         return;
