@@ -72,6 +72,52 @@
         }
     }
 
+    // WeatherStar's upstream HTTP layer adds a custom User-Agent header for
+    // api.weather.gov. Browser JavaScript is not permitted to set that header,
+    // and on some older LG implementations the request fails instead of
+    // ignoring it. The browser already sends its own User-Agent. Remove only
+    // this forbidden header; preserve every other request option.
+    if (typeof W.fetch === 'function') {
+        var originalFetch = W.fetch;
+        W.fetch = function (url, options) {
+            var address = String(url || '');
+            if (address.indexOf('https://api.weather.gov/') !== 0) {
+                return originalFetch.call(W, url, options);
+            }
+            var requestOptions = options;
+            if (options && options.headers) {
+                var headers = {};
+                for (var name in options.headers) {
+                    if (Object.prototype.hasOwnProperty.call(options.headers, name) &&
+                        name.toLowerCase() !== 'user-agent') {
+                        headers[name] = options.headers[name];
+                    }
+                }
+                requestOptions = {};
+                for (var key in options) {
+                    if (Object.prototype.hasOwnProperty.call(options, key)) {
+                        requestOptions[key] = options[key];
+                    }
+                }
+                requestOptions.headers = headers;
+            }
+            // Only the initial /points request is involved in the reported
+            // "National Weather Service isn't responding" startup message.
+            var isPointLookup = address.indexOf('https://api.weather.gov/points/') === 0;
+            return originalFetch.call(W, url, requestOptions).then(function (response) {
+                if (isPointLookup && !response.ok) {
+                    send('nws-error', 'HTTP ' + response.status + ' from api.weather.gov');
+                }
+                return response;
+            }, function (error) {
+                if (isPointLookup) {
+                    send('nws-error', (error && error.message) || 'Network or browser access failed');
+                }
+                throw error;
+            });
+        };
+    }
+
     // Surface precise startup errors in Bunkhouse instead of requiring
     // a USB developer console on the TV. No city, user data or credentials
     // are sent off-device by these local parent-frame messages.
