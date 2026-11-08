@@ -1,9 +1,17 @@
-/* settings.js — IPTV Settings */
+/* settings.js — manage IPTV source profiles and app preferences.
+ * Owns user-supplied Xtream and M3U settings and their validation/UI.
+ * Never log passwords or silently downgrade a configured HTTPS server.
+ */
 
 (function () {
     'use strict';
 
     /* ── Storage helpers ───────────────────────────────────────────────────── */
+    /** Load for provider and account settings.
+     * @param {string} key - Saved key or lookup ID.
+     * @param {*} fallback - Input for load().
+     * @returns {*} Value produced by the operation.
+     */
     function load(key, fallback) {
         try {
             var v = localStorage.getItem(key);
@@ -12,12 +20,24 @@
     }
     /* Through Store, so a store filled to the quota by caches makes room for
        the profile list instead of silently dropping the edit. */
+    /** Save for provider and account settings.
+     * @param {string} key - Saved key or lookup ID.
+     * @param {*} val - Value.
+     * @returns {*} Value produced by the operation.
+     */
     function save(key, val) {
         Store.set(key, val);
     }
 
     /* ── Status helper ─────────────────────────────────────────────────────── */
     var _statusTimers = {};
+    /** Set Status for provider and account settings.
+     * @param {string} id - Identifier.
+     * @param {*} msg - Input for setStatus().
+     * @param {*} cls - Input for setStatus().
+     * @param {*} autoClearMs - Input for setStatus().
+     * @returns {void} Updates module or UI state.
+     */
     function setStatus(id, msg, cls, autoClearMs) {
         var el = document.getElementById(id);
         if (!el) return;
@@ -33,10 +53,16 @@
     }
 
     /* ── Profile model ─────────────────────────────────────────────────────── */
+    /** Make Id for provider and account settings.
+     * @returns {*} Value produced by the operation.
+     */
     function makeId() {
         return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     }
 
+    /** Load Profiles for provider and account settings.
+     * @returns {*} Value produced by the operation.
+     */
     function loadProfiles() {
         var profiles = load('iptv_profiles', null);
         if (!profiles) {
@@ -69,7 +95,14 @@
         return profiles;
     }
 
+    /** Save Profiles for provider and account settings.
+     * @param {*} arr - Input for saveProfiles().
+     * @returns {*} Value produced by the operation.
+     */
     function saveProfiles(arr) { save('iptv_profiles', arr); }
+    /** Get Active Id for provider and account settings.
+     * @returns {*} Value produced by the operation.
+     */
     function getActiveId()     { return load('iptv_active_profile', null); }
 
     /* Changing the active profile invalidates the Live TV channel cache, which
@@ -85,6 +118,10 @@
 
        The EPG and VOD caches need no clearing any more: they are keyed by
        Config.scope(), so another profile's entries simply aren't found. */
+    /** Set Active Id for provider and account settings.
+     * @param {string} id - Identifier.
+     * @returns {void} Updates module or UI state.
+     */
     function setActiveId(id) {
         var changed = String(getActiveId() || '') !== String(id || '');
         save('iptv_active_profile', id);
@@ -115,6 +152,10 @@
     var tabBtns = Array.from(document.querySelectorAll('.tab-btn'));
     var panels  = Array.from(document.querySelectorAll('.settings-panel'));
 
+    /** Activate Tab for provider and account settings.
+     * @param {*} value - Value.
+     * @returns {*} Value produced by the operation.
+     */
     function activateTab(value) {
         tabBtns.forEach(function (btn) {
             var on = btn.dataset.value === value;
@@ -137,11 +178,18 @@
     });
 
     /* ── Profile type toggle ───────────────────────────────────────────────── */
+    /** Get Current Editor Type for provider and account settings.
+     * @returns {*} Value produced by the operation.
+     */
     function getCurrentEditorType() {
         var xtreamBtn = document.getElementById('type-xtream-btn');
         return (xtreamBtn && xtreamBtn.classList.contains('type-active')) ? 'xtream' : 'm3u';
     }
 
+    /** Set Editor Type for provider and account settings.
+     * @param {string} type - Content type.
+     * @returns {void} Updates module or UI state.
+     */
     function setEditorType(type) {
         var xtreamBtn  = document.getElementById('type-xtream-btn');
         var m3uBtn     = document.getElementById('type-m3u-btn');
@@ -159,6 +207,9 @@
     document.getElementById('type-m3u-btn').addEventListener('click',    function () { setEditorType('m3u'); });
 
     /* ── Profile list rendering ────────────────────────────────────────────── */
+    /** Render Profile List for provider and account settings.
+     * @returns {void} Updates module or UI state.
+     */
     function renderProfileList() {
         var list = document.getElementById('profiles-list');
         list.innerHTML = '';
@@ -194,6 +245,9 @@
     }
 
     /* ── Editor rendering ──────────────────────────────────────────────────── */
+    /** Render Editor for provider and account settings.
+     * @returns {void} Updates module or UI state.
+     */
     function renderEditor() {
         var emptyEl    = document.getElementById('editor-empty');
         var formEl     = document.getElementById('editor-form');
@@ -219,6 +273,10 @@
         renderUrlList(profile.server_urls || []);
     }
 
+    /** Render Url List for provider and account settings.
+     * @param {*} urls - Input for renderUrlList().
+     * @returns {void} Updates module or UI state.
+     */
     function renderUrlList(urls) {
         var list = document.getElementById('url-list');
         list.innerHTML = '';
@@ -251,12 +309,19 @@
     /* Normalised as they are read, so "myhost.tv:8080" is saved (and tried)
        as http://myhost.tv:8080 rather than as a relative path that can only
        fail — see Config.normaliseServerUrl(). */
+    /** Get Urls From List for provider and account settings.
+     * @returns {*} Value produced by the operation.
+     */
     function getUrlsFromList() {
         return Array.from(document.querySelectorAll('#url-list .url-row input'))
             .map(function (el) { return Config.normaliseServerUrl(el.value); })
             .filter(function (v) { return v !== ''; });
     }
 
+    /** Remove Url Row for provider and account settings.
+     * @param {number} index - Zero-based index.
+     * @returns {void} Updates module or UI state.
+     */
     function removeUrlRow(index) {
         var urls = getUrlsFromList();
         urls.splice(index, 1);
@@ -278,6 +343,9 @@
     });
 
     /* ── Add profile ───────────────────────────────────────────────────────── */
+    /** Add Profile for provider and account settings.
+     * @returns {*} Value produced by the operation.
+     */
     function addProfile() {
         var profile = {
             id: makeId(), name: 'New Profile', type: 'xtream',
@@ -378,6 +446,10 @@
         var reachedButAuthFailed = false;   // got a valid auth:0 from some server
         var accountIssue         = null;    // auth ok but Expired/Banned/Disabled
 
+        /** Connect Success for provider and account settings.
+         * @param {string} url - Requested URL.
+         * @returns {*} Value produced by the operation.
+         */
         function connectSuccess(url) {
             activeId = profile.id; setActiveId(activeId);
             save('iptv_active_resolved_url', url);
@@ -388,6 +460,9 @@
             setTimeout(function () { tvGoBack('../index.html'); }, 900);
         }
 
+        /** Report Failure for provider and account settings.
+         * @returns {*} Value produced by the operation.
+         */
         function reportFailure() {
             if (accountIssue) {
                 setStatus('profile-status', 'Login worked, but the account is ' + accountIssue + '.', 'err');
@@ -474,13 +549,26 @@
     /* The player reads its preference keys with a plain getItem, not JSON.parse,
        so they must be written as bare strings — save() would JSON-quote them and
        nothing would ever match. */
+    /** Load Raw for provider and account settings.
+     * @param {string} key - Saved key or lookup ID.
+     * @param {*} fallback - Input for loadRaw().
+     * @returns {*} Value produced by the operation.
+     */
     function loadRaw(key, fallback) {
         try { return localStorage.getItem(key) || fallback; } catch (e) { return fallback; }
     }
+    /** Save Raw for provider and account settings.
+     * @param {string} key - Saved key or lookup ID.
+     * @param {*} val - Value.
+     * @returns {*} Value produced by the operation.
+     */
     function saveRaw(key, val) {
         try { localStorage.setItem(key, val); } catch (e) {}
     }
 
+    /** Refresh Last Used Hint for provider and account settings.
+     * @returns {void} Updates module or UI state.
+     */
     function refreshLastUsedHint() {
         var hint = document.getElementById('player-last-hint');
         var sel  = document.getElementById('cfg-default-player');
@@ -549,6 +637,9 @@
 
         var KEY = (typeof Platform !== 'undefined' && Platform.PIP_MODE_KEY) || 'iptv_pip_mode';
 
+        /** Describe Current for provider and account settings.
+         * @returns {*} Value produced by the operation.
+         */
         function describeCurrent() {
             if (!hint || typeof Platform === 'undefined') return;
             var detected = Platform.videoPlaneOnly
@@ -629,11 +720,23 @@
         passEl.value = loadRaw('os_password', '');
 
         /* Changing the key or account invalidates any cached login token. */
+        /** Drop Token for provider and account settings.
+         * @returns {*} Value produced by the operation.
+         */
         function dropToken() {
             try { localStorage.removeItem('os_token'); localStorage.removeItem('os_token_ts'); } catch (e) {}
         }
 
+        /** Bind Text for provider and account settings.
+         * @param {HTMLElement} el - DOM element.
+         * @param {string} key - Saved key or lookup ID.
+         * @param {*} onChange - Input for bindText().
+         * @returns {void} Updates module or UI state.
+         */
         function bindText(el, key, onChange) {
+            /** Commit for provider and account settings.
+             * @returns {*} Value produced by the operation.
+             */
             function commit() { saveRaw(key, el.value.trim()); if (onChange) onChange(); }
             el.addEventListener('change', commit);
             el.addEventListener('blur', commit);
@@ -700,6 +803,10 @@
 
     /* ── Category hide panels (Live TV + VOD) ──────────────────────────────── */
     /* One onChange handler per storage key — adds/removes the id in the list. */
+    /** Hidden Cat Toggler for provider and account settings.
+     * @param {*} storageKey - Input for hiddenCatToggler().
+     * @returns {*} Value produced by the operation.
+     */
     function hiddenCatToggler(storageKey) {
         return function (catId, on) {
             var h = load(storageKey, []) || [];
@@ -709,6 +816,12 @@
         };
     }
 
+    /** Render Cat Toggles for provider and account settings.
+     * @param {*} wrap - Input for renderCatToggles().
+     * @param {*} cats - Input for renderCatToggles().
+     * @param {*} storageKey - Input for renderCatToggles().
+     * @returns {void} Updates module or UI state.
+     */
     function renderCatToggles(wrap, cats, storageKey) {
         var hidden   = new Set((load(storageKey, []) || []).map(String));
         var onToggle = hiddenCatToggler(storageKey);
@@ -718,6 +831,9 @@
         });
     }
 
+    /** Render Live Tv Cats for provider and account settings.
+     * @returns {void} Updates module or UI state.
+     */
     function renderLiveTvCats() {
         var wrap  = document.getElementById('livetv-cats-wrap');
         var empty = document.getElementById('livetv-cats-empty');
@@ -730,12 +846,19 @@
         rebuildFocusables();
     }
 
+    /** Render Vod Cats for provider and account settings.
+     * @returns {void} Updates module or UI state.
+     */
     function renderVodCats() {
         var empty   = document.getElementById('vod-cats-empty');
         var movieW  = document.getElementById('vod-movie-cats-wrap');
         var seriesW = document.getElementById('vod-series-cats-wrap');
         movieW.innerHTML = ''; seriesW.innerHTML = '';
 
+        /** Cached Cats for provider and account settings.
+         * @param {string} key - Saved key or lookup ID.
+         * @returns {*} Value produced by the operation.
+         */
         function cachedCats(key) {
             var c = load(key, null);
             if (c && c.data) return c.data;
@@ -756,6 +879,13 @@
         rebuildFocusables();
     }
 
+    /** Make Cat Toggle for provider and account settings.
+     * @param {string} id - Identifier.
+     * @param {string} name - Name.
+     * @param {*} isHidden - Input for makeCatToggle().
+     * @param {*} onChange - Input for makeCatToggle().
+     * @returns {*} Value produced by the operation.
+     */
     function makeCatToggle(id, name, isHidden, onChange) {
         var row = document.createElement('div');
         row.className = 'cat-toggle-row' + (isHidden ? ' hidden-cat' : '');
@@ -781,6 +911,12 @@
     /* A diagnostic whose value is a paragraph rather than a number. diagRow's
        value column is right-aligned and capped at 55% — correct for "3 streams",
        unreadable for a JSON reply — so this one stacks and takes the full row. */
+    /** Diag Block for provider and account settings.
+     * @param {*} label - Input for diagBlock().
+     * @param {string} text - Text.
+     * @param {*} note - Input for diagBlock().
+     * @returns {*} Value produced by the operation.
+     */
     function diagBlock(label, text, note) {
         var row = document.createElement('div');
         row.className = 'cache-row diag-block';
@@ -804,6 +940,12 @@
         return row;
     }
 
+    /** Diag Row for provider and account settings.
+     * @param {*} label - Input for diagRow().
+     * @param {*} value - Value.
+     * @param {*} note - Input for diagRow().
+     * @returns {*} Value produced by the operation.
+     */
     function diagRow(label, value, note) {
         var row = document.createElement('div');
         row.className = 'cache-row';
@@ -825,6 +967,9 @@
         return row;
     }
 
+    /** Device Info for provider and account settings.
+     * @returns {*} Value produced by the operation.
+     */
     function deviceInfo() {
         try {
             if (typeof webOSSystem !== 'undefined' && webOSSystem.deviceInfo) {
@@ -834,6 +979,9 @@
         return {};
     }
 
+    /** Storage Bytes for provider and account settings.
+     * @returns {*} Value produced by the operation.
+     */
     function storageBytes() {
         if (typeof Store !== 'undefined') return Store.bytesUsed();
         var total = 0;
@@ -846,6 +994,9 @@
         return total;
     }
 
+    /** Render Diagnostics for provider and account settings.
+     * @returns {void} Updates module or UI state.
+     */
     function renderDiagnostics() {
         var list = document.getElementById('diag-list');
         if (!list) return;
@@ -1034,6 +1185,9 @@
     var _editorColIdx     = 0;
     var _inProfileContent = false;
 
+    /** Get Sidebar Items for provider and account settings.
+     * @returns {*} Value produced by the operation.
+     */
     function getSidebarItems() {
         var items = Array.from(document.querySelectorAll('#profiles-list .profile-item'));
         // Whichever "+ New Profile" button is currently visible.
@@ -1047,11 +1201,18 @@
     /* Containers whose controls form one horizontal D-pad row in the editor. */
     var EDITOR_ROW_GROUPS = ['#editor-header', '#type-toggle', '.url-row', '.field-row'];
 
+    /** Get Editor Rows for provider and account settings.
+     * @returns {*} Value produced by the operation.
+     */
     function getEditorRows() {
         var formEl = document.getElementById('editor-form');
         if (!formEl || formEl.hidden) return [];
         var rows = [];
         var seen = [];
+        /** Visible for provider and account settings.
+         * @param {HTMLElement} el - DOM element.
+         * @returns {*} Value produced by the operation.
+         */
         function visible(el) { return !el.disabled && el.offsetParent !== null; }
         var all = Array.from(formEl.querySelectorAll('input, select, button')).filter(visible);
 
@@ -1072,6 +1233,9 @@
         return rows;
     }
 
+    /** Get Flat Panel Items for provider and account settings.
+     * @returns {*} Value produced by the operation.
+     */
     function getFlatPanelItems() {
         var activePanel = document.querySelector('.settings-panel.active');
         if (!activePanel) return [];
@@ -1079,11 +1243,17 @@
             .filter(function (el) { return !el.disabled && el.offsetParent !== null; });
     }
 
+    /** Is Profiles Panel for provider and account settings.
+     * @returns {boolean} Whether the condition holds.
+     */
     function isProfilesPanel() {
         var p = document.querySelector('.settings-panel.active');
         return p && p.id === 'panel-profiles';
     }
 
+    /** Rebuild Focusables for provider and account settings.
+     * @returns {*} Value produced by the operation.
+     */
     function rebuildFocusables() {
         tabList = Array.from(document.querySelectorAll('#tab-strip .tab-btn'));
         var backBtn = document.getElementById('back-btn');
@@ -1095,12 +1265,19 @@
         focusIndex = Math.max(0, Math.min(focusables.length - 1, focusIndex));
     }
 
+    /** Clear Focus Ring for provider and account settings.
+     * @returns {void} Updates module or UI state.
+     */
     function clearFocusRing() {
         document.querySelectorAll('.tv-focus-visible').forEach(function (el) {
             el.classList.remove('tv-focus-visible');
         });
     }
 
+    /** Apply Focus for provider and account settings.
+     * @param {number} idx - Zero-based index.
+     * @returns {void} Updates module or UI state.
+     */
     function applyFocus(idx) {
         clearFocusRing();
         focusIndex = Math.max(0, Math.min(focusables.length - 1, idx));
@@ -1110,6 +1287,9 @@
         el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
 
+    /** Apply Profile Focus for provider and account settings.
+     * @returns {void} Updates module or UI state.
+     */
     function applyProfileFocus() {
         clearFocusRing();
         var el;
@@ -1131,6 +1311,10 @@
         el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
 
+    /** Open Keyboard for provider and account settings.
+     * @param {HTMLElement} el - DOM element.
+     * @returns {void} Updates module or UI state.
+     */
     function openKeyboard(el) { el.focus(); }
 
     /* ── Dropdowns on a D-pad ──────────────────────────────────────────────────
@@ -1143,6 +1327,12 @@
        `wrap` is true for ENTER — with no other affordance it has to be able to
        get back to the first option — and false for arrows, where clamping at the
        ends is what you'd expect. */
+    /** Step Select for provider and account settings.
+     * @param {HTMLElement} el - DOM element.
+     * @param {number} dir - Direction.
+     * @param {*} wrap - Input for stepSelect().
+     * @returns {*} Value produced by the operation.
+     */
     function stepSelect(el, dir, wrap) {
         var n = el.options.length;
         if (!n) return;
@@ -1154,8 +1344,15 @@
         el.dispatchEvent(new Event('change'));
     }
 
+    /** Is Select for provider and account settings.
+     * @param {HTMLElement} el - DOM element.
+     * @returns {boolean} Whether the condition holds.
+     */
     function isSelect(el) { return !!(el && el.tagName === 'SELECT'); }
 
+    /** Close Keyboard for provider and account settings.
+     * @returns {void} Updates module or UI state.
+     */
     function closeKeyboard() {
         var prev = document.activeElement;
         if (prev) prev.blur();
@@ -1165,11 +1362,17 @@
         });
     }
 
+    /** Is Input Focused for provider and account settings.
+     * @returns {boolean} Whether the condition holds.
+     */
     function isInputFocused() {
         var a = document.activeElement;
         return !!(a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA'));
     }
 
+    /** Jump To Active Tab for provider and account settings.
+     * @returns {*} Value produced by the operation.
+     */
     function jumpToActiveTab() {
         _inProfileContent = false;
         clearFocusRing();
@@ -1183,6 +1386,9 @@
         }
     }
 
+    /** Jump Into Panel for provider and account settings.
+     * @returns {*} Value produced by the operation.
+     */
     function jumpIntoPanel() {
         if (isProfilesPanel()) {
             _inProfileContent = true;
@@ -1194,6 +1400,10 @@
         }
     }
 
+    /** Handle Nav Key for provider and account settings.
+     * @param {*} kc - Input for handleNavKey().
+     * @returns {void} Updates module or UI state.
+     */
     function handleNavKey(kc) {
         if (kc === KEY.BACK) {  tvGoBack('../index.html'); return; }
 
@@ -1345,6 +1555,10 @@
     }, true);
 
     /* ── Utility ───────────────────────────────────────────────────────────── */
+    /** Esc Html for provider and account settings.
+     * @param {*} str - Input for escHtml().
+     * @returns {*} Value produced by the operation.
+     */
     function escHtml(str) {
         return String(str)
             .replace(/&/g, '&amp;').replace(/</g, '&lt;')
