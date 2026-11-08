@@ -205,9 +205,9 @@ function playWhenSubsReady(item, build, streamUrl) {
 }
 
 /* ── Series: seasons + episodes ──────────────────────────────────── */
-/** Load Series for VOD title details and episode selection.
- * @param {Object} item - VOD item.
- * @returns {*} Result of the operation.
+/** Fetch a series' seasons and episodes if its detail panel remains active.
+ * @param {Object} item - Selected series, including its provider series ID.
+ * @returns {void} Starts an asynchronous request and updates the episode panel.
  */
 function loadSeries(item) {
     var tabs = document.getElementById('vod-season-tabs');
