@@ -32,6 +32,8 @@ const context = {
 };
 vm.createContext(context);
 vm.runInContext(fs.readFileSync('js/core/store.js','utf8'),context,{filename:'store.js'});
+// Browser globals live on window; expose the same Store name in this VM realm.
+context.Store = context.window.Store;
 vm.runInContext(fs.readFileSync('js/core/net.js','utf8'),context,{filename:'net.js'});
 
 async function run() {
