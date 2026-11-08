@@ -19,6 +19,9 @@ var searchTimer = null, searchReqId = 0;
 var searchWorker = null, searchReady = false, searchUseWorker = false;
 var searchIndex = null;        // main-thread fallback index
 
+/** Open Search for VOD catalog search.
+ * @returns {*} Function result.
+ */
 function openSearch() {
     prevZone = zone;
     elSearch.hidden = false;
@@ -30,6 +33,9 @@ function openSearch() {
     setTimeout(function () { elSearchIn.focus(); }, 30);
     initSearchEngine();
 }
+/** Close Search for VOD catalog search.
+ * @returns {*} Function result.
+ */
 function closeSearch() {
     elSearch.hidden = true;
     elSearchIn.blur();
@@ -37,6 +43,9 @@ function closeSearch() {
     paintRailFocus();
 }
 
+/** Init Search Engine for VOD catalog search.
+ * @returns {void} Updates state or the UI.
+ */
 function initSearchEngine() {
     if (searchWorker || searchIndex) return;     // already initialised
     var movieUrl  = apiUrl('action=get_vod_streams');
@@ -60,6 +69,12 @@ function initSearchEngine() {
     }
 }
 
+/** Build Index Into for VOD catalog search.
+ * @param {number} idx - Index.
+ * @param {*} arr - Input for buildIndexInto().
+ * @param {*} type - Input for buildIndexInto().
+ * @returns {*} Function result.
+ */
 function buildIndexInto(idx, arr, type) {
     if (!Array.isArray(arr)) return;
     for (var i = 0; i < arr.length; i++) {
@@ -74,14 +89,26 @@ function buildIndexInto(idx, arr, type) {
                    ext: m.container_extension || '' });
     }
 }
+/** Init Fallback Search for VOD catalog search.
+ * @param {*} movieUrl - Input for initFallbackSearch().
+ * @param {*} seriesUrl - Input for initFallbackSearch().
+ * @returns {void} Updates state or the UI.
+ */
 function initFallbackSearch(movieUrl, seriesUrl) {
     if (searchIndex) return;
     searchIndex = [];
     var pending = 2;
+    /** Done for VOD catalog search.
+     * @returns {*} Function result.
+     */
     function done() { pending--; if (pending === 0) { searchReady = true; if (!elSearch.hidden) runSearch(); } }
     fetchJSON(movieUrl).then(function (d) { buildIndexInto(searchIndex, d, 'movie'); done(); }).catch(done);
     fetchJSON(seriesUrl).then(function (d) { buildIndexInto(searchIndex, d, 'series'); done(); }).catch(done);
 }
+/** Main Thread Search for VOD catalog search.
+ * @param {*} q - Input for mainThreadSearch().
+ * @returns {*} Function result.
+ */
 function mainThreadSearch(q) {
     q = q.toLowerCase();
     var out = [];
@@ -95,6 +122,9 @@ function mainThreadSearch(q) {
     return out;
 }
 
+/** Run Search for VOD catalog search.
+ * @returns {*} Function result.
+ */
 function runSearch() {
     var q = elSearchIn.value.trim();
     var hint = document.getElementById('vod-search-hint');
@@ -113,6 +143,12 @@ function runSearch() {
     }
 }
 
+/** Render Search Results for VOD catalog search.
+ * @param {*} items - Input for renderSearchResults().
+ * @param {*} q - Input for renderSearchResults().
+ * @param {*} ready - Input for renderSearchResults().
+ * @returns {void} Updates state or the UI.
+ */
 function renderSearchResults(items, q, ready) {
     var hint = document.getElementById('vod-search-hint');
     elSearchGrid.innerHTML = '';
