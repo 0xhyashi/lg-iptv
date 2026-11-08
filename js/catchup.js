@@ -28,34 +28,98 @@
     var elProgList  = document.getElementById('cu-programme-list');
     var elPlaceholder = document.getElementById('cu-placeholder');
 
+    /** Set Status for catch-up TV browsing.
+     * @param {*} msg - Input for setStatus().
+     * @returns {void} Updates state or the UI.
+     */
     function setStatus(msg) { if (elStatus) elStatus.textContent = msg; }
+    /** Esc Html for catch-up TV browsing.
+     * @param {*} s - Input for escHtml().
+     * @returns {*} Function result.
+     */
     function escHtml(s) {
         return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
             .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
+    /** Load for catch-up TV browsing.
+     * @param {string} key - Stored key or lookup identifier.
+     * @param {*} fb - Input for load().
+     * @returns {*} Function result.
+     */
     function load(key, fb) { try { var v = localStorage.getItem(key); return v != null ? JSON.parse(v) : fb; } catch (e) { return fb; } }
+    /** Save for catch-up TV browsing.
+     * @param {string} key - Stored key or lookup identifier.
+     * @param {*} v - Input for save().
+     * @returns {void} Updates state or the UI.
+     */
     function save(key, v)  { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }
+    /** Clamp for catch-up TV browsing.
+     * @param {*} n - Input for clamp().
+     * @param {*} lo - Input for clamp().
+     * @param {*} hi - Input for clamp().
+     * @returns {*} Function result.
+     */
     function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
 
     /* ── EPG helpers ─────────────────────────────────────────────────── */
+    /** Epg Start for catch-up TV browsing.
+     * @param {Event} e - Browser event.
+     * @returns {*} Function result.
+     */
     function epgStart(e) { return Number(e.start_timestamp || 0) * 1000; }
+    /** Epg End for catch-up TV browsing.
+     * @param {Event} e - Browser event.
+     * @returns {*} Function result.
+     */
     function epgEnd(e)   { return Number(e.stop_timestamp || e.end_timestamp || 0) * 1000; }
+    /** Decode for catch-up TV browsing.
+     * @param {*} s - Input for decode().
+     * @returns {*} Function result.
+     */
     function decode(s)   { return (typeof xtreamDecodeEPG === 'function') ? xtreamDecodeEPG(s) : (s || ''); }
+    /** Fmt Time for catch-up TV browsing.
+     * @param {*} ms - Input for fmtTime().
+     * @returns {*} Function result.
+     */
     function fmtTime(ms) { return new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+    /** Day Key for catch-up TV browsing.
+     * @param {*} ms - Input for dayKey().
+     * @returns {*} Function result.
+     */
     function dayKey(ms)  { var d = new Date(ms); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+    /** Day Label for catch-up TV browsing.
+     * @param {*} ms - Input for dayLabel().
+     * @returns {*} Function result.
+     */
     function dayLabel(ms) {
         var k = dayKey(ms), now = Date.now();
         if (k === dayKey(now))             return 'Today';
         if (k === dayKey(now - 86400000))  return 'Yesterday';
         return new Date(ms).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
     }
+    /** When Label for catch-up TV browsing.
+     * @param {Event} e - Browser event.
+     * @returns {*} Function result.
+     */
     function whenLabel(e) { return dayLabel(epgStart(e)) + ' · ' + fmtTime(epgStart(e)); }
+    /** Archive Days for catch-up TV browsing.
+     * @param {Object} ch - Channel entry.
+     * @returns {*} Function result.
+     */
     function archiveDays(ch) { return parseInt(ch.tv_archive_duration, 10) || 0; }
 
     /* ── Catch-up favourites (separate from Live TV) ─────────────────── */
     var favs = load('catchup_favs', []) || [];
     var favSet = {}; favs.forEach(function (id) { favSet[String(id)] = true; });
+    /** Is Fav for catch-up TV browsing.
+     * @param {string} id - Identifier.
+     * @returns {boolean} Whether the condition holds.
+     */
     function isFav(id) { return !!favSet[String(id)]; }
+    /** Toggle Fav for catch-up TV browsing.
+     * @param {string} id - Identifier.
+     * @returns {*} Function result.
+     */
     function toggleFav(id) {
         id = String(id);
         if (favSet[id]) { delete favSet[id]; favs = favs.filter(function (x) { return String(x) !== id; }); }
@@ -68,20 +132,57 @@
        surfaces whatever aired closest to that slot — simpler than title
        matching and immune to per-episode title changes. */
     var pins = load('catchup_pins', []) || [];
+    /** Pad2 for catch-up TV browsing.
+     * @param {*} n - Input for pad2().
+     * @returns {*} Function result.
+     */
     function pad2(n) { return (n < 10 ? '0' : '') + n; }
+    /** Slot Key for catch-up TV browsing.
+     * @param {*} hour - Input for slotKey().
+     * @param {*} minute - Input for slotKey().
+     * @returns {*} Function result.
+     */
     function slotKey(hour, minute) { return pad2(hour) + ':' + pad2(minute); }
+    /** Pin Id for catch-up TV browsing.
+     * @param {*} streamId - Input for pinId().
+     * @param {*} hour - Input for pinId().
+     * @param {*} minute - Input for pinId().
+     * @returns {*} Function result.
+     */
     function pinId(streamId, hour, minute) { return String(streamId) + '@' + slotKey(hour, minute); }
+    /** Is Pinned Slot for catch-up TV browsing.
+     * @param {*} streamId - Input for isPinnedSlot().
+     * @param {*} hour - Input for isPinnedSlot().
+     * @param {*} minute - Input for isPinnedSlot().
+     * @returns {boolean} Whether the condition holds.
+     */
     function isPinnedSlot(streamId, hour, minute) {
         var id = pinId(streamId, hour, minute);
         for (var i = 0; i < pins.length; i++) if (pins[i].id === id) return true;
         return false;
     }
+    /** Add Pin for catch-up TV browsing.
+     * @param {Object} p - Record or input.
+     * @returns {void} Updates state or the UI.
+     */
     function addPin(p)     { for (var i = 0; i < pins.length; i++) if (pins[i].id === p.id) return; pins.push(p); save('catchup_pins', pins); }
+    /** Remove Pin for catch-up TV browsing.
+     * @param {string} id - Identifier.
+     * @returns {void} Updates state or the UI.
+     */
     function removePin(id) { pins = pins.filter(function (p) { return p.id !== id; }); save('catchup_pins', pins); }
+    /** Slot Label for catch-up TV browsing.
+     * @param {Object} p - Record or input.
+     * @returns {*} Function result.
+     */
     function slotLabel(p)  { var d = new Date(); d.setHours(p.hour, p.minute, 0, 0); return fmtTime(d.getTime()); }
 
     /* ── Data table cache (per channel, short TTL) ───────────────────── */
     var dtCache = {};
+    /** Get Data Table for catch-up TV browsing.
+     * @param {*} streamId - Input for getDataTable().
+     * @returns {*} Function result.
+     */
     function getDataTable(streamId) {
         var c = dtCache[streamId];
         if (c && Date.now() - c.ts < 600000) return Promise.resolve(c.listings);
@@ -98,6 +199,10 @@
     var catOrder = [];      // ordered category_ids that have archive channels
     var openSecs = { favs: true };  // which sidebar sections are expanded
 
+    /** Build Cat Maps for catch-up TV browsing.
+     * @param {*} catsOrdered - Input for buildCatMaps().
+     * @returns {*} Function result.
+     */
     function buildCatMaps(catsOrdered) {
         byCat = {}; catOrder = [];
         allChannels.forEach(function (ch) {
@@ -116,6 +221,9 @@
         });
     }
 
+    /** Load Channels for catch-up TV browsing.
+     * @returns {*} Function result.
+     */
     function loadChannels() {
         /* Keyed by account (host + username), not by the server URL alone:
            two lines on one provider share a host but not a channel package,
@@ -177,6 +285,10 @@
     }
 
     /* ── Sidebar: channel row + section factories ────────────────────── */
+    /** Make Ch Row for catch-up TV browsing.
+     * @param {Object} ch - Channel entry.
+     * @returns {*} Function result.
+     */
     function makeChRow(ch) {
         var row = document.createElement('div');
         row.className = 'cu-ch-row'; row.tabIndex = -1; row.dataset.sid = String(ch.stream_id);
@@ -223,6 +335,12 @@
         return row;
     }
 
+    /** Make Section for catch-up TV browsing.
+     * @param {string} id - Identifier.
+     * @param {*} label - Input for makeSection().
+     * @param {Array<Object>} channels - Channel entries.
+     * @returns {*} Function result.
+     */
     function makeSection(id, label, channels) {
         var sec = document.createElement('div');
         sec.className = 'cu-section'; sec.dataset.secId = id;
@@ -234,6 +352,9 @@
         list.className = 'cu-section-list';
         sec.appendChild(hdr); sec.appendChild(list);
         sec._channels = channels; sec._built = false;
+        /** Build for catch-up TV browsing.
+         * @returns {*} Function result.
+         */
         function build() {
             if (sec._built) return;
             var frag = document.createDocumentFragment();
@@ -251,6 +372,9 @@
         return sec;
     }
 
+    /** Render Sidebar for catch-up TV browsing.
+     * @returns {void} Updates state or the UI.
+     */
     function renderSidebar() {
         var q = (elSearch.value || '').toLowerCase();
         elNav.innerHTML = '';
@@ -295,12 +419,20 @@
     // Avoids rebuilding the whole sidebar (and any large expanded category) when
     // only the shortcut's count changed — full re-render only when it has to
     // appear or disappear (pins went 0↔1+).
+    /** Refresh Cw Nav for catch-up TV browsing.
+     * @param {*} prevLen - Input for refreshCwNav().
+     * @returns {void} Updates state or the UI.
+     */
     function refreshCwNav(prevLen) {
         if ((prevLen === 0) !== (pins.length === 0)) { renderSidebar(); return; }
         var count = elNav.querySelector('.cu-cw-nav .cu-sec-count');
         if (count) count.textContent = pins.length;
     }
 
+    /** Do Toggle Fav for catch-up TV browsing.
+     * @param {string} sid - Stream identifier.
+     * @returns {*} Function result.
+     */
     function doToggleFav(sid) {
         toggleFav(sid);
         renderSidebar();
@@ -317,12 +449,22 @@
     }
 
     /* ── Main: Continue Watching view ────────────────────────────────── */
+    /** Show Placeholder for catch-up TV browsing.
+     * @param {string} text - Text to process.
+     * @returns {void} Updates state or the UI.
+     */
     function showPlaceholder(text) {
         if (text) document.getElementById('cu-placeholder-text').textContent = text;
         elPlaceholder.style.display = '';
     }
+    /** Hide Placeholder for catch-up TV browsing.
+     * @returns {void} Updates state or the UI.
+     */
     function hidePlaceholder() { elPlaceholder.style.display = 'none'; }
 
+    /** Open Home for catch-up TV browsing.
+     * @returns {void} Updates state or the UI.
+     */
     function openHome() {
         mainMode = 'cw';
         currentCh = null;
@@ -383,6 +525,11 @@
 
     // Most recent finished airing within the archive window whose start time-of-
     // day sits near the pinned slot (±45 min absorbs small schedule drift).
+    /** Resolve Pin for catch-up TV browsing.
+     * @param {Object} p - Record or input.
+     * @param {*} listings - Input for resolvePin().
+     * @returns {*} Function result.
+     */
     function resolvePin(p, listings) {
         var now = Date.now(), winStart = now - 14 * 86400000, slot = p.hour * 60 + p.minute, TOL = 45;
         var best = null, bestStart = 0;
@@ -398,6 +545,10 @@
         return best;
     }
 
+    /** Do Unpin for catch-up TV browsing.
+     * @param {string} id - Identifier.
+     * @returns {*} Function result.
+     */
     function doUnpin(id) {
         removePin(id);
         renderSidebar();
@@ -408,6 +559,10 @@
     /* ── Main: channel archive view ──────────────────────────────────── */
     var daysData = [], activeDayIdx = 0, epgReqKey = 0;
 
+    /** Select Channel for catch-up TV browsing.
+     * @param {Object} ch - Channel entry.
+     * @returns {void} Updates state or the UI.
+     */
     function selectChannel(ch) {
         currentCh = ch; mainMode = 'archive';
         elCw.hidden = true; elArchive.hidden = false;
@@ -438,6 +593,11 @@
         });
     }
 
+    /** Build Days for catch-up TV browsing.
+     * @param {*} listings - Input for buildDays().
+     * @param {*} days - Input for buildDays().
+     * @returns {*} Function result.
+     */
     function buildDays(listings, days) {
         var now = Date.now(), winStart = days ? (now - days * 86400000) : 0, groups = {};
         for (var i = 0; i < listings.length; i++) {
@@ -459,6 +619,9 @@
         daysData.sort(function (a, b) { return b.ms - a.ms; });
     }
 
+    /** Render Day Tabs for catch-up TV browsing.
+     * @returns {void} Updates state or the UI.
+     */
     function renderDayTabs() {
         elDayTabs.innerHTML = '';
         daysData.forEach(function (d, i) {
@@ -470,6 +633,9 @@
         });
     }
 
+    /** Render Programmes for catch-up TV browsing.
+     * @returns {void} Updates state or the UI.
+     */
     function renderProgrammes() {
         elProgList.innerHTML = '';
         var day = daysData[activeDayIdx];
@@ -495,6 +661,11 @@
         progIndex = 0;
     }
 
+    /** Do Toggle Pin for catch-up TV browsing.
+     * @param {Event} e - Browser event.
+     * @param {HTMLElement} row - Channel row.
+     * @returns {*} Function result.
+     */
     function doTogglePin(e, row) {
         if (!currentCh) return;
         var dt = new Date(epgStart(e)), h = dt.getHours(), m = dt.getMinutes();
@@ -515,6 +686,13 @@
        first one is about to hand over. */
     var _navigating = false;
 
+    /** Play Listing for catch-up TV browsing.
+     * @param {*} streamId - Input for playListing().
+     * @param {*} chName - Input for playListing().
+     * @param {*} chIcon - Input for playListing().
+     * @param {Event} e - Browser event.
+     * @returns {void} Updates state or the UI.
+     */
     function playListing(streamId, chName, chIcon, e) {
         if (_navigating) return;
         _navigating = true;
@@ -553,12 +731,22 @@
     var dayIndex = 0, progIndex = 0, progSub = 'play';   // progSub: 'play' | 'pin'
     var pendingMainFocus = false;   // jump into the archive once it finishes loading
 
+    /** Clear Rings for catch-up TV browsing.
+     * @returns {void} Updates state or the UI.
+     */
     function clearRings() {
         document.querySelectorAll('.tv-focus-visible').forEach(function (el) { el.classList.remove('tv-focus-visible'); });
         document.querySelectorAll('.cu-row-active').forEach(function (el) { el.classList.remove('cu-row-active'); });
     }
+    /** Visible for catch-up TV browsing.
+     * @param {HTMLElement} el - DOM element.
+     * @returns {*} Function result.
+     */
     function visible(el) { return el.offsetParent !== null; }
 
+    /** Side Items for catch-up TV browsing.
+     * @returns {*} Function result.
+     */
     function sideItems() {
         var els = Array.prototype.slice.call(elNav.querySelectorAll('.cu-cw-nav, .cu-section-hdr, .cu-ch-row')).filter(visible);
         return els.map(function (el) {
@@ -567,10 +755,22 @@
             return { kind: 'channel', el: el, ch: el._ch, favBtn: el._fav };
         });
     }
+    /** Cw Cards for catch-up TV browsing.
+     * @returns {*} Function result.
+     */
     function cwCards()  { return Array.prototype.slice.call(elCw.querySelectorAll('.cu-cw-card')); }
+    /** Day Tabs for catch-up TV browsing.
+     * @returns {*} Function result.
+     */
     function dayTabs()  { return Array.prototype.slice.call(elDayTabs.querySelectorAll('.cu-day-tab')); }
+    /** Prog Rows for catch-up TV browsing.
+     * @returns {*} Function result.
+     */
     function progRows() { return Array.prototype.slice.call(elProgList.querySelectorAll('.cu-prog-row')); }
 
+    /** Paint Sidebar for catch-up TV browsing.
+     * @returns {void} Updates state or the UI.
+     */
     function paintSidebar() {
         clearRings();
         var items = sideItems();
@@ -581,6 +781,9 @@
         else it.el.classList.add('tv-focus-visible');
         it.el.scrollIntoView({ block: 'nearest' });
     }
+    /** Paint Cw for catch-up TV browsing.
+     * @returns {void} Updates state or the UI.
+     */
     function paintCw() {
         clearRings();
         var cards = cwCards();
@@ -591,6 +794,9 @@
         else c.classList.add('tv-focus-visible');
         c.scrollIntoView({ block: 'nearest' });
     }
+    /** Paint Archive for catch-up TV browsing.
+     * @returns {void} Updates state or the UI.
+     */
     function paintArchive() {
         clearRings();
         if (archSub === 'days') {
@@ -611,10 +817,19 @@
         else r.classList.add('tv-focus-visible');
         r.scrollIntoView({ block: 'nearest' });
     }
+    /** Focus Sidebar for catch-up TV browsing.
+     * @returns {void} Updates state or the UI.
+     */
     function focusSidebar() { zone = 'sidebar'; paintSidebar(); }
+    /** Focus Search for catch-up TV browsing.
+     * @returns {void} Updates state or the UI.
+     */
     function focusSearch()  { zone = 'search'; clearRings(); elSearch.classList.add('tv-focus-visible'); elSearch.focus(); }
     // Move focus into the main pane, but only if it has something to land on
     // (empty Continue Watching / still-loading archive → stay put, return false).
+    /** Focus Main for catch-up TV browsing.
+     * @returns {void} Updates state or the UI.
+     */
     function focusMain() {
         if (mainMode === 'cw') {
             if (!cwCards().length) return false;
@@ -626,6 +841,10 @@
         return true;
     }
 
+    /** On Sidebar Key for catch-up TV browsing.
+     * @param {*} kc - Input for onSidebarKey().
+     * @returns {void} Updates state or the UI.
+     */
     function onSidebarKey(kc) {
         var items = sideItems();
         var it = items[sideIndex];
@@ -651,6 +870,10 @@
         }
     }
 
+    /** On Main Cw Key for catch-up TV browsing.
+     * @param {*} kc - Input for onMainCwKey().
+     * @returns {void} Updates state or the UI.
+     */
     function onMainCwKey(kc) {
         var cards = cwCards();
         if (kc === KEY.UP) { if (cwIndex > 0) { cwIndex--; paintCw(); } }
@@ -664,6 +887,10 @@
         }
     }
 
+    /** On Main Archive Key for catch-up TV browsing.
+     * @param {*} kc - Input for onMainArchiveKey().
+     * @returns {void} Updates state or the UI.
+     */
     function onMainArchiveKey(kc) {
         if (archSub === 'days') {
             var tabs = dayTabs();
