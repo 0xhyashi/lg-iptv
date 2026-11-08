@@ -57,7 +57,8 @@ assert(ch && typeof ch.open==='function');
 
     localStorage.setItem('bunkhouse_weather_city','21043');
     ch.close();ch.open();
-    await Promise.resolve();await Promise.resolve();await Promise.resolve();
+    // Drain the entire resolved fetch/json/then chain, not just three ticks.
+    await new Promise(resolve=>setImmediate(resolve));
     const zip=new URL(node('weatherstar-frame').src,'file:///mnt/app/pages/livetv.html');
     assert(zip.searchParams.has('latLon'),'ZIP coordinates missing');
     assert.strictEqual(requests.filter(x=>x.includes('zippopotam')).length,1);
@@ -67,7 +68,8 @@ assert(ch && typeof ch.open==='function');
     ch.close();
     localStorage.setItem('bunkhouse_weather_city','Unsupported City Test');
     ch.open();
-    await Promise.resolve();await Promise.resolve();await Promise.resolve();
+    // Drain the entire resolved fetch/json/then chain, not just three ticks.
+    await new Promise(resolve=>setImmediate(resolve));
     assert(node('weatherstar-frame').src==='about:blank',
       'unresolved location must not feed bare city name into upstream search');
     assert(node('weatherstar-status').textContent.indexOf('Cannot find location')!==-1);
