@@ -25,6 +25,9 @@ var cfg = Config.resolve();
    old URL-based names, which are unreachable dead weight in a store with a
    ~5 MB ceiling. The legacy names are the ones whose suffix starts with the
    URL scheme, so the new keys can never match these prefixes. */
+/** Remove obsolete VOD caches so old identifiers do not corrupt the current library.
+ * @returns {void} Runs its startup, polling, or UI side effects.
+ */
 (function purgeLegacyVodCaches() {
     try {
         var prefixes = ['vod_cats_movie_http', 'vod_cats_series_http', 'vod_content_http'];
