@@ -36,19 +36,19 @@ var cfg = Config.resolve();
 }());
 
 /** Build the current provider's Xtream API URL.
- * @param {*} params - Input for apiUrl().
+ * @param {string} params - Xtream query string parameters.
  * @returns {string} Provider API URL.
  */
 function apiUrl(params)          { return Config.apiUrl(cfg, params); }
 /** Build a playback URL for a VOD movie.
  * @param {string} id - Identifier.
- * @param {*} ext - Input for buildMovieUrl().
+ * @param {string} ext - Movie file extension.
  * @returns {string} Movie playback URL.
  */
 function buildMovieUrl(id, ext)  { return Config.movieUrl(cfg, id, ext); }
 /** Build a playback URL for a series episode.
  * @param {string} id - Identifier.
- * @param {*} ext - Input for buildEpisodeUrl().
+ * @param {string} ext - Episode file extension.
  * @returns {string} Episode playback URL.
  */
 function buildEpisodeUrl(id, ext){ return Config.episodeUrl(cfg, id, ext); }
@@ -59,7 +59,7 @@ function buildEpisodeUrl(id, ext){ return Config.episodeUrl(cfg, id, ext); }
 function cacheGet(key)           { return Store.cacheGet(key); }
 /** Write a cache entry.
  * @param {string} key - Key or identifier.
- * @param {*} data - Input for cacheSet().
+ * @param {*} data - Serializable data to store.
  * @returns {*} Return value of Store.cacheSet.
  */
 function cacheSet(key, data)     { return Store.cacheSet(key, data); }
@@ -88,7 +88,7 @@ var VOD_KEEP = ['name', 'title', 'stream_id', 'series_id', 'stream_icon', 'cover
                 'releaseDate', 'releasedate', 'genre', 'duration', 'director'];
 
 /** Copy the VOD fields needed by our UI into a small cacheable object.
- * @param {*} m - Input for slimVodItem().
+ * @param {Object} m - Provider VOD metadata record.
  * @returns {Object} Pruned VOD item.
  */
 function slimVodItem(m) {
@@ -124,7 +124,7 @@ function fetchCachedList(key, url) {
 }
 
 /** Escape untrusted text for safe insertion into HTML.
- * @param {*} s - Input for escHtml().
+ * @param {*} s - Text or value to render safely.
  * @returns {string} HTML-escaped string.
  */
 function escHtml(s) {
@@ -161,7 +161,7 @@ var elCategoryGrid = document.getElementById('vod-category-grid');
 /* ── Status helpers ──────────────────────────────────────────────── */
 /** Show Status for VOD shared state.
  * @param {string} text - Input for showStatus().
- * @param {*} spinner - Input for showStatus().
+ * @param {boolean} spinner - Whether to show a loading spinner.
  * @returns {void} No return value.
  */
 function showStatus(text, spinner) {
