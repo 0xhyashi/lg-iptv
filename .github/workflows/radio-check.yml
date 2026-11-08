@@ -33,7 +33,9 @@ jobs:
             ("WFMF 102.5 iHeart direct","https://stream.revma.ihrhls.com/zc1005"),
             ("WFMF 102.5 iHeart HLS","https://stream.revma.ihrhls.com/zc1005/hls.m3u8"),
             ("WFMF 102.5 iHeart direct MP3","https://stream.revma.ihrhls.com/zc1005?type=mp3"),
-            ("WFMF 102.5 iHeart low bandwidth","https://stream.revma.ihrhls.com/zc1005?stream=low")
+            ("WFMF 102.5 iHeart low bandwidth","https://stream.revma.ihrhls.com/zc1005?stream=low"),
+            ("WNOE 101.1 iHeart country","https://stream.revma.ihrhls.com/zc1045"),
+            ("WNOE 101.1 HLS","https://stream.revma.ihrhls.com/zc1045/hls.m3u8")
           ]
           def probe(st):
             name,url=st
