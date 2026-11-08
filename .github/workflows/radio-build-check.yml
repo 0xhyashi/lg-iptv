@@ -2,7 +2,13 @@ name: Build-check radio playback
 on:
   push:
     branches: [privacy/toonami-single-stream-test]
-    paths: [.github/workflows/radio-build-check.yml]
+    paths:
+      - .github/workflows/radio-build-check.yml
+      - js/app.js
+      - js/livetv/pip.js
+      - pages/livetv.html
+      - assets/player.css
+      - appinfo.json
   workflow_dispatch:
 jobs:
   build:
