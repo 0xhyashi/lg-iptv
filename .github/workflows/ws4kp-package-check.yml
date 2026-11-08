@@ -40,6 +40,20 @@ jobs:
           if(!code.includes('currentTrack') || !code.includes('randomizePlaylist'))console.log('Player code is minified; asserting playlist length only');
           console.log('WEATHER_MUSIC_CHECK_OK: 17 files present and licensed (4 original + 13 CC BY).');
           NODE
+          python3 -m pip install -q --break-system-packages mutagen
+          python3 - <<'PY'
+          from pathlib import Path
+          from mutagen.mp3 import MP3
+          files=list(Path('weatherstar/music').rglob('*.mp3'))
+          durations=[]
+          for f in files:
+              duration=MP3(str(f)).info.length
+              durations.append(duration)
+              print('MUSIC_DURATION',f.relative_to(Path('weatherstar/music')),round(duration,1))
+          print('WEATHER_MUSIC_TOTAL',round(sum(durations),1),'seconds',len(files),'tracks')
+          assert len(files)==17
+          PY
+          # Also inspect using ffprobe if available.
           if command -v ffprobe >/dev/null; then
             echo "Duration of all 17 WeatherStar radio tracks:"
             find weatherstar/music -name '*.mp3' -print0 | xargs -0 -n1 -P4 ffprobe -v error -show_entries format=duration -of default=nokey=1:noprint_wrappers=1
