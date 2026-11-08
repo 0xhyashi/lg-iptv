@@ -1,4 +1,4 @@
-name: Verify WeatherStar continuous-music LG IPK
+name: Verify Bunkhouse Nightwave/Classic/Soma Weather IPK
 on:
   push:
     branches: [privacy/toonami-single-stream-test]
@@ -6,6 +6,11 @@ on:
       - .github/workflows/ws4kp-package-check.yml
       - tools/build-weatherstar.js
       - tools/add-weatherstar-music.js
+      - js/livetv/weatherstar.js
+      - pages/livetv.html
+      - assets/weatherstar.css
+      - appinfo.json
+      - manifest.json
       - package.json
   workflow_dispatch:
 jobs:
@@ -58,11 +63,27 @@ jobs:
             echo "Duration of all 17 WeatherStar radio tracks:"
             find weatherstar/music -name '*.mp3' -print0 | xargs -0 -n1 -P4 ffprobe -v error -show_entries format=duration -of default=nokey=1:noprint_wrappers=1
           fi
+      - name: Validate live-radio stream choice and forecast behavior
+        run: |
+          node --check dist/js/livetv/weatherstar.js
+          node - <<'NODE'
+          const fs=require('fs');
+          const js=fs.readFileSync('dist/js/livetv/weatherstar.js','utf8');
+          const markup=fs.readFileSync('pages/livetv.html','utf8');
+          const code=['nightwave','https://radio.plaza.one/mp3','https://ice5.somafm.com/vaporwaves-128-mp3',
+                      'soundPaused','stopExternal()','weatherstar-external-audio'];
+          for (const str of code) {
+            if (!js.includes(str) && !markup.includes(str)) throw Error('Missing soundtrack: '+str);
+          }
+          const meta=JSON.parse(fs.readFileSync('appinfo.json','utf8'));
+          if(meta.version!=='1.0.42') throw Error('Incorrect app version');
+          console.log('WEATHER_SOUNDTRACK_UI_CHECK_OK: Nightwave default, Classic, SomaFM');
+          NODE
       - name: Create real LG webOS TV package without minification
         run: |
           npm install -g @webos-tools/cli --no-audit --no-fund
           ares-package -n .
-          ls -lh com.oxhyashi.toonamitest_1.0.41_all.ipk
-          test $(stat -c %s com.oxhyashi.toonamitest_1.0.41_all.ipk) -gt 1000000
-          ar t com.oxhyashi.toonamitest_1.0.41_all.ipk
+          ls -lh com.oxhyashi.toonamitest_1.0.42_all.ipk
+          test $(stat -c %s com.oxhyashi.toonamitest_1.0.42_all.ipk) -gt 1000000
+          ar t com.oxhyashi.toonamitest_1.0.42_all.ipk
           echo "IPK_CHECK_OK"
