@@ -127,7 +127,7 @@ function fillRail(rail) {
 }
 
 /** Render Rails for VOD category rows.
- * @returns {void} Updates state or the UI.
+ * @returns {void} No return value.
  */
 function renderRails() {
     elRails.innerHTML = '';
