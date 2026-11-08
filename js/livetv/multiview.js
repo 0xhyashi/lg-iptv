@@ -126,7 +126,7 @@ window.Multiview = (function () {
      * @param {Array<Object>} channels - Channel entries.
      * @param {*} startIndex - Input for open().
      * @param {Object} opts - Options.
-     * @returns {void} Updates state or the UI.
+     * @returns {void} No return value.
      */
     function open(channels, startIndex, opts) {
         if (_open) return false;
@@ -158,7 +158,7 @@ window.Multiview = (function () {
     }
 
     /** Close for multi-channel playback.
-     * @returns {void} Updates state or the UI.
+     * @returns {void} No return value.
      */
     function close() {
         if (!_open) return;
@@ -282,7 +282,7 @@ window.Multiview = (function () {
     /** Set Msg for multi-channel playback.
      * @param {*} tile - Input for setMsg().
      * @param {string} text - Text to process.
-     * @returns {void} Updates state or the UI.
+     * @returns {void} No return value.
      */
     function setMsg(tile, text) {
         tile.msg.textContent = text;
@@ -363,7 +363,7 @@ window.Multiview = (function () {
     /** Start Tile for multi-channel playback.
      * @param {number} i - Zero-based index.
      * @param {Object} ch - Channel entry.
-     * @returns {void} Updates state or the UI.
+     * @returns {void} No return value.
      */
     function startTile(i, ch) {
         var tile = _tiles[i];
@@ -409,7 +409,7 @@ window.Multiview = (function () {
     /* Exactly one tile has sound. Muting is done on the element rather than by
        pausing, so every tile keeps its picture. */
     /** Apply Audio for multi-channel playback.
-     * @returns {void} Updates state or the UI.
+     * @returns {void} No return value.
      */
     function applyAudio() {
         for (var i = 0; i < _tiles.length; i++) {
@@ -418,7 +418,7 @@ window.Multiview = (function () {
     }
 
     /** Paint Focus for multi-channel playback.
-     * @returns {void} Updates state or the UI.
+     * @returns {void} No return value.
      */
     function paintFocus() {
         for (var i = 0; i < _tiles.length; i++) {
@@ -447,7 +447,7 @@ window.Multiview = (function () {
     }
 
     /** Hide Labels for multi-channel playback.
-     * @returns {void} Updates state or the UI.
+     * @returns {void} No return value.
      */
     function hideLabels() {
         for (var i = 0; i < _tiles.length; i++) {
@@ -517,7 +517,7 @@ window.Multiview = (function () {
        "move" to. */
     /** On Screen for multi-channel playback.
      * @param {Object} ch - Channel entry.
-     * @returns {void} Updates state or the UI.
+     * @returns {void} No return value.
      */
     function onScreen(ch) {
         for (var i = 0; i < _tiles.length; i++) {
@@ -531,7 +531,7 @@ window.Multiview = (function () {
     var KEY_HINT = null;
 
     /** Show Hint for multi-channel playback.
-     * @returns {void} Updates state or the UI.
+     * @returns {void} No return value.
      */
     function showHint() {
         var hint = Dom.byId('mv-hint');
@@ -571,7 +571,7 @@ window.Multiview = (function () {
        remote is worse than one that ignores a stray press. */
     /** Handle Key for multi-channel playback.
      * @param {Event} e - Browser event.
-     * @returns {void} Updates state or the UI.
+     * @returns {void} No return value.
      */
     function handleKey(e) {
         var kc = Dom.keyCode(e);
