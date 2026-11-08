@@ -6,7 +6,8 @@ on:
       - .github/workflows/ws4kp-package-check.yml
       - tools/build-weatherstar.js
       - tools/add-weatherstar-music.js
-      - js/livetv/weatherstar.js
+      - js/**
+      - assets/**
       - assets/weatherstar-compat.js
       - tools/patch-weatherstar-compat.js
       - tests/weatherstar-location.test.js
@@ -105,3 +106,10 @@ jobs:
           test $(stat -c %s com.oxhyashi.toonamitest_1.0.44_all.ipk) -gt 1000000
           ar t com.oxhyashi.toonamitest_1.0.44_all.ipk
           echo "IPK_CHECK_OK"
+      - name: Upload testable webOS package
+        uses: actions/upload-artifact@v4
+        with:
+          name: bunkhouse-webos-test-ipk
+          path: com.oxhyashi.toonamitest_1.0.44_all.ipk
+          if-no-files-found: error
+          retention-days: 14
