@@ -41,6 +41,13 @@ Read [ARCHITECTURE.md](ARCHITECTURE.md) for the complete source map.
 | Falsy cached values trigger unnecessary network requests | Treat `false` and `0` as valid cache hits | `tests/core-contracts.test.js` |
 | Expired cache data or evictions interfere with user settings | Expired cache entries are cleared; cache eviction is isolated from user keys | `tests/core-contracts.test.js` |
 | Documented return type disagrees with code | Corrected network/storage and virtual-row JSDoc return types; kept functions' behavior intact | `tools/check-source-docs.js` syntax and contract checks |
+| Catch-up archive finishes after returning Home or switching channels | Invalidate the previous request when entering Continue Watching | `tests/catchup-navigation-race.test.js` |
+| Delayed native audio-track verification acts on new playback | Check the player's generation and engine token before late checks or seeks | `tests/player-audio-race.test.js` |
+| Weather geocoding hangs on old LG network stacks | Use the app's bounded Net request for ZIP and ArcGIS lookups | `tests/weatherstar-location.test.js` |
+| Radio metadata remains pending indefinitely | Bound Triton, Airtime and iHeart lookups; independently reject a stalled ICY reader | `tests/radio-metadata-timeout.test.js` |
+| Old profile login succeeds after opening another profile | Fence each login by its request generation and editor identity; recover malformed profile storage | `tests/settings-profile-race.test.js` |
+| Stale VOD series request fails after a different series is selected | Leave the new series panel unchanged | `tests/vod-series-race.test.js` |
+| Subtitle provider errors and search results mix across concurrent searches | Keep responses and errors per search; ignore old downloads and closed menus | `tests/vod-subtitle-search-race.test.js` |
 
 These checks are **not** a proof of all possible bugs being absent. Audio decoder behavior, autoplay, input focus and the WeatherStar forecast renderer still need actual LG TV validation.
 
@@ -55,12 +62,20 @@ node tests/core-contracts.test.js
 node tests/tv-epg-race.test.js
 node tests/epg-time.test.js
 node tests/radio-station-switch.test.js
+node tests/radio-metadata-timeout.test.js
+node tests/catchup-navigation-race.test.js
+node tests/player-audio-race.test.js
+node tests/settings-profile-race.test.js
+node tests/vod-series-race.test.js
+node tests/vod-subtitle-search-race.test.js
 node tests/weatherstar-location.test.js
 npm.cmd run build
 ares-package.cmd -n .
 ```
 
-Check the GitHub Actions `Audit first-party source and regression tests`, `Build-check Bunkhouse + 24/7 WeatherStar audio`, and `Verify Bunkhouse Nightwave/Classic/Soma Weather IPK` workflows before trying the new `.ipk` on the LG.
+Check GitHub Actions `Audit first-party source and regression tests` and `Verify Bunkhouse Nightwave/Classic/Soma Weather IPK` before trying the new `.ipk` on the LG. The packaging workflow compiles the complete app and uploads `bunkhouse-webos-test-ipk` as a downloadable run artifact. The `main` branch is intentionally not modified; installs from this branch use the existing test application ID.
+
+The source checker confirms file overviews, syntax and JSDoc coverage for named declarations. It does not certify the semantic accuracy of every legacy comment or emulate TV decoders. Prioritize manual review when changing code with asynchronous callbacks, profile credentials, media ownership or focus state.
 
 ## Deliberate non-goals
 
