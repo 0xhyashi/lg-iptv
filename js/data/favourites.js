@@ -145,7 +145,7 @@ window.Favourites = (function () {
      */
     function groups() { return _groups; }
     /** Save Groups for saved favorites.
-     * @returns {void} Updates state or the UI.
+     * @returns {void} No return value.
      */
     function saveGroups() { Store.set(K_GROUPS, _groups); }
 
