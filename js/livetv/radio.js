@@ -17,10 +17,8 @@
  */
 var RadioDeck = (function () {
     "use strict";
-    var MODES = ["saturn"];
     var current = null;
     var requestSerial = 0;
-    var mode = "saturn";
     var infoTimer = null;
     var frame = null;
     var initDone = false;
@@ -170,13 +168,11 @@ var RadioDeck = (function () {
      */
     function normal(s) { return String(s || "").toLowerCase().normalize ? String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff]+/g, " ").trim() : String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
 
-    /** Restore saved visual mode and cached artwork.
+    /** Restore the bounded album-art lookup cache.
      * @returns {void} Updates module state or the UI.
      */
-    function readSettings() {
+    function loadArtworkCache() {
         try {
-            var saved = localStorage.getItem("radio_deck_mode");
-            if (MODES.indexOf(saved) !== -1) mode = saved;
             var old = JSON.parse(localStorage.getItem("radio_deck_art_v1") || "{}");
             if (old && typeof old === "object") artCache = old;
         } catch (_) {}
@@ -515,30 +511,6 @@ var RadioDeck = (function () {
      * @returns {void} Updates module state or the UI.
      */
     function clearPoll() { if (infoTimer) { clearInterval(infoTimer); infoTimer = null; } }
-    /** Update the currently selected visual mode.
-     * @param {string} newMode - Visual mode identifier.
-     * @returns {void} Updates module state or the UI.
-     */
-    function changeMode(newMode) {
-        if (MODES.indexOf(newMode) === -1) return;
-        mode = newMode;
-        var visual = $("radio-visual");
-        if (visual) visual.className = "mode-" + mode;
-        var buttons = document.querySelectorAll("[data-radio-mode]");
-        for(var i=0;i<buttons.length;i++) {
-            var selected = buttons[i].getAttribute("data-radio-mode") === mode;
-            buttons[i].classList.toggle("selected", selected);
-            buttons[i].setAttribute("aria-pressed", selected ? "true" : "false");
-        }
-        try { localStorage.setItem("radio_deck_mode", mode); } catch (_) {}
-    }
-    /** Cycle the available visual modes.
-     * @param {number} step - Signed number of modes or tracks to advance.
-     * @returns {void} Updates module state or the UI.
-     */
-    function cycleMode(step) {
-        changeMode(MODES[(MODES.indexOf(mode) + MODES.length + (step || 1)) % MODES.length]);
-    }
     /** Animate the deliberately synthetic equalizer bars.
      * @returns {void} Updates module state or the UI.
      */
@@ -581,7 +553,7 @@ var RadioDeck = (function () {
     function init() {
         if (initDone) return;
         initDone = true;
-        readSettings();
+        loadArtworkCache();
         var a=audio();
         var toggle=$("radio-toggle");
         var eq = $("bk-equalizer");
@@ -636,7 +608,6 @@ var RadioDeck = (function () {
         document.addEventListener("visibilitychange",function(){
             if(!document.hidden && current)startAnimation();
         });
-        changeMode(mode);
     }
     /** Stop the previous decoder and start the requested radio URL.
      * @param {Object} ch - Channel entry with stream_id, name and source fields.
@@ -662,7 +633,6 @@ var RadioDeck = (function () {
         $("player").style.display="none";
         $("player-msg").style.display="none";
         $("radio-visual").style.display="flex";
-        changeMode(mode);
         var a=audio(), tuneSerial=requestSerial;
         if(!a) {
             safeText("radio-status","Audio decoder unavailable");
@@ -697,5 +667,5 @@ var RadioDeck = (function () {
         var vid=$("player");if(vid)vid.style.display="block";
         resetArtwork();
     }
-    return {init:init,play:play,stop:stop,cycleMode:cycleMode,changeMode:changeMode,isRadio:isActive};
+    return {init:init,play:play,stop:stop,isRadio:isActive};
 }());
