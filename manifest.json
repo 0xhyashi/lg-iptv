@@ -1,8 +1,8 @@
 {
   "id": "com.oxhyashi.toonamitest",
   "title": "Toonami + Japan + Radio",
-  "version": "1.0.36",
-  "appDescription": "Privacy-focused IPTV app: Toonami Aftermath, Japan TV, and three direct live radio streams (WTMD FM, WTMD HD2, Shonan Beach FM).",
+  "version": "1.0.37",
+  "appDescription": "Privacy-focused IPTV app: Toonami Aftermath, Japan TV, and four direct live radio streams including B97 New Orleans.",
   "iconUri": "https://raw.githubusercontent.com/0xhyashi/lg-iptv/privacy/toonami-single-stream-test/icon.png",
   "sourceUrl": "https://github.com/0xhyashi/lg-iptv",
   "rootRequired": false
