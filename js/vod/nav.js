@@ -17,9 +17,9 @@ var detailFocus = 0;
 var searchFocus = 0;
 var _focusRailsAfterRender = false;
 
-/** Focus Zone for VOD remote and focus handling.
+/** Set the active remote-control focus zone and clear old focus rings.
  * @param {*} z - Input for focusZone().
- * @returns {*} Function result.
+ * @returns {void} No return value.
  */
 function focusZone(z) { zone = z; clearRings(); }
 /** Clear Rings for VOD remote and focus handling.
@@ -30,17 +30,17 @@ function clearRings() {
 }
 
 /* ── Sidebar (collapsible left nav + categories) ─────────────────── */
-/** Sidebar El for VOD remote and focus handling.
- * @returns {*} Function result.
+/** Get the VOD sidebar container.
+ * @returns {HTMLElement|null} Sidebar DOM element, or null.
  */
 function sidebarEl() { return document.getElementById('vod-sidebar'); }
-/** Nav Items for VOD remote and focus handling.
- * @returns {*} Function result.
+/** Get the top-level VOD sidebar navigation buttons.
+ * @returns {Array<HTMLElement>} Navigation elements in display order.
  */
 function navItems()  { return Array.prototype.slice.call(document.querySelectorAll('#vod-sidebar .vod-nav-item')); }
 /* Focusable sidebar items = top sections + (when expanded) categories. */
-/** Sidebar Items for VOD remote and focus handling.
- * @returns {*} Function result.
+/** Get the sidebar items for remote navigation.
+ * @returns {Array<HTMLElement>} Sidebar navigation elements.
  */
 function sidebarItems() {
     return Array.prototype.slice.call(document.querySelectorAll('#vod-sidebar .vod-nav-item, #vod-sidebar .vod-cat-item'))
@@ -109,9 +109,9 @@ function renderSidebarCats() {
 }
 
 /* Jump the rails to a given category and focus it. */
-/** Jump To Category for VOD remote and focus handling.
+/** Select the requested VOD category and move remote focus to it.
  * @param {*} catId - Input for jumpToCategory().
- * @returns {*} Function result.
+ * @returns {void} No return value.
  */
 function jumpToCategory(catId) {
     collapseSidebar();
@@ -128,8 +128,8 @@ function jumpToCategory(catId) {
     if (target) { try { target.scrollIntoView({ block: 'start' }); } catch (e) {} }
 }
 
-/** Open Sidebar for VOD remote and focus handling.
- * @returns {*} Function result.
+/** Expand the VOD sidebar and give it focus.
+ * @returns {void} No return value.
  */
 function openSidebar() {
     focusZone('sidebar');
@@ -138,15 +138,15 @@ function openSidebar() {
     sidebarSub = 'item';
     paintSidebarFocus();
 }
-/** Collapse Sidebar for VOD remote and focus handling.
- * @returns {*} Function result.
+/** Collapse the VOD sidebar.
+ * @returns {void} No return value.
  */
 function collapseSidebar() { sidebarEl().classList.remove('expanded'); }
 /* The ★ belonging to a sidebar row, or null for the top-level nav items
    (Search / Movies / Series / Settings) which have none. */
-/** Sidebar Star For for VOD remote and focus handling.
+/** Find the favourite star for a sidebar category row.
  * @param {number} idx - Index.
- * @returns {*} Function result.
+ * @returns {HTMLElement|null} Star button, or null.
  */
 function sidebarStarFor(idx) {
     var el = sidebarItems()[idx];
@@ -154,8 +154,8 @@ function sidebarStarFor(idx) {
     return row ? row.querySelector('.vod-cat-star') : null;
 }
 
-/** Paint Sidebar Focus for VOD remote and focus handling.
- * @returns {*} Function result.
+/** Draw the remote focus ring on the selected sidebar item.
+ * @returns {void} No return value.
  */
 function paintSidebarFocus() {
     clearRings();
@@ -168,9 +168,9 @@ function paintSidebarFocus() {
     (star || el).classList.add('tv-focus-visible');
     el.scrollIntoView({ block: 'nearest' });
 }
-/** Activate Nav for VOD remote and focus handling.
+/** Run the action represented by a VOD sidebar button.
  * @param {*} item - Input for activateNav().
- * @returns {*} Function result.
+ * @returns {void} No return value.
  */
 function activateNav(item) {
     if (!item) return;
@@ -184,17 +184,17 @@ function activateNav(item) {
     }
 }
 
-/** Rail Els for VOD remote and focus handling.
- * @returns {*} Function result.
+/** Get all VOD category rails.
+ * @returns {Array<HTMLElement>} Rail elements in display order.
  */
 function railEls() { return Array.prototype.slice.call(elRails.querySelectorAll('.vod-rail')); }
-/** Rail Cards for VOD remote and focus handling.
+/** Get the real movie/series cards in a rail.
  * @param {*} rail - Input for railCards().
- * @returns {*} Function result.
+ * @returns {Array<HTMLElement>} Cards excluding loading placeholders.
  */
 function railCards(rail) { return rail ? Array.prototype.slice.call(rail.querySelectorAll('.vod-card:not(.vod-skeleton)')) : []; }
-/** Paint Rail Focus for VOD remote and focus handling.
- * @returns {*} Function result.
+/** Draw the remote focus ring on a VOD rail card.
+ * @returns {void} No return value.
  */
 function paintRailFocus() {
     clearRings();
@@ -212,8 +212,8 @@ function paintRailFocus() {
     rails[railIndex].scrollIntoView({ block: 'nearest' });
 }
 
-/** Detail Items for VOD remote and focus handling.
- * @returns {*} Function result.
+/** Get focusable controls in the open VOD details panel.
+ * @returns {Array<HTMLElement>} Detail controls in navigation order.
  */
 function detailItems() {
     var arr = [];
@@ -225,8 +225,8 @@ function detailItems() {
     arr = arr.concat(Array.prototype.slice.call(document.querySelectorAll('#vod-episode-list .vod-ep-row')));
     return arr;
 }
-/** Paint Detail Focus for VOD remote and focus handling.
- * @returns {*} Function result.
+/** Draw the remote focus ring in the details panel.
+ * @returns {void} No return value.
  */
 function paintDetailFocus() {
     clearRings();
@@ -237,17 +237,17 @@ function paintDetailFocus() {
     items[detailFocus].scrollIntoView({ block: 'nearest' });
 }
 
-/** Search Cards for VOD remote and focus handling.
- * @returns {*} Function result.
+/** Get the current VOD search-result cards.
+ * @returns {Array<HTMLElement>} Search-result card elements.
  */
 function searchCards() { return Array.prototype.slice.call(elSearchGrid.querySelectorAll('.vod-card')); }
 /* Same measurement — and the same transform trap — as the category grid. */
-/** Search Cols for VOD remote and focus handling.
- * @returns {*} Function result.
+/** Determine the number of columns in the search grid.
+ * @returns {number} Number of search-result columns.
  */
 function searchCols() { return gridCols(searchCards()); }
-/** Paint Search Focus for VOD remote and focus handling.
- * @returns {*} Function result.
+/** Draw the remote focus ring in search results.
+ * @returns {void} No return value.
  */
 function paintSearchFocus() {
     clearRings();
@@ -357,9 +357,9 @@ window.addEventListener('keydown', function (e) {
     }
 });
 
-/** Ensure Rail Loaded for VOD remote and focus handling.
+/** Fetch a VOD rail if it has not been loaded yet.
  * @param {*} rail - Input for ensureRailLoaded().
- * @returns {*} Function result.
+ * @returns {void} No return value.
  */
 function ensureRailLoaded(rail) {
     if (rail && rail.dataset.loaded === '0') fillRail(rail);
