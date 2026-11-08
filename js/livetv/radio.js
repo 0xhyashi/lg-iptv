@@ -1,0 +1,419 @@
+/* radio.js — Headspace-inspired radio deck, now-playing metadata and artwork.
+ * Compatible with packaged webOS TV apps; runs with no server or root.
+ *
+ * Playback: exactly ONE native <audio> element; normal video player is stopped
+ * before entry. No AudioContext.createMediaElementSource: LG webOS TV's official
+ * documentation says it is unsupported, and touching protected streams risks
+ * silencing them. The display trace is an honest, synthetic animation, not
+ * decoded PCM from the stream.
+ *
+ * Metadata: direct public CORS endpoints where available (Triton for WZRH,
+ * Airtime / ICY for Shonan). Other direct streams often send ICY tags but
+ * block the browser's preflight required by the Icy-MetaData header; we try
+ * only once and then show a truthful "unavailable" status.
+ *
+ * Artwork: Apple iTunes Search API JSONP; Apple documents the callback option
+ * for browser apps. Only public artist/title are sent. Results are cached.
+ */
+var RadioDeck = (function () {
+    "use strict";
+    var MODES = ["headspace", "scope", "tuner"];
+    var current = null;
+    var requestSerial = 0;
+    var mode = "headspace";
+    var infoTimer = null;
+    var frame = null;
+    var initDone = false;
+    var pollFailures = {};
+    var artRequest = null;
+    var artTimer = null;
+    var artSeq = 0;
+    var artCache = {};
+    var currentTrackKey = "";
+    var lastDraw = 0;
+    var renderFrame = 0;
+    var noMetadataMessage = "Waiting for station metadata…";
+
+    function $(id) { return document.getElementById(id); }
+    function safeText(id, text) { var node = $(id); if (node) node.textContent = text || ""; }
+    function audio() { return $("radio-audio"); }
+    function isActive() { return !!current && !!window.currentChannel && window.currentChannel === current; }
+    function playing() { var a = audio(); return !!a && !a.paused && a.readyState > 1; }
+    function normal(s) { return String(s || "").toLowerCase().normalize ? String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff]+/g, " ").trim() : String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
+
+    function readSettings() {
+        try {
+            var saved = localStorage.getItem("radio_deck_mode");
+            if (MODES.indexOf(saved) !== -1) mode = saved;
+            var old = JSON.parse(localStorage.getItem("radio_deck_art_v1") || "{}");
+            if (old && typeof old === "object") artCache = old;
+        } catch (_) {}
+    }
+    function cacheArtwork() {
+        try {
+            var names = Object.keys(artCache);
+            if (names.length > 55) {
+                names.sort(function (a,b) { return (artCache[b].ts || 0) - (artCache[a].ts || 0); });
+                var recent = {}; names.slice(0, 55).forEach(function (k) { recent[k] = artCache[k]; });
+                artCache = recent;
+            }
+            localStorage.setItem("radio_deck_art_v1", JSON.stringify(artCache));
+        } catch (_) {}
+    }
+    function cancelArtwork() {
+        if (artTimer) { clearTimeout(artTimer); artTimer = null; }
+        if (artRequest) {
+            var req = artRequest; artRequest = null;
+            try { delete window[req.callback]; } catch (_) { window[req.callback] = undefined; }
+            if (req.script.parentNode) req.script.parentNode.removeChild(req.script);
+        }
+    }
+    function resetArtwork() {
+        var img = $("radio-cover");
+        if (img) {
+            img.style.display = "none";
+            img.removeAttribute("src");
+        }
+        var placeholder = $("radio-cover-placeholder");
+        if (placeholder) placeholder.style.display = "flex";
+        var link = $("radio-art-source");
+        if (link) { link.style.display = "none"; link.removeAttribute("href"); }
+        safeText("radio-album", "");
+    }
+    function showArtwork(entry) {
+        if (!entry || !entry.art || !/^https:\/\//i.test(entry.art)) { resetArtwork(); return; }
+        var image = $("radio-cover");
+        image.onload = function () {
+            if (this !== $("radio-cover")) return;
+            this.style.display = "block";
+            $("radio-cover-placeholder").style.display = "none";
+        };
+        image.onerror = function () {
+            this.style.display = "none";
+            $("radio-cover-placeholder").style.display = "flex";
+        };
+        image.src = entry.art;
+        safeText("radio-album", entry.album);
+        var link = $("radio-art-source");
+        if (link && /^https:\/\/(?:music\.apple\.com|itunes\.apple\.com)\//i.test(entry.url || "")) {
+            link.href = entry.url;
+            link.style.display = "inline";
+        }
+    }
+    function lookupArtwork(artist, title, gen) {
+        cancelArtwork();
+        resetArtwork();
+        if (!artist || !title) return;
+        var key = normal(artist) + "|" + normal(title);
+        var cached = artCache[key];
+        if (cached && Date.now() - cached.ts < 7 * 86400000) {
+            if (cached.art) showArtwork(cached);
+            return;
+        }
+        // iTunes permits a callback query (JSONP), useful on file:// webOS apps
+        // where an ordinary cross-origin fetch may be rejected by CORS.
+        var callback = "__radioDeckArt" + (++artSeq);
+        var script = document.createElement("script");
+        var q = encodeURIComponent(artist + " " + title);
+        var search = "https://itunes.apple.com/search?term=" + q +
+            "&media=music&entity=song&limit=8&country=us&callback=" + callback;
+        var finished = false;
+        var req = { callback: callback, script: script };
+        artRequest = req;
+        function finish(data) {
+            if (finished) return;
+            finished = true;
+            if (artTimer) { clearTimeout(artTimer); artTimer = null; }
+            if (artRequest === req) artRequest = null;
+            try { delete window[callback]; } catch (_) { window[callback] = undefined; }
+            if (script.parentNode) script.parentNode.removeChild(script);
+            if (gen !== requestSerial || !isActive() || currentTrackKey !== key) return;
+            var best = null, bestScore = 0;
+            var results = data && Array.isArray(data.results) ? data.results : [];
+            results.forEach(function (result) {
+                if (!result || !result.artworkUrl100) return;
+                var ra = normal(result.artistName), rt = normal(result.trackName);
+                var aa = normal(artist), tt = normal(title);
+                var score = (ra === aa ? 6 : (ra.indexOf(aa) !== -1 || aa.indexOf(ra) !== -1 ? 3 : 0)) +
+                            (rt === tt ? 8 : (rt.indexOf(tt) !== -1 || tt.indexOf(rt) !== -1 ? 4 : 0));
+                if (score > bestScore) { best = result; bestScore = score; }
+            });
+            var entry = { ts: Date.now(), art: "", album: "", url: "" };
+            // A wrong album is worse than no album. Require matching artist AND title.
+            if (best && bestScore >= 9) {
+                entry.art = String(best.artworkUrl100).replace(/^http:/, "https:").replace(/100x100/, "600x600");
+                entry.album = String(best.collectionName || "");
+                entry.url = String(best.trackViewUrl || "");
+            }
+            artCache[key] = entry;
+            cacheArtwork();
+            if (entry.art) showArtwork(entry);
+        }
+        window[callback] = finish;
+        script.onerror = function () { finish(null); };
+        script.async = true;
+        script.src = search;
+        artTimer = setTimeout(function () { finish(null); }, 9000);
+        document.head.appendChild(script);
+    }
+
+    function displayTrack(artist, title) {
+        artist = String(artist || "").trim();
+        title = String(title || "").trim();
+        if (!title || /commercial break|preroll|^ad\||(^|\s)offline($|\s)/i.test(title)) return;
+        if (/\.(?:mp3|wav|aac)(?:\s|$)/i.test(title)) return;
+        var key = normal(artist) + "|" + normal(title);
+        if (key === currentTrackKey) return;
+        currentTrackKey = key;
+        safeText("radio-track", title);
+        safeText("radio-artist", artist || "Live broadcast");
+        safeText("radio-metadata-state", "LIVE TRACK DATA");
+        lookupArtwork(artist, title, requestSerial);
+    }
+    function fromCombinedText(text) {
+        text = String(text || "").replace(/\0/g, "").trim();
+        if (!text || /^ad\||commercial break|^offline$/i.test(text)) return;
+        // iHeart's ICY format embeds title="...",artist="..." inside StreamTitle.
+        var iheartTitle = /(?:^|,)title="([^"]+)"/i.exec(text);
+        var iheartArtist = /(?:^|,)artist="([^"]+)"/i.exec(text);
+        if (iheartTitle) { displayTrack(iheartArtist && iheartArtist[1], iheartTitle[1]); return; }
+        var dash = text.indexOf(" - ");
+        if (dash > 0) displayTrack(text.slice(0,dash), text.slice(dash+3));
+        else displayTrack("", text);
+    }
+
+    function metaFromTriton(ch) {
+        var url = "https://np.tritondigital.com/public/nowplaying?mountName=WZRHFM&numberToFetch=1&eventType=track";
+        return fetch(url, { cache: "no-store" }).then(function (r) {
+            if (!r.ok) throw Error("Metadata HTTP " + r.status);
+            return r.text();
+        }).then(function (xml) {
+            if (!isActive() || current !== ch) return;
+            var doc = new DOMParser().parseFromString(xml, "text/xml");
+            var props = doc.getElementsByTagName("property"), vals = {};
+            for (var i=0;i<props.length;i++) {
+                vals[props[i].getAttribute("name")] = props[i].textContent || "";
+            }
+            var title = vals.cue_title || vals.title || vals.track_title || "";
+            var artist = vals.cue_artist || vals.cue_artist_name || vals.artist || vals.track_artist_name || vals.track_artist || "";
+            if (title) displayTrack(artist, title);
+        });
+    }
+    function metaFromAirtime(ch) {
+        return fetch("https://shonanbeachfm.airtime.pro/api/live-info", { cache: "no-store" })
+        .then(function (r) { if (!r.ok) throw Error("Airtime HTTP " + r.status); return r.json(); })
+        .then(function (data) {
+            if (!isActive() || current !== ch) return;
+            var cur = data && data.current;
+            if (cur) {
+                var m = cur.metadata || {};
+                var title = m.title || cur.name || "";
+                var artist = m.artist || "";
+                if (title) displayTrack(artist, title);
+            }
+        });
+    }
+    function metaFromIcy(ch) {
+        // Streaming ICY isn't exposed by <audio> in webOS. A short, separate
+        // CORS request can read tags only on hosts that allow icy-metadata
+        // preflight (Shonan's Icecast does; others vary by network/provider).
+        var controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+        var killer = setTimeout(function () { if (controller) controller.abort(); }, 7000);
+        var headers = { "Icy-MetaData": "1" };
+        var opts = { headers: headers, cache: "no-store" };
+        if (controller) opts.signal = controller.signal;
+        return fetch(ch.stream_url, opts).then(function (r) {
+            if (!r.ok) throw Error("ICY HTTP " + r.status);
+            var interval = parseInt(r.headers.get("icy-metaint"),10);
+            if (!(interval > 0 && interval <= 65536) || !r.body || !r.body.getReader) throw Error("ICY not readable");
+            var reader = r.body.getReader(), bytes = [], needed = interval + 1;
+            // Consume only enough bytes for one metadata frame; never download
+            // the whole endless radio stream or store user listening history.
+            function consume() {
+                return reader.read().then(function (packet) {
+                    if (packet.done) throw Error("ICY ended");
+                    var chunk = packet.value;
+                    for (var j=0;j<chunk.length && bytes.length<needed;j++) bytes.push(chunk[j]);
+                    if (bytes.length < needed) return consume();
+                    needed = interval + 1 + bytes[interval]*16;
+                    for (;j<chunk.length && bytes.length<needed;j++) bytes.push(chunk[j]);
+                    if (bytes.length < needed) return consume();
+                    try { reader.cancel(); } catch (_) {}
+                    var chars = "";
+                    for (var k=interval+1;k<needed;k++) chars += String.fromCharCode(bytes[k]);
+                    var match = /StreamTitle='([^']*)'/.exec(chars);
+                    if (match && isActive() && current === ch) fromCombinedText(match[1]);
+                });
+            }
+            return consume();
+        }).then(function (r) { clearTimeout(killer); if (controller) controller.abort(); return r; },
+                 function (e) { clearTimeout(killer); if (controller) controller.abort(); throw e; });
+    }
+    function pollMetadata(ch) {
+        if (!isActive() || current !== ch || document.hidden) return;
+        var method = "";
+        if (ch.stream_id === "radio-alt923-nola") method = "triton";
+        else if (ch.stream_id === "radio-shonan") method = "shonan";
+        else method = "icy";
+        // Don't keep issuing a known-blocked cross-origin preflight every 30s.
+        var badKey = ch.stream_id + "|" + method;
+        if (pollFailures[badKey]) return;
+        var promise = method === "triton" ? metaFromTriton(ch)
+            : method === "shonan" ? metaFromIcy(ch).catch(function () { return metaFromAirtime(ch); })
+            : metaFromIcy(ch);
+        promise.catch(function () {
+            pollFailures[badKey] = true;
+            if (isActive() && current === ch && !currentTrackKey) {
+                safeText("radio-metadata-state", "Song data unavailable from this station");
+            }
+        });
+    }
+    function clearPoll() { if (infoTimer) { clearInterval(infoTimer); infoTimer = null; } }
+    function changeMode(newMode) {
+        if (MODES.indexOf(newMode) === -1) return;
+        mode = newMode;
+        var visual = $("radio-visual");
+        if (visual) visual.className = "mode-" + mode;
+        var buttons = document.querySelectorAll("[data-radio-mode]");
+        for(var i=0;i<buttons.length;i++) {
+            var selected = buttons[i].getAttribute("data-radio-mode") === mode;
+            buttons[i].classList.toggle("selected", selected);
+            buttons[i].setAttribute("aria-pressed", selected ? "true" : "false");
+        }
+        try { localStorage.setItem("radio_deck_mode", mode); } catch (_) {}
+    }
+    function cycleMode(step) {
+        changeMode(MODES[(MODES.indexOf(mode) + MODES.length + (step || 1)) % MODES.length]);
+    }
+    function drawTrace() {
+        var now = Date.now();
+        if (now-lastDraw<45) return;
+        lastDraw=now;
+        renderFrame++;
+        var active = playing();
+        var amp = active ? 13 : 0.9;
+        var pts = [];
+        for (var i=0;i<125;i++) {
+            var x = 164+i*2.34;
+            var y = 221 + amp*(Math.sin(i*0.73+renderFrame*0.19)*0.24 + Math.sin(i*0.19+renderFrame*0.06)*0.58 + Math.sin(i*1.7+renderFrame*0.13)*0.18);
+            pts.push((i?"L":"M")+x.toFixed(1)+","+y.toFixed(1));
+        }
+        var trace = $("radio-head-trace");
+        if(trace) trace.setAttribute("d",pts.join(" "));
+        var canvas = $("radio-scope-canvas");
+        if(canvas && mode === "scope") {
+            var w=canvas.clientWidth||600,h=canvas.clientHeight||280;
+            var scale = window.devicePixelRatio && window.devicePixelRatio <= 2 ? window.devicePixelRatio : 1;
+            var cw=Math.min(1200,Math.round(w*scale)),ch=Math.min(580,Math.round(h*scale));
+            if(canvas.width!==cw || canvas.height!==ch){canvas.width=cw;canvas.height=ch;}
+            var ctx=canvas.getContext("2d");
+            if(ctx){
+                ctx.fillStyle="#030c08";ctx.fillRect(0,0,cw,ch);
+                ctx.strokeStyle="rgba(39,121,75,.35)";ctx.lineWidth=1;
+                for(var a=1;a<10;a++){ctx.beginPath();ctx.moveTo(a*cw/10,0);ctx.lineTo(a*cw/10,ch);ctx.stroke();}
+                for(var b=1;b<6;b++){ctx.beginPath();ctx.moveTo(0,b*ch/6);ctx.lineTo(cw,b*ch/6);ctx.stroke();}
+                ctx.shadowColor="#6affaf";ctx.shadowBlur=8;ctx.strokeStyle="#7affbc";ctx.lineWidth=2.0*scale;
+                ctx.beginPath();
+                for(var n=0;n<200;n++){
+                    var xx=n*cw/199;
+                    var yy=ch*0.5+(active?ch*.16:ch*.008)*
+                       (Math.sin(n*.23+renderFrame*.22)*.48+Math.sin(n*.08+renderFrame*.047)*.40+Math.sin(n*.96+renderFrame*.17)*.12);
+                    if(!n)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);
+                }
+                ctx.stroke();ctx.shadowBlur=0;
+            }
+        }
+        var vu = $("radio-vu-fill");
+        if(vu)vu.style.width = (active?42+25*Math.abs(Math.sin(renderFrame*.21)):4)+"%";
+    }
+    function animate() {
+        if(!current || document.hidden){frame=null;return;}
+        drawTrace();
+        frame=requestAnimationFrame(animate);
+    }
+    function startAnimation() {
+        if(!frame && typeof requestAnimationFrame === "function")frame=requestAnimationFrame(animate);
+    }
+    function init() {
+        if (initDone) return;
+        initDone = true;
+        readSettings();
+        var a=audio();
+        var toggle=$("radio-toggle");
+        function active(){return isActive();}
+        a.addEventListener("playing",function(){if(!active())return;safeText("radio-status","LIVE · Listening");safeText("radio-toggle","Pause");startAnimation();});
+        a.addEventListener("waiting",function(){if(active())safeText("radio-status","Buffering live radio…");});
+        a.addEventListener("pause",function(){if(!active()||!a.getAttribute("src"))return;safeText("radio-status","Paused");safeText("radio-toggle","Play");});
+        a.addEventListener("error",function(){if(active()){safeText("radio-status","Stream unavailable — try again");safeText("radio-toggle","Retry");}});
+        toggle.addEventListener("click",function(e){
+            e.stopPropagation();if(!active())return;
+            if(a.paused){
+                safeText("radio-status","Connecting…");
+                var attempt;
+                try{attempt=a.play();}catch(_){safeText("radio-status","Press Play to start");return;}
+                if(attempt && attempt.catch)attempt.catch(function(){if(active()){safeText("radio-status","Press Play to start");safeText("radio-toggle","Play");}});
+            }else a.pause();
+        });
+        var modeButtons=document.querySelectorAll("[data-radio-mode]");
+        for(var i=0;i<modeButtons.length;i++)(function(button){
+            button.addEventListener("click",function(e){e.stopPropagation();changeMode(button.getAttribute("data-radio-mode"));});
+        })(modeButtons[i]);
+        // Native LG transport buttons; no player-engine changes required.
+        window.addEventListener("keydown",function(event){
+            if(!active())return;
+            var key=event.keyCode||event.which;
+            if(key!==415 && key!==19 && key!==179)return;
+            event.preventDefault();event.stopImmediatePropagation();
+            if(key===415 && !a.paused || key===19 && a.paused)return;
+            toggle.click();
+        },true);
+        document.addEventListener("visibilitychange",function(){
+            if(!document.hidden && current)startAnimation();
+        });
+        changeMode(mode);
+    }
+    function play(ch) {
+        init();
+        stop();
+        current = ch;
+        requestSerial++;
+        currentTrackKey = "";
+        safeText("radio-name",ch.name || "Internet Radio");
+        var freq = /\b(\d{2,3}\.\d)\b/.exec(ch.name || "");
+        safeText("radio-frequency",freq ? freq[1] : "NET");
+        safeText("radio-track","Waiting for the next song");
+        safeText("radio-artist","Live broadcast");
+        safeText("radio-album","");
+        safeText("radio-metadata-state",noMetadataMessage);
+        safeText("radio-status","Connecting…");
+        safeText("radio-toggle","Pause");
+        resetArtwork();
+        $("player").style.display="none";
+        $("player-msg").style.display="none";
+        $("radio-visual").style.display="flex";
+        changeMode(mode);
+        var a=audio();
+        a.src=ch.stream_url;
+        var attempt;
+        try{attempt=a.play();}
+        catch(_){safeText("radio-status","Press Play to start");safeText("radio-toggle","Play");}
+        if(attempt && attempt.catch)attempt.catch(function(){if(isActive()&&current===ch){safeText("radio-status","Press Play to start");safeText("radio-toggle","Play");}});
+        startAnimation();
+        pollMetadata(ch);
+        infoTimer=setInterval(function(){pollMetadata(ch);},30000);
+    }
+    function stop() {
+        clearPoll();
+        cancelArtwork();
+        requestSerial++;
+        currentTrackKey="";
+        current=null;
+        if(frame){cancelAnimationFrame(frame);frame=null;}
+        var a=audio();
+        if(a){try{a.pause();}catch(_){}a.removeAttribute("src");try{a.load();}catch(_){}}
+        var visual=$("radio-visual");if(visual)visual.style.display="none";
+        var vid=$("player");if(vid)vid.style.display="block";
+        resetArtwork();
+    }
+    return {init:init,play:play,stop:stop,cycleMode:cycleMode,changeMode:changeMode,isRadio:isActive};
+}());
