@@ -17,15 +17,31 @@ var detailFocus = 0;
 var searchFocus = 0;
 var _focusRailsAfterRender = false;
 
+/** Focus Zone for VOD remote and focus handling.
+ * @param {*} z - Input for focusZone().
+ * @returns {*} Function result.
+ */
 function focusZone(z) { zone = z; clearRings(); }
+/** Clear Rings for VOD remote and focus handling.
+ * @returns {void} Updates state or the UI.
+ */
 function clearRings() {
     document.querySelectorAll('.tv-focus-visible').forEach(function (el) { el.classList.remove('tv-focus-visible'); });
 }
 
 /* ── Sidebar (collapsible left nav + categories) ─────────────────── */
+/** Sidebar El for VOD remote and focus handling.
+ * @returns {*} Function result.
+ */
 function sidebarEl() { return document.getElementById('vod-sidebar'); }
+/** Nav Items for VOD remote and focus handling.
+ * @returns {*} Function result.
+ */
 function navItems()  { return Array.prototype.slice.call(document.querySelectorAll('#vod-sidebar .vod-nav-item')); }
 /* Focusable sidebar items = top sections + (when expanded) categories. */
+/** Sidebar Items for VOD remote and focus handling.
+ * @returns {*} Function result.
+ */
 function sidebarItems() {
     return Array.prototype.slice.call(document.querySelectorAll('#vod-sidebar .vod-nav-item, #vod-sidebar .vod-cat-item'))
         .filter(function (el) { return el.offsetParent !== null; });
@@ -35,6 +51,9 @@ function sidebarItems() {
    ★ that pins the whole category to the top of the rails — the same
    two-control shape as Live TV's sidebar, so the D-pad behaves identically
    on both screens. */
+/** Render Sidebar Cats for VOD remote and focus handling.
+ * @returns {void} Updates state or the UI.
+ */
 function renderSidebarCats() {
     var wrap = document.getElementById('vod-nav-cats');
     wrap.innerHTML = '';
@@ -90,6 +109,10 @@ function renderSidebarCats() {
 }
 
 /* Jump the rails to a given category and focus it. */
+/** Jump To Category for VOD remote and focus handling.
+ * @param {*} catId - Input for jumpToCategory().
+ * @returns {*} Function result.
+ */
 function jumpToCategory(catId) {
     collapseSidebar();
     focusZone('rails');
@@ -105,6 +128,9 @@ function jumpToCategory(catId) {
     if (target) { try { target.scrollIntoView({ block: 'start' }); } catch (e) {} }
 }
 
+/** Open Sidebar for VOD remote and focus handling.
+ * @returns {*} Function result.
+ */
 function openSidebar() {
     focusZone('sidebar');
     sidebarEl().classList.add('expanded');
@@ -112,15 +138,25 @@ function openSidebar() {
     sidebarSub = 'item';
     paintSidebarFocus();
 }
+/** Collapse Sidebar for VOD remote and focus handling.
+ * @returns {*} Function result.
+ */
 function collapseSidebar() { sidebarEl().classList.remove('expanded'); }
 /* The ★ belonging to a sidebar row, or null for the top-level nav items
    (Search / Movies / Series / Settings) which have none. */
+/** Sidebar Star For for VOD remote and focus handling.
+ * @param {number} idx - Index.
+ * @returns {*} Function result.
+ */
 function sidebarStarFor(idx) {
     var el = sidebarItems()[idx];
     var row = el && el.closest ? el.closest('.vod-cat-row') : null;
     return row ? row.querySelector('.vod-cat-star') : null;
 }
 
+/** Paint Sidebar Focus for VOD remote and focus handling.
+ * @returns {*} Function result.
+ */
 function paintSidebarFocus() {
     clearRings();
     var items = sidebarItems();
@@ -132,6 +168,10 @@ function paintSidebarFocus() {
     (star || el).classList.add('tv-focus-visible');
     el.scrollIntoView({ block: 'nearest' });
 }
+/** Activate Nav for VOD remote and focus handling.
+ * @param {*} item - Input for activateNav().
+ * @returns {*} Function result.
+ */
 function activateNav(item) {
     if (!item) return;
     var action = item.dataset.action;
@@ -144,8 +184,18 @@ function activateNav(item) {
     }
 }
 
+/** Rail Els for VOD remote and focus handling.
+ * @returns {*} Function result.
+ */
 function railEls() { return Array.prototype.slice.call(elRails.querySelectorAll('.vod-rail')); }
+/** Rail Cards for VOD remote and focus handling.
+ * @param {*} rail - Input for railCards().
+ * @returns {*} Function result.
+ */
 function railCards(rail) { return rail ? Array.prototype.slice.call(rail.querySelectorAll('.vod-card:not(.vod-skeleton)')) : []; }
+/** Paint Rail Focus for VOD remote and focus handling.
+ * @returns {*} Function result.
+ */
 function paintRailFocus() {
     clearRings();
     var rails = railEls();
@@ -162,6 +212,9 @@ function paintRailFocus() {
     rails[railIndex].scrollIntoView({ block: 'nearest' });
 }
 
+/** Detail Items for VOD remote and focus handling.
+ * @returns {*} Function result.
+ */
 function detailItems() {
     var arr = [];
     var playBtn = document.getElementById('vod-play-btn');
@@ -172,6 +225,9 @@ function detailItems() {
     arr = arr.concat(Array.prototype.slice.call(document.querySelectorAll('#vod-episode-list .vod-ep-row')));
     return arr;
 }
+/** Paint Detail Focus for VOD remote and focus handling.
+ * @returns {*} Function result.
+ */
 function paintDetailFocus() {
     clearRings();
     var items = detailItems();
@@ -181,9 +237,18 @@ function paintDetailFocus() {
     items[detailFocus].scrollIntoView({ block: 'nearest' });
 }
 
+/** Search Cards for VOD remote and focus handling.
+ * @returns {*} Function result.
+ */
 function searchCards() { return Array.prototype.slice.call(elSearchGrid.querySelectorAll('.vod-card')); }
 /* Same measurement — and the same transform trap — as the category grid. */
+/** Search Cols for VOD remote and focus handling.
+ * @returns {*} Function result.
+ */
 function searchCols() { return gridCols(searchCards()); }
+/** Paint Search Focus for VOD remote and focus handling.
+ * @returns {*} Function result.
+ */
 function paintSearchFocus() {
     clearRings();
     var cards = searchCards();
@@ -292,6 +357,10 @@ window.addEventListener('keydown', function (e) {
     }
 });
 
+/** Ensure Rail Loaded for VOD remote and focus handling.
+ * @param {*} rail - Input for ensureRailLoaded().
+ * @returns {*} Function result.
+ */
 function ensureRailLoaded(rail) {
     if (rail && rail.dataset.loaded === '0') fillRail(rail);
 }
