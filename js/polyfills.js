@@ -26,12 +26,21 @@
             self._value = undefined;
             self._handlers = [];
             var done = false;
+            /** Finish one Promise with a fulfilled or rejected result.
+             * @param {number} state - Promise settlement state.
+             * @param {*} value - Promise result.
+             * @returns {void} Updates the shim's internal state.
+             */
             function settle(state, value) {
                 if (self._state) return;
                 self._state = state; self._value = value;
                 var hs = self._handlers; self._handlers = [];
                 for (var i = 0; i < hs.length; i++) handle(self, hs[i]);
             }
+            /** Resolve a Promise or adopt an input thenable.
+             * @param {*} value - Promise result.
+             * @returns {void} Updates the shim's internal state.
+             */
             function resolve(value) {
                 if (done) return; done = true;
                 if (value === self) { settle(2, new TypeError('Promise resolved with itself')); return; }
@@ -50,6 +59,10 @@
                 }
                 settle(1, value);
             }
+            /** Reject an unsettled Promise.
+             * @param {*} reason - Rejection reason.
+             * @returns {void} Updates the shim's internal state.
+             */
             function reject(reason) { if (done) return; done = true; settle(2, reason); }
             try { executor(resolve, reject); } catch (e) { reject(e); }
         };
@@ -96,6 +109,10 @@
        Only what this app uses: get/set/has/delete/clear/forEach/size, keys(),
        values(), entries(). Linear lookup — the largest map here is the Live
        TV row cache, capped at a few hundred entries. */
+    /** Wrap an array as a minimal ES iterator.
+     * @param {Array} arr - Values to iterate.
+     * @returns {Object} Value described above.
+     */
     function makeIter(arr) {
         var i = 0;
         var it = { next: function () { return i < arr.length ? { value: arr[i++], done: false } : { value: undefined, done: true }; } };
@@ -162,6 +179,11 @@
        just categories that never hide and favourites that never match — so it
        is tested, not assumed. */
     (function () {
+        /** Adapt an old Map or Set constructor to accept iterables.
+         * @param {string} name - Constructor name (Map or Set).
+         * @param {Function} add - Callback that inserts each iterable item.
+         * @returns {void} Updates the shim's internal state.
+         */
         function wrap(name, add) {
             var Native = G[name];
             var ok = false;
@@ -210,6 +232,10 @@
                      'Int32Array', 'Uint32Array', 'Float32Array', 'Float64Array'];
         var generic = ['indexOf', 'lastIndexOf', 'join', 'forEach', 'every', 'some',
                        'reduce', 'reduceRight', 'reverse', 'find', 'findIndex', 'includes', 'fill'];
+        /** Expose an Array method on an older typed array prototype.
+         * @param {string} name - Constructor name (Map or Set).
+         * @returns {Function} Value described above.
+         */
         function borrow(name) {
             var fn = Array.prototype[name];
             return function () { return fn.apply(this, arguments); };
@@ -593,6 +619,9 @@
                     /* In arraybuffer mode `body` is an ArrayBuffer, so text()
                        and json() have to decode it rather than hand back
                        "[object ArrayBuffer]". */
+                    /** Read and decode the XHR response body for the fetch shim.
+                     * @returns {string} Value described above.
+                     */
                     function bodyText() {
                         if (!wantBuffer || !body || body.byteLength === undefined) return body;
                         var bytes = new Uint8Array(body), out = '';
