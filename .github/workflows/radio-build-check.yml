@@ -6,6 +6,7 @@ on:
       - .github/workflows/radio-build-check.yml
       - js/app.js
       - js/livetv/radio.js
+      - tests/radio-station-switch.test.js
       - js/dpad.js
       - js/livetv/pip.js
       - pages/livetv.html
@@ -36,6 +37,7 @@ jobs:
       - name: Validate Bunkhouse Radio assets, navigation, metadata and channels
         run: |
           node --check dist/js/app.js
+          node tests/radio-station-switch.test.js
           node --check dist/js/livetv/radio.js
           node --check dist/js/livetv/weatherstar.js
           node --check dist/js/dpad.js
