@@ -140,6 +140,9 @@
     var activeId   = getActiveId();
     var selectedId = null;
 
+    /** Choose an available settings option automatically.
+     * @returns {void} Runs its startup, polling, or UI side effects.
+     */
     (function autoSelect() {
         if (activeId && profiles.some(function (p) { return p.id === activeId; })) {
             selectedId = activeId;
@@ -478,6 +481,10 @@
            app accepts it) — http sidesteps that. https is always tried first. */
         var tryList = Config.candidateUrls({ server_urls: urls });
 
+        /** Try configured IPTV server URLs in order without downgrading HTTPS.
+         * @param {number} index - Current candidate server index.
+         * @returns {void} Runs its startup, polling, or UI side effects.
+         */
         (function tryUrls(index) {
             if (index >= tryList.length) { reportFailure(); return; }
             var url = tryList[index];
@@ -516,6 +523,9 @@
        Applied live on change so the user sees the new size while choosing,
        instead of having to save and navigate back. assets/boot.js owns the storage
        key and the root font-size; this is only the picker. */
+    /** Fill the display preference controls from saved settings.
+     * @returns {void} Runs its startup, polling, or UI side effects.
+     */
     (function populateDisplay() {
         var sel = document.getElementById('cfg-ui-scale');
         if (!sel || typeof UIScale === 'undefined') return;
@@ -581,6 +591,9 @@
             : 'Nothing remembered yet — press RED during playback to choose a player.';
     }
 
+    /** Fill the player preference controls from saved settings.
+     * @returns {void} Runs its startup, polling, or UI side effects.
+     */
     (function populatePlayer() {
         var sel = document.getElementById('cfg-default-player');
         if (sel) {
@@ -607,6 +620,9 @@
 
        Written raw, not JSON: the player reads them with a plain getItem, and
        JSON-quoting would make every stored value fail its comparison. */
+    /** Fill the subtitle appearance controls.
+     * @returns {void} Runs its startup, polling, or UI side effects.
+     */
     (function populateSubtitleAppearance() {
         var pairs = [
             ['cfg-subs-size',   'vod_subs_size',   'md',     'Text size'],
@@ -630,6 +646,9 @@
        so it only takes effect on the next page load — say so rather than
        letting the user wonder why nothing changed on this screen (there is no
        PiP on the Settings page to change). */
+    /** Populate the saved preview/fullscreen options.
+     * @returns {void} Runs its startup, polling, or UI side effects.
+     */
     (function populatePipMode() {
         var sel  = document.getElementById('cfg-pip-mode');
         var hint = document.getElementById('pip-mode-hint');
@@ -663,6 +682,9 @@
     }());
 
     /* ── Video output: Multiview tile count ───────────────────────────────── */
+    /** Populate multiview settings and limitations.
+     * @returns {void} Runs its startup, polling, or UI side effects.
+     */
     (function populateMultiview() {
         var sel = document.getElementById('cfg-mv-tiles');
         if (!sel) return;
@@ -698,6 +720,9 @@
         ['uk', 'Ukrainian']
     ];
 
+    /** Populate OpenSubtitles account and language preferences.
+     * @returns {void} Runs its startup, polling, or UI side effects.
+     */
     (function populateOpenSubtitles() {
         var keyEl  = document.getElementById('cfg-os-key');
         var langEl = document.getElementById('cfg-os-lang');
@@ -787,6 +812,9 @@
     }());
 
     /* ── EPG panel ─────────────────────────────────────────────────────────── */
+    /** Populate programme guide settings.
+     * @returns {void} Runs its startup, polling, or UI side effects.
+     */
     (function populateEPG() {
         document.getElementById('cfg-epg-url').value   = load('iptv_custom_epg_url',   '');
         document.getElementById('cfg-epg-match').value = load('iptv_custom_epg_match', 'tvg-id');
@@ -1132,6 +1160,9 @@
         rebuildFocusables();
     }
 
+    /** Connect diagnostics actions to settings buttons.
+     * @returns {void} Runs its startup, polling, or UI side effects.
+     */
     (function wireDiagnostics() {
         var btn = document.getElementById('diag-refresh-btn');
         if (btn) btn.addEventListener('click', function () {
