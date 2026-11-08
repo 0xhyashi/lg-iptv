@@ -81,6 +81,53 @@ var RadioDeck = (function () {
     function audio() { return $("radio-audio"); }
     function isActive() { return !!current && typeof currentChannel !== "undefined" && currentChannel === current; }
     function playing() { var a = audio(); return !!a && !a.paused && a.readyState > 1; }
+    /* Never reuse a native audio decoder across different live stations.
+     * Certain webOS versions can complete a previous network tune after src
+     * has already changed, making the UI show a new station while the decoder
+     * continues playing bytes from the previous one. A fresh DOM media element
+     * provides a fresh native pipeline; late events from the old node are
+     * ignored even when the TV dispatches them after removal.
+     */
+    function bindAudioEvents(a) {
+        if (!a) return;
+        function active() { return a === audio() && isActive(); }
+        a.addEventListener("playing", function () {
+            if (!active()) return;
+            safeText("radio-status", "LIVE · Listening");
+            safeText("radio-toggle", "Pause");
+            startAnimation();
+        });
+        a.addEventListener("waiting", function () {
+            if (active()) safeText("radio-status", "Buffering live radio…");
+        });
+        a.addEventListener("pause", function () {
+            if (!active() || !a.getAttribute("src")) return;
+            safeText("radio-status", "Paused");
+            safeText("radio-toggle", "Play");
+        });
+        a.addEventListener("error", function () {
+            if (!active()) return;
+            safeText("radio-status", "Stream unavailable — try again");
+            safeText("radio-toggle", "Retry");
+        });
+    }
+    function releaseAudio() {
+        var old = audio();
+        if (!old) return null;
+        // Invalidate and close the old connection before making the next one.
+        try { old.pause(); } catch (_) {}
+        try { old.removeAttribute("src"); } catch (_) {}
+        try { old.load(); } catch (_) {}
+        var parent = old.parentNode;
+        if (!parent) return old;
+        var fresh = document.createElement("audio");
+        fresh.id = "radio-audio";
+        fresh.preload = "none";
+        parent.replaceChild(fresh, old);
+        bindAudioEvents(fresh);
+        return fresh;
+    }
+
     function normal(s) { return String(s || "").toLowerCase().normalize ? String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff]+/g, " ").trim() : String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
 
     function readSettings() {
@@ -426,18 +473,22 @@ var RadioDeck = (function () {
                 equalizerBars.push(bar);
             }
         }
-        function active(){return isActive();}
-        a.addEventListener("playing",function(){if(!active())return;safeText("radio-status","LIVE · Listening");safeText("radio-toggle","Pause");startAnimation();});
-        a.addEventListener("waiting",function(){if(active())safeText("radio-status","Buffering live radio…");});
-        a.addEventListener("pause",function(){if(!active()||!a.getAttribute("src"))return;safeText("radio-status","Paused");safeText("radio-toggle","Play");});
-        a.addEventListener("error",function(){if(active()){safeText("radio-status","Stream unavailable — try again");safeText("radio-toggle","Retry");}});
+        bindAudioEvents(a);
         toggle.addEventListener("click",function(e){
-            e.stopPropagation();if(!active())return;
+            e.stopPropagation();
+            if(!isActive())return;
+            var a=audio(), selected=current, serial=requestSerial;
+            if(!a)return;
             if(a.paused){
                 safeText("radio-status","Connecting…");
                 var attempt;
                 try{attempt=a.play();}catch(_){safeText("radio-status","Press Play to start");return;}
-                if(attempt && attempt.catch)attempt.catch(function(){if(active()){safeText("radio-status","Press Play to start");safeText("radio-toggle","Play");}});
+                if(attempt && attempt.catch)attempt.catch(function(){
+                    if(a===audio()&&serial===requestSerial&&isActive()&&current===selected){
+                        safeText("radio-status","Press Play to start");
+                        safeText("radio-toggle","Play");
+                    }
+                });
             }else a.pause();
         });
         function moveStation(dir) {
@@ -448,11 +499,12 @@ var RadioDeck = (function () {
         if (next) next.addEventListener("click", function (e) { e.stopPropagation();moveStation(1); });
         // Native LG transport buttons; no player-engine changes required.
         window.addEventListener("keydown",function(event){
-            if(!active())return;
+            if(!isActive())return;
             var key=event.keyCode||event.which;
             if(key!==415 && key!==19 && key!==179)return;
             event.preventDefault();event.stopImmediatePropagation();
-            if(key===415 && !a.paused || key===19 && a.paused)return;
+            var live=audio();if(!live)return;
+            if(key===415 && !live.paused || key===19 && live.paused)return;
             toggle.click();
         },true);
         document.addEventListener("visibilitychange",function(){
@@ -481,12 +533,21 @@ var RadioDeck = (function () {
         $("player-msg").style.display="none";
         $("radio-visual").style.display="flex";
         changeMode(mode);
-        var a=audio();
+        var a=audio(), tuneSerial=requestSerial;
+        if(!a) {
+            safeText("radio-status","Audio decoder unavailable");
+            return;
+        }
         a.src=ch.stream_url;
         var attempt;
         try{attempt=a.play();}
         catch(_){safeText("radio-status","Press Play to start");safeText("radio-toggle","Play");}
-        if(attempt && attempt.catch)attempt.catch(function(){if(isActive()&&current===ch){safeText("radio-status","Press Play to start");safeText("radio-toggle","Play");}});
+        if(attempt && attempt.catch)attempt.catch(function(){
+            if(a===audio()&&tuneSerial===requestSerial&&isActive()&&current===ch){
+                safeText("radio-status","Press Play to start");
+                safeText("radio-toggle","Play");
+            }
+        });
         startAnimation();
         pollMetadata(ch);
         infoTimer=setInterval(function(){pollMetadata(ch);},30000);
@@ -498,8 +559,7 @@ var RadioDeck = (function () {
         currentTrackKey="";
         current=null;
         if(frame){cancelAnimationFrame(frame);frame=null;}
-        var a=audio();
-        if(a){try{a.pause();}catch(_){}a.removeAttribute("src");try{a.load();}catch(_){}}
+        releaseAudio();
         var visual=$("radio-visual");if(visual)visual.style.display="none";
         var vid=$("player");if(vid)vid.style.display="block";
         resetArtwork();
