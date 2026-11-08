@@ -49,7 +49,7 @@ if (!railObserver) {
 }
 
 /** Release the rendered cards of a distant VOD rail.
- * @param {*} rail - Input for unloadRail().
+ * @param {HTMLElement} rail - Rail to release.
  * @returns {void} No return value.
  */
 function unloadRail(rail) {
@@ -65,9 +65,9 @@ function unloadRail(rail) {
 }
 
 /** Create a VOD category rail and its DOM structure.
- * @param {*} titleText - Input for makeRail().
- * @param {*} type - Input for makeRail().
- * @param {*} catId - Input for makeRail().
+ * @param {string} titleText - Visible category title.
+ * @param {string} type - VOD type, movie or series.
+ * @param {string|number} catId - Provider category ID.
  * @returns {HTMLElement} New rail element.
  */
 function makeRail(titleText, type, catId) {
@@ -89,7 +89,7 @@ function makeRail(titleText, type, catId) {
 }
 
 /** Load and render cards for a VOD rail.
- * @param {*} rail - Input for fillRail().
+ * @param {HTMLElement} rail - Unloaded rail to populate.
  * @returns {void} No return value.
  */
 function fillRail(rail) {
@@ -204,7 +204,7 @@ function renderRails() {
 
 /* ── Category load + section switch ──────────────────────────────── */
 /** Choose Movies or Series and load its categories.
- * @param {*} type - Input for loadType().
+ * @param {string} type - VOD type, movie or series.
  * @returns {void} No return value.
  */
 function loadType(type) {
