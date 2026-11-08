@@ -36,8 +36,16 @@ window.Favourites = (function () {
         series: 'iptv_fav_cats_vod_s'
     };
 
+    /** Is Arr for saved favorites.
+     * @param {*} v - Input for isArr().
+     * @returns {boolean} Whether the condition holds.
+     */
     function isArr(v) { return Object.prototype.toString.call(v) === '[object Array]'; }
 
+    /** Ids for saved favorites.
+     * @param {string} key - Stored key or lookup identifier.
+     * @returns {*} Function result.
+     */
     function ids(key) {
         var v = Store.get(key, []);
         if (!v || !isArr(v)) return [];
@@ -48,15 +56,30 @@ window.Favourites = (function () {
     var _channels = ids(K_CHANNELS);
     var _channelSet = toSet(_channels);
 
+    /** To Set for saved favorites.
+     * @param {*} arr - Input for toSet().
+     * @returns {*} Function result.
+     */
     function toSet(arr) {
         var s = {};
         for (var i = 0; i < arr.length; i++) s[arr[i]] = 1;
         return s;
     }
 
+    /** Channels for saved favorites.
+     * @returns {*} Function result.
+     */
     function channels() { return _channels.slice(); }
+    /** Is Channel for saved favorites.
+     * @param {string} sid - Stream identifier.
+     * @returns {boolean} Whether the condition holds.
+     */
     function isChannel(sid) { return _channelSet[String(sid)] === 1; }
 
+    /** Toggle Channel for saved favorites.
+     * @param {string} sid - Stream identifier.
+     * @returns {*} Function result.
+     */
     function toggleChannel(sid) {
         sid = String(sid);
         if (_channelSet[sid]) {
@@ -72,6 +95,11 @@ window.Favourites = (function () {
 
     /* Reorder within the favourites list. Returns true when something moved, so
        callers know whether to repaint. */
+    /** Move Channel for saved favorites.
+     * @param {string} sid - Stream identifier.
+     * @param {*} dir - Input for moveChannel().
+     * @returns {*} Function result.
+     */
     function moveChannel(sid, dir) {
         sid = String(sid);
         var i = _channels.indexOf(sid), j = i + dir;
@@ -91,6 +119,9 @@ window.Favourites = (function () {
        single entry missing channelIds did the same to indexOf — thrown from the
        sidebar's render path, so the whole sidebar went rather than the app
        degrading to "no groups". */
+    /** Load Groups for saved favorites.
+     * @returns {*} Function result.
+     */
     function loadGroups() {
         var raw = Store.get(K_GROUPS, []);
         if (!isArr(raw)) return [];
@@ -109,9 +140,19 @@ window.Favourites = (function () {
 
     var _groups = loadGroups();
 
+    /** Groups for saved favorites.
+     * @returns {*} Function result.
+     */
     function groups() { return _groups; }
+    /** Save Groups for saved favorites.
+     * @returns {void} Updates state or the UI.
+     */
     function saveGroups() { Store.set(K_GROUPS, _groups); }
 
+    /** Create Group for saved favorites.
+     * @param {string} name - Display name.
+     * @returns {*} Function result.
+     */
     function createGroup(name) {
         /* Randomised as well as timestamped: two groups created in the same
            millisecond would otherwise share an id, and findGroup returns the
@@ -125,22 +166,45 @@ window.Favourites = (function () {
         saveGroups();
         return g;
     }
+    /** Rename Group for saved favorites.
+     * @param {string} id - Identifier.
+     * @param {string} name - Display name.
+     * @returns {*} Function result.
+     */
     function renameGroup(id, name) {
         var g = findGroup(id);
         if (g) { g.name = String(name || '').trim(); saveGroups(); }
     }
+    /** Delete Group for saved favorites.
+     * @param {string} id - Identifier.
+     * @returns {*} Function result.
+     */
     function deleteGroup(id) {
         _groups = _groups.filter(function (x) { return x.id !== id; });
         saveGroups();
     }
+    /** Find Group for saved favorites.
+     * @param {string} id - Identifier.
+     * @returns {*} Function result.
+     */
     function findGroup(id) {
         for (var i = 0; i < _groups.length; i++) if (_groups[i].id === id) return _groups[i];
         return null;
     }
+    /** Is In Group for saved favorites.
+     * @param {*} gid - Input for isInGroup().
+     * @param {string} sid - Stream identifier.
+     * @returns {boolean} Whether the condition holds.
+     */
     function isInGroup(gid, sid) {
         var g = findGroup(gid);
         return !!(g && g.channelIds.indexOf(String(sid)) !== -1);
     }
+    /** Toggle In Group for saved favorites.
+     * @param {*} gid - Input for toggleInGroup().
+     * @param {string} sid - Stream identifier.
+     * @returns {*} Function result.
+     */
     function toggleInGroup(gid, sid) {
         var g = findGroup(gid);
         if (!g) return false;
@@ -152,6 +216,10 @@ window.Favourites = (function () {
     }
     /* Any group at all containing this channel — drives the "+" button's lit
        state without the caller having to walk every group itself. */
+    /** In Any Group for saved favorites.
+     * @param {string} sid - Stream identifier.
+     * @returns {*} Function result.
+     */
     function inAnyGroup(sid) {
         sid = String(sid);
         for (var i = 0; i < _groups.length; i++) {
@@ -170,13 +238,27 @@ window.Favourites = (function () {
         series: ids(K_CATS.series)
     };
 
+    /** Categories for saved favorites.
+     * @param {string} kind - Content type.
+     * @returns {*} Function result.
+     */
     function categories(kind) { return (_cats[kind] || []).slice(); }
 
+    /** Is Category for saved favorites.
+     * @param {string} kind - Content type.
+     * @param {*} catId - Input for isCategory().
+     * @returns {boolean} Whether the condition holds.
+     */
     function isCategory(kind, catId) {
         var list = _cats[kind] || [];
         return list.indexOf(String(catId)) !== -1;
     }
 
+    /** Toggle Category for saved favorites.
+     * @param {string} kind - Content type.
+     * @param {*} catId - Input for toggleCategory().
+     * @returns {*} Function result.
+     */
     function toggleCategory(kind, catId) {
         if (!_cats[kind]) return false;
         catId = String(catId);
@@ -186,6 +268,10 @@ window.Favourites = (function () {
         return i === -1;
     }
 
+    /** Has Categories for saved favorites.
+     * @param {string} kind - Content type.
+     * @returns {boolean} Whether the condition holds.
+     */
     function hasCategories(kind) { return (_cats[kind] || []).length > 0; }
 
     /* ── Resolution ───────────────────────────────────────────────────────────
@@ -198,6 +284,10 @@ window.Favourites = (function () {
        top; a starred category is a bulk "and also all of these", which belongs
        underneath in the provider's own order. Merging the two by provider order
        would silently destroy a favourites list the user had arranged by hand. */
+    /** Resolve Channels for saved favorites.
+     * @param {*} allChannels - Input for resolveChannels().
+     * @returns {*} Function result.
+     */
     function resolveChannels(allChannels) {
         if (!allChannels || !allChannels.length) return [];
 
@@ -229,6 +319,11 @@ window.Favourites = (function () {
 
     /* Channels in one favourite group. Groups hold explicit ids only — a group
        is a hand-curated set, so pulling in whole categories would defeat it. */
+    /** Resolve Group for saved favorites.
+     * @param {*} gid - Input for resolveGroup().
+     * @param {*} allChannels - Input for resolveGroup().
+     * @returns {*} Function result.
+     */
     function resolveGroup(gid, allChannels) {
         var g = findGroup(gid);
         if (!g || !allChannels || !allChannels.length) return [];
@@ -247,6 +342,11 @@ window.Favourites = (function () {
 
     /* Every channel inside one starred category — used by the sidebar entry
        that jumps straight to a favourited category. */
+    /** Resolve Category for saved favorites.
+     * @param {*} catId - Input for resolveCategory().
+     * @param {*} allChannels - Input for resolveCategory().
+     * @returns {*} Function result.
+     */
     function resolveCategory(catId, allChannels) {
         catId = String(catId);
         var out = [];
@@ -258,6 +358,9 @@ window.Favourites = (function () {
 
     /* Whether anything at all has been favourited — decides whether Live TV
        opens on Favourites or on All. */
+    /** Is Empty for saved favorites.
+     * @returns {boolean} Whether the condition holds.
+     */
     function isEmpty() {
         return !_channels.length && !_cats.live.length;
     }
