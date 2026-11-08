@@ -433,7 +433,10 @@ function channelStep(delta) {
     { stream_id: "radio-wtmd", name: "WTMD 89.7 FM", category_id: "radio", stream_icon: "", stream_url: "https://wtmd-ice.streamguys1.com/wtmd.mp3", _radio: true, _source: "m3u" },
     { stream_id: "radio-wtmd-hd2", name: "WTMD HD2 — The Baltimore Channel", category_id: "radio", stream_icon: "", stream_url: "https://wtmd-ice.streamguys1.com/hd2.mp3", _radio: true, _source: "m3u" },
     { stream_id: "radio-shonan", name: "Shonan Beach FM 78.9", category_id: "radio", stream_icon: "", stream_url: "https://shonanbeachfm.out.airtime.pro/shonanbeachfm_c", _radio: true, _source: "m3u" },
-    { stream_id: "radio-b97-nola", name: "B97 97.1 FM — New Orleans", category_id: "radio", stream_icon: "", stream_url: "https://live.amperwave.net/direct/audacy-wezbfmmp3-imc", _radio: true, _source: "m3u" }
+    { stream_id: "radio-b97-nola", name: "B97 97.1 FM — New Orleans", category_id: "radio", stream_icon: "", stream_url: "https://live.amperwave.net/direct/audacy-wezbfmmp3-imc", _radio: true, _source: "m3u" },
+    { stream_id: "radio-alt923-nola", name: "ALT 92.3 — New Orleans Alternative Rock", category_id: "radio", stream_icon: "", stream_url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WZRHFM.mp3", _radio: true, _source: "m3u" },
+    { stream_id: "radio-magic1019-nola", name: "Magic 101.9 — New Orleans", category_id: "radio", stream_icon: "", stream_url: "https://live.amperwave.net/direct/audacy-wlmgfmmp3-imc", _radio: true, _source: "m3u" },
+    { stream_id: "radio-wfmf1025-br", name: "102.5 WFMF — Baton Rouge", category_id: "radio", stream_icon: "", stream_url: "https://stream.revma.ihrhls.com/zc1005", _radio: true, _source: "m3u" }
   ];
 
   var categories = [
@@ -477,7 +480,7 @@ function channelStep(delta) {
     updateSidebarActive();
     applyFilters(true);
     status.textContent = allChannels.length + " channels (4 Toonami + " +
-        verifiedJapanExtras.length + " verified extras + 4 radio + " + japanese.length +
+        verifiedJapanExtras.length + " verified extras + 7 radio + " + japanese.length +
         " Japan directory" + (cached ? ", cached" : "") + ")";
     return true;
   }
