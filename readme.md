@@ -35,7 +35,7 @@ Radio stations use a **separate native HTML audio element**, rather than sending
 
 **Source availability and privacy:** The eight direct radio streams were verified from a US GitHub Actions runner in November 2026, including [101.1 WNOE Country](https://github.com/0xhyashi/lg-iptv/actions/runs/42438184834). LG device playback, keyboard ergonomics and station-specific album art still require testing on the physical TV. No root, relay, video screen capture, or sleep timer.
 
-## WeatherStar 4000+ — original retro weather channel (v1.0.43)
+## WeatherStar 4000+ — original retro weather channel (v1.0.44)
 
 **Retro Weather** in the TV categories now contains **WeatherStar 4000+ — Local Forecast**. This is the REAL original [netbymatt/ws4kp](https://github.com/netbymatt/ws4kp) web application running inside our local TV interface, **not** an HLS stream and not a visual recreation. The upstream project's own graphics, fonts, smooth transitions, maps, forecast screens and four bundled WeatherStar-inspired music tracks are all preserved. The original copyrighted Weather Channel songs are **not** bundled by the upstream project.
 
@@ -47,7 +47,7 @@ The weather player runs WeatherStar's built-in kiosk mode. The Bunkhouse toolbar
 
 **Device test caveats:** Static WeatherStar compiled successfully on CI, but it has NOT yet been validated on this physical LG TV. Its browser engine may be too old for the upstream app; additionally `file://` local JavaScript requests can fail even though the page itself loads. If so, **TRY ONLINE COPY** switches the iframe to the original `https://weatherstar.netbymatt.com/` website. That site presently permits framing, but we must still test it on webOS. Press LG Back or **◀ TV** to leave. Opening radio or another TV channel stops WeatherStar audio. This feature does not claim to provide emergency weather alerts.
 
-### WeatherStar soundtrack selection (v1.0.43)
+### WeatherStar soundtrack selection (v1.0.44)
 
 On the WeatherStar channel, use the **SOUNDTRACK** selector in Bunkhouse's toolbar to switch among:
 - **Nightwave Plaza (default)** — 24/7 live vaporwave, streamed directly from `https://radio.plaza.one/mp3` (HTTPS MP3, tested on Nov 7, 2026). Nightwave is an independent ad-free listener-supported station; listening happens on the TV, not via a proxy or our server.
@@ -60,14 +60,14 @@ The selected soundtrack is saved locally on the TV for next time. Press **BLUE**
 
 **Compatibility:** The stream endpoints returned HTTP 200 and real MP3 bytes in GitHub Actions, and the webOS `.ipk` package has passed CI. Actual LG device audio behavior still requires testing. Old webOS browsers may deny autoplay when the iframe loads; press **PLAY SOUND** if prompted. When the online WeatherStar fallback is selected, its underlying forecast page is cross-origin, so its built-in music button may need to be clicked inside the original page. The weather feed still needs internet access for real forecasts.
 
-## LG weather loading and radio station switching fixes (v1.0.43)
+## LG weather loading and radio station switching fixes (v1.0.44)
 
 **WeatherStar 4000+ stuck on startup title / "Location search isn't responding":**
 The upstream error string occurs in WeatherStar's ArcGIS `findLocation()` request. Bunkhouse previously supplied only a city name, causing a geocode request before any forecast could load. Bunkhouse now passes native WeatherStar `latLon` **and** `latLonQuery` URL parameters: the default Ellicott City city-center coordinates (39.2673, -76.7983) are packaged locally so initial weather startup bypasses geocoding completely. Alternate city/ZIP searches are resolved in the Bunkhouse parent page first, cached, and passed in coordinates; manual `latitude,longitude` input is accepted. Failed lookups show a clear Bunkhouse error instead of silently leaving WeatherStar on its title screen.
 
 **Old LG browser compatibility:** WeatherStar's independent iframe lacked the Promise/fetch polyfills loaded by the Bunkhouse parent page. The package build now inserts the same old-webOS shims plus a minimal `AbortSignal.timeout()` compatibility script *before* original WeatherStar JavaScript, handling a possible local `file://` URL origin failure and reporting WeatherStar errors in Bunkhouse's bottom status line. Forecast screens, graphics, fonts, transitions, audio, and native WeatherStar code are unchanged.
 
-**Wrong radio station plays after switching:** The radio player used to reuse one `<audio>` element when changing stations. On some LG native decoder pipelines, callbacks and audio data from the previous connection could survive an immediate URL change. v1.0.43 stops/unloads/removes the old element and creates a **fresh native audio element for every station tune**, with identity guards against late old-station events and promise rejections. The TV/radio UI and all eight radio URLs are preserved.
+**Wrong radio station plays after switching:** The radio player used to reuse one `<audio>` element when changing stations. On some LG native decoder pipelines, callbacks and audio data from the previous connection could survive an immediate URL change. v1.0.44 stops/unloads/removes the old element and creates a **fresh native audio element for every station tune**, with identity guards against late old-station events and promise rejections. The TV/radio UI and all eight radio URLs are preserved.
 
 **Verification:** GitHub Actions builds Bunkhouse with pinned WeatherStar v8.2.2, the original and 13 extra music tracks, checks location bypass/ZIP/errors and simulates rapid radio station changes. All tests are computer simulations; actual LG firmware behavior still needs verification. If WeatherStar cannot display forecasts on the physical TV, try **TRY ONLINE COPY** and note the exact new status-line error.
 
@@ -90,7 +90,7 @@ npm.cmd run build
 ares-package.cmd -n .
 ```
 
-This produces `com.oxhyashi.toonamitest_1.0.43_all.ipk`. Install it with webOS Dev Manager or the LG `ares-install` CLI. The app ID is unchanged from earlier privacy-fork test builds, so this can update the installed app.
+This produces `com.oxhyashi.toonamitest_1.0.44_all.ipk`. Install it with webOS Dev Manager or the LG `ares-install` CLI. The app ID is unchanged from earlier privacy-fork test builds, so this can update the installed app.
 
 **Important for developers:** `dist/js/` is generated by `npm run build`. This branch's new channel and radio playback additions live in `js/app.js`, `pages/livetv.html`, and `assets/player.css` and will appear in the packaged app **after running the build**. Do not commit local changes to generated `dist/js/` unless intentionally updating distributions.
 
