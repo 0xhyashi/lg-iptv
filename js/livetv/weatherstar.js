@@ -59,9 +59,11 @@ var WeatherChannel = (function () {
         if (select) select.value = soundtrack;
         var toggle = $("weatherstar-music");
         if (toggle) {
-            toggle.textContent = soundPaused ? "▶ PLAY SOUND" : "Ⅱ PAUSE SOUND";
+            toggle.textContent = soundtrack === "classic"
+                ? (soundPaused ? "▶ PLAY CLASSIC" : "♫ CLASSIC MUSIC")
+                : (soundPaused ? "▶ PLAY SOUND" : "Ⅱ PAUSE SOUND");
             toggle.title = soundtrack === "classic"
-                ? "Control WeatherStar's original 17-track shuffle"
+                ? "Toggle WeatherStar's original 17-track shuffle (press if silent)"
                 : "Pause or resume the selected live internet-radio station";
         }
     }
@@ -257,7 +259,7 @@ var WeatherChannel = (function () {
             startExternal(); // source URL explicitly mutes native WeatherStar
         } else {
             updateControls();
-            setMessage("Classic WeatherStar ready. Press PLAY SOUND if browser blocks autoplay.");
+            setMessage("Classic WeatherStar ready. Press CLASSIC MUSIC if the browser blocks autoplay.");
         }
         try {
             var child = frame.contentWindow;
