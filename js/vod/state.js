@@ -35,43 +35,43 @@ var cfg = Config.resolve();
     } catch (e) {}
 }());
 
-/** Api Url for VOD shared state.
+/** Build the current provider's Xtream API URL.
  * @param {*} params - Input for apiUrl().
- * @returns {*} Function result.
+ * @returns {string} Provider API URL.
  */
 function apiUrl(params)          { return Config.apiUrl(cfg, params); }
-/** Build Movie Url for VOD shared state.
+/** Build a playback URL for a VOD movie.
  * @param {string} id - Identifier.
  * @param {*} ext - Input for buildMovieUrl().
- * @returns {*} Function result.
+ * @returns {string} Movie playback URL.
  */
 function buildMovieUrl(id, ext)  { return Config.movieUrl(cfg, id, ext); }
-/** Build Episode Url for VOD shared state.
+/** Build a playback URL for a series episode.
  * @param {string} id - Identifier.
  * @param {*} ext - Input for buildEpisodeUrl().
- * @returns {*} Function result.
+ * @returns {string} Episode playback URL.
  */
 function buildEpisodeUrl(id, ext){ return Config.episodeUrl(cfg, id, ext); }
-/** Cache Get for VOD shared state.
+/** Read a stored cache entry.
  * @param {string} key - Key or identifier.
- * @returns {*} Function result.
+ * @returns {*} Cached value, or null when absent.
  */
 function cacheGet(key)           { return Store.cacheGet(key); }
-/** Cache Set for VOD shared state.
+/** Write a cache entry.
  * @param {string} key - Key or identifier.
  * @param {*} data - Input for cacheSet().
- * @returns {*} Function result.
+ * @returns {*} Return value of Store.cacheSet.
  */
 function cacheSet(key, data)     { return Store.cacheSet(key, data); }
-/** Fetch JSON for VOD shared state.
+/** Fetch and parse a JSON URL through the shared network layer.
  * @param {string} url - Requested URL.
- * @returns {*} Function result.
+ * @returns {Promise<*>} Promise resolving to parsed JSON.
  */
 function fetchJSON(url)          { return Net.json(url); }
-/** Fetch Cached for VOD shared state.
+/** Fetch JSON using the shared cache.
  * @param {string} key - Key or identifier.
  * @param {string} url - Requested URL.
- * @returns {*} Function result.
+ * @returns {Promise<*>} Promise resolving to cached or fetched JSON.
  */
 function fetchCached(key, url)   { return Net.cachedJSON(key, url); }
 
@@ -87,9 +87,9 @@ var VOD_KEEP = ['name', 'title', 'stream_id', 'series_id', 'stream_icon', 'cover
                 'container_extension', 'category_id', 'rating', 'rating_5based', 'year',
                 'releaseDate', 'releasedate', 'genre', 'duration', 'director'];
 
-/** Slim Vod Item for VOD shared state.
+/** Copy the VOD fields needed by our UI into a small cacheable object.
  * @param {*} m - Input for slimVodItem().
- * @returns {*} Function result.
+ * @returns {Object} Pruned VOD item.
  */
 function slimVodItem(m) {
     var out = {};
@@ -108,10 +108,10 @@ function slimVodItem(m) {
     return out;
 }
 
-/** Fetch Cached List for VOD shared state.
+/** Get a cached VOD list or fetch and simplify it.
  * @param {string} key - Key or identifier.
  * @param {string} url - Requested URL.
- * @returns {*} Function result.
+ * @returns {Promise<Array<Object>>} Promise resolving to VOD items.
  */
 function fetchCachedList(key, url) {
     var hit = Store.cacheGet(key);
@@ -123,9 +123,9 @@ function fetchCachedList(key, url) {
     });
 }
 
-/** Esc Html for VOD shared state.
+/** Escape untrusted text for safe insertion into HTML.
  * @param {*} s - Input for escHtml().
- * @returns {*} Function result.
+ * @returns {string} HTML-escaped string.
  */
 function escHtml(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
