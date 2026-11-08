@@ -84,7 +84,7 @@ function toggleFullscreen() {
 
 function openMultiview() {
     // Audio-only streams are played by the native radio element, not Multiview.
-    if (currentChannel && currentChannel._radio) return;
+    if (currentChannel && (currentChannel._radio || currentChannel._weatherstar)) return;
     if (typeof Multiview === "undefined" || Multiview.isOpen()) return;
     const channels = _vsChannels;
     if (!channels.length) return;
