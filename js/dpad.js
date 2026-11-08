@@ -99,7 +99,13 @@ function onTVKeyDown(e) {
     // button free to mean something at the page level.
     if (kc === 406 /* BLUE */ || kc === 77 /* 'm' — desktop testing */) {
         e.preventDefault();
-        if (typeof openMultiview === "function") openMultiview();
+        // When listening to audio, BLUE cycles Headspace / Scope / Tuner.
+        // Multiview is for video only, so this does not steal a working action.
+        if (currentChannel && currentChannel._radio && typeof RadioDeck !== "undefined") {
+            RadioDeck.cycleMode(1);
+        } else if (typeof openMultiview === "function") {
+            openMultiview();
+        }
         return;
     }
 
