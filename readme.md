@@ -1,5 +1,9 @@
 # Toonami + Japan TV + Radio — privacy-focused LG webOS fork
 
+> **Maintainers:** Start with [the architecture and ownership map](docs/ARCHITECTURE.md) and [the safety/maintainability audit](docs/MAINTENANCE_AUDIT.md) before editing. First-party JavaScript and CSS is in `js/` and `assets/`; `dist/` and `weatherstar/` are generated. Run `node tools/check-source-docs.js`, the `tests/*.test.js` regressions and `npm run build` before testing on LG hardware.
+
+
+
 This branch is a test build based on [sharktie/lg-iptv](https://github.com/sharktie/lg-iptv).
 
 ## Channels
