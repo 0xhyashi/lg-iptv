@@ -54,6 +54,10 @@ var GAP_CLASS = 'no-flex-gap';
 
 /* ── Parsing ─────────────────────────────────────────────────────────────── */
 
+/** Strip Comments for old-webOS CSS compatibility build.
+ * @param {*} s - Input for stripComments().
+ * @returns {*} Function result.
+ */
 function stripComments(s) {
     var out = '', i = 0, quote = null;
     while (i < s.length) {
@@ -79,6 +83,12 @@ function stripComments(s) {
 }
 
 /* Index of the first `stop` character at paren depth 0 outside a string. */
+/** Scan To for old-webOS CSS compatibility build.
+ * @param {*} s - Input for scanTo().
+ * @param {number} i - Index.
+ * @param {*} stops - Input for scanTo().
+ * @returns {*} Function result.
+ */
 function scanTo(s, i, stops) {
     var depth = 0, quote = null;
     for (; i < s.length; i++) {
@@ -98,6 +108,11 @@ function scanTo(s, i, stops) {
     return -1;
 }
 
+/** Match Brace for old-webOS CSS compatibility build.
+ * @param {*} s - Input for matchBrace().
+ * @param {*} open - Input for matchBrace().
+ * @returns {*} Function result.
+ */
 function matchBrace(s, open) {
     var depth = 0, quote = null;
     for (var i = open; i < s.length; i++) {
@@ -114,6 +129,11 @@ function matchBrace(s, open) {
     throw new Error('unbalanced braces');
 }
 
+/** Split Top Level for old-webOS CSS compatibility build.
+ * @param {*} s - Input for splitTopLevel().
+ * @param {*} sep - Input for splitTopLevel().
+ * @returns {*} Function result.
+ */
 function splitTopLevel(s, sep) {
     var parts = [], start = 0;
     for (;;) {
@@ -124,6 +144,10 @@ function splitTopLevel(s, sep) {
     }
 }
 
+/** Parse Decls for old-webOS CSS compatibility build.
+ * @param {*} body - Input for parseDecls().
+ * @returns {*} Function result.
+ */
 function parseDecls(body) {
     var out = [];
     splitTopLevel(body, ';').forEach(function (chunk) {
@@ -144,6 +168,10 @@ function parseDecls(body) {
 /* Nodes: { type:'rule', selector, decls } | { type:'at', name, prelude,
    children } (block at-rules holding rules) | { type:'atdecl', name, prelude,
    decls } (@font-face) | { type:'stmt', text } (@import, @charset). */
+/** Parse Sheet for old-webOS CSS compatibility build.
+ * @param {*} s - Input for parseSheet().
+ * @returns {*} Function result.
+ */
 function parseSheet(s) {
     var nodes = [], i = 0;
     while (i < s.length) {
@@ -175,6 +203,11 @@ function parseSheet(s) {
 
 /* ── var() resolution ───────────────────────────────────────────────────── */
 
+/** Root Vars for old-webOS CSS compatibility build.
+ * @param {*} nodes - Input for rootVars().
+ * @param {*} into - Input for rootVars().
+ * @returns {*} Function result.
+ */
 function rootVars(nodes, into) {
     nodes.forEach(function (n) {
         if (n.type !== 'rule' || n.selector.trim() !== ':root') return;
@@ -186,6 +219,12 @@ function rootVars(nodes, into) {
 /* Replaces every var() in `value`, recursively, from `vars`. Returns null when
    something can't be resolved and has no fallback — better to emit no copy at
    all than one with a hole in it. */
+/** Resolve Vars for old-webOS CSS compatibility build.
+ * @param {string} value - Input for resolveVars().
+ * @param {*} vars - Input for resolveVars().
+ * @param {*} depth - Input for resolveVars().
+ * @returns {*} Function result.
+ */
 function resolveVars(value, vars, depth) {
     depth = depth || 0;
     if (depth > 20) return null;                              // a cycle
@@ -224,12 +263,23 @@ var WEBKIT_PROPS = {
     'user-select': 1
 };
 
+/** Decl for old-webOS CSS compatibility build.
+ * @param {*} prop - Input for decl().
+ * @param {string} value - Input for decl().
+ * @param {*} important - Input for decl().
+ * @returns {*} Function result.
+ */
 function decl(prop, value, important) {
     return { prop: prop, value: value, important: !!important };
 }
 
 /* The full, ordered declaration list for one block: for each source
    declaration, its prefixed and var-free copies, then the declaration itself. */
+/** Expand Decls for old-webOS CSS compatibility build.
+ * @param {*} decls - Input for expandDecls().
+ * @param {*} vars - Input for expandDecls().
+ * @returns {*} Function result.
+ */
 function expandDecls(decls, vars) {
     var present = {};
     decls.forEach(function (d) { present[d.prop.toLowerCase()] = true; });
@@ -259,11 +309,19 @@ function expandDecls(decls, vars) {
 
 /* ── Flex gap fallback ───────────────────────────────────────────────────── */
 
+/** Is Zero for old-webOS CSS compatibility build.
+ * @param {*} v - Input for isZero().
+ * @returns {boolean} Whether the condition holds.
+ */
 function isZero(v) { return /^0(\.0+)?([a-z%]+)?$/i.test(String(v).trim()); }
 
 /* Scope a selector to html.no-flex-gap, merging into a leading `html` or
    `:root` rather than producing `html.no-flex-gap html…`, which never
    matches. */
+/** Scope To Gap for old-webOS CSS compatibility build.
+ * @param {*} sel - Input for scopeToGap().
+ * @returns {*} Function result.
+ */
 function scopeToGap(sel) {
     sel = sel.trim();
     if (/^:root\b/.test(sel)) return 'html.' + GAP_CLASS + sel.slice(5);
@@ -271,6 +329,11 @@ function scopeToGap(sel) {
     return 'html.' + GAP_CLASS + ' ' + sel;
 }
 
+/** Gap Rules for old-webOS CSS compatibility build.
+ * @param {*} rule - Input for gapRules().
+ * @param {*} vars - Input for gapRules().
+ * @returns {*} Function result.
+ */
 function gapRules(rule, vars) {
     var g = {}, dir = 'row', wrap = false;
     rule.decls.forEach(function (d) {
@@ -324,6 +387,10 @@ function gapRules(rule, vars) {
 /* Rules whose element has an `auto` margin. The gap fallback sets plain
    margins on flex children, which would silently replace those autos — and an
    auto margin is how a row pushes its last button to the far edge. */
+/** Auto Margin Sides for old-webOS CSS compatibility build.
+ * @param {*} decls - Input for autoMarginSides().
+ * @returns {*} Function result.
+ */
 function autoMarginSides(decls) {
     var sides = {};
     decls.forEach(function (d) {
@@ -346,6 +413,10 @@ function autoMarginSides(decls) {
    anything real, so the re-asserted auto beats any container's gap rule. */
 var AUTO_BOOST = 'html.' + GAP_CLASS + ':not(#_nfg1):not(#_nfg2)';
 
+/** Boost Selector for old-webOS CSS compatibility build.
+ * @param {*} sel - Input for boostSelector().
+ * @returns {*} Function result.
+ */
 function boostSelector(sel) {
     sel = sel.trim();
     if (/^:root\b/.test(sel)) return AUTO_BOOST + sel.slice(5);
@@ -355,6 +426,12 @@ function boostSelector(sel) {
 
 /* ── Transform + serialise ───────────────────────────────────────────────── */
 
+/** Transform for old-webOS CSS compatibility build.
+ * @param {*} nodes - Input for transform().
+ * @param {*} vars - Input for transform().
+ * @param {*} autos - Input for transform().
+ * @returns {*} Function result.
+ */
 function transform(nodes, vars, autos) {
     var out = [];
     nodes.forEach(function (n) {
@@ -393,12 +470,22 @@ function transform(nodes, vars, autos) {
     return out;
 }
 
+/** Serialise Decls for old-webOS CSS compatibility build.
+ * @param {*} decls - Input for serialiseDecls().
+ * @param {*} indent - Input for serialiseDecls().
+ * @returns {*} Function result.
+ */
 function serialiseDecls(decls, indent) {
     return decls.map(function (d) {
         return indent + d.prop + ': ' + d.value + (d.important ? ' !important' : '') + ';';
     }).join('\n');
 }
 
+/** Serialise for old-webOS CSS compatibility build.
+ * @param {*} nodes - Input for serialise().
+ * @param {*} indent - Input for serialise().
+ * @returns {*} Function result.
+ */
 function serialise(nodes, indent) {
     indent = indent || '';
     var inner = indent + '    ';
@@ -414,6 +501,9 @@ function serialise(nodes, indent) {
 
 /* ── Main ────────────────────────────────────────────────────────────────── */
 
+/** Build for old-webOS CSS compatibility build.
+ * @returns {*} Function result.
+ */
 function build() {
     var files = fs.readdirSync(SRC_DIR).filter(function (f) { return /\.css$/i.test(f); }).sort();
     var parsed = {};
