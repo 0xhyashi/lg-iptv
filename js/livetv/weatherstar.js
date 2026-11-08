@@ -1,48 +1,164 @@
-/* WeatherStar 4000+ as a Bunkhouse TV channel.
- * The WeatherStar site is built byte-for-byte from pinned upstream source by
- * tools/build-weatherstar.js and shown in an iframe. We never modify its
- * graphics, music, fonts, or forecast logic. No HLS/DRM decoder is involved.
+/* WeatherStar's original graphics + user-selectable continuous soundtrack.
+ *
+ * Forecast: pristine upstream ws4kp built from pinned source.
+ * Local original soundtrack: its 17-song shuffled native player, unmodified.
+ * External: Nightwave Plaza or SomaFM public MP3 through ONE parent <audio>.
+ * Only one soundtrack is allowed at a time. We explicitly reload WeatherStar
+ * with mediaPlaying=false when LEAVING Classic so its built-in audio is shut
+ * down before starting the live stream. The forecast UI source is untouched.
  */
 var WeatherChannel = (function () {
     "use strict";
     var active = false;
     var hosted = false;
-    var lastUrl = "";
     var defaultCity = "Ellicott City, Maryland, USA";
+    var DEFAULT_SOUND = "nightwave";
+    var sounds = {
+        nightwave: {
+            name: "Nightwave Plaza",
+            url: "https://radio.plaza.one/mp3"
+        },
+        classic: {
+            name: "Classic WeatherStar (17 local songs)",
+            url: ""
+        },
+        soma: {
+            name: "SomaFM Vaporwaves",
+            url: "https://ice5.somafm.com/vaporwaves-128-mp3"
+        }
+    };
+    var soundtrack = DEFAULT_SOUND;
+    var soundPaused = false;
+    var loadSerial = 0;
+
     function $(id) { return document.getElementById(id); }
+    function externalPlayer() { return $("weatherstar-external-audio"); }
     function getCity() {
         try { return localStorage.getItem("bunkhouse_weather_city") || defaultCity; }
         catch (_) { return defaultCity; }
     }
     function saveCity(city) {
-        try { localStorage.setItem("bunkhouse_weather_city",city); } catch (_) {}
+        try { localStorage.setItem("bunkhouse_weather_city", city); } catch (_) {}
+    }
+    function restoreSound() {
+        try {
+            var saved = localStorage.getItem("bunkhouse_weather_soundtrack");
+            if (sounds[saved]) soundtrack = saved;
+        } catch (_) {}
+    }
+    function rememberSound() {
+        try { localStorage.setItem("bunkhouse_weather_soundtrack", soundtrack); }
+        catch (_) {}
+    }
+    function setMessage(text) {
+        var status = $("weatherstar-status");
+        if (status) status.textContent = text;
+    }
+    function updateControls() {
+        var select = $("weatherstar-soundtrack");
+        if (select) select.value = soundtrack;
+        var toggle = $("weatherstar-music");
+        if (toggle) {
+            toggle.textContent = soundPaused ? "▶ PLAY SOUND" : "Ⅱ PAUSE SOUND";
+            toggle.title = soundtrack === "classic"
+                ? "Control WeatherStar's original 17-track shuffle"
+                : "Pause or resume the selected live internet-radio station";
+        }
     }
     function weatherURL() {
         var base = hosted ? "https://weatherstar.netbymatt.com/"
                           : "../weatherstar/index.html";
-        // Kiosk here is WeatherStar's native display setting, not an imitation.
-        // Its own source code owns the graphics, NWS fetches and music player.
-        var params = "?latLonQuery=" + encodeURIComponent(getCity()) +
-            "&kiosk=true&mediaPlaying=true&mediaVolume=0.65&viewMode=standard";
-        return base + params;
+        var isClassic = soundtrack === "classic";
+        return base + "?latLonQuery=" + encodeURIComponent(getCity()) +
+            "&kiosk=true&mediaPlaying=" + (isClassic && !soundPaused ? "true" : "false") +
+            "&mediaVolume=0.65&viewMode=standard";
     }
-    function setMessage(txt) {
-        var status = $("weatherstar-status");
-        if (status) status.textContent = txt;
+    function stopExternal() {
+        var player = externalPlayer();
+        if (!player) return;
+        // Reset the network connection; never keep radio streaming after exit.
+        try { player.pause(); } catch (_) {}
+        player.removeAttribute("src");
+        try { player.load(); } catch (_) {}
+    }
+    function startExternal() {
+        if (!active || soundtrack === "classic" || soundPaused) return;
+        var player = externalPlayer();
+        if (!player) { setMessage("Weather audio player unavailable.");return; }
+        var url = sounds[soundtrack].url;
+        if (!url) return;
+        if (player.getAttribute("src") !== url) {
+            stopExternal();
+            player.src = url;
+        }
+        updateControls();
+        setMessage("Connecting to " + sounds[soundtrack].name + "…");
+        var id = ++loadSerial;
+        var playResult;
+        try { playResult = player.play(); }
+        catch (_) {
+            setMessage("Press PLAY SOUND to start " + sounds[soundtrack].name + ".");
+            soundPaused = true;updateControls();return;
+        }
+        if (playResult && typeof playResult.catch === "function") {
+            playResult.catch(function (error) {
+                if (active && id === loadSerial && soundtrack !== "classic") {
+                    soundPaused = true;
+                    updateControls();
+                    setMessage(error && error.name === "NotAllowedError"
+                        ? "LG blocked automatic audio: press PLAY SOUND."
+                        : "Couldn't start " + sounds[soundtrack].name + ". Press PLAY SOUND to retry.");
+                }
+            });
+        }
+    }
+    function getNativeButton() {
+        var frame = $("weatherstar-frame");
+        try { return frame && frame.contentWindow &&
+            frame.contentWindow.document.getElementById("ToggleMedia"); }
+        catch (_) {return null;}
+    }
+    function toggleClassic() {
+        var button = getNativeButton();
+        if (button) {
+            // Real click controls the ORIGINAL WeatherStar native shuffle;
+            // may still need user gesture on older webOS browsers.
+            button.click();
+            var pressed = button.getAttribute("aria-pressed");
+            soundPaused = pressed !== "true";
+            updateControls();
+            setMessage(soundPaused ? "Classic WeatherStar paused." :
+                "Classic WeatherStar: 17-song shuffled soundtrack.");
+            return;
+        }
+        if (!hosted) {
+            // The frame may still be loading; make the request explicit.
+            soundPaused = !soundPaused;
+            updateControls();
+            navigate();
+            setMessage("WeatherStar is loading; press PLAY SOUND after it appears if needed.");
+        } else {
+            setMessage("Use WeatherStar's own music icon to play the hosted copy.");
+        }
     }
     function navigate() {
         if (!active) return;
+        // On any new iframe navigation discard the old external stream first.
+        // This ensures switching from Classic to live music cannot overlap.
+        ++loadSerial;
+        stopExternal();
         var frame = $("weatherstar-frame");
         if (!frame) return;
-        lastUrl = weatherURL();
-        frame.src = lastUrl;
-        setMessage(hosted ? "Loading original hosted WeatherStar…" : "Loading bundled WeatherStar 4000+…");
-        var label = $("weatherstar-source");
-        if (label) label.textContent = hosted ? "USE LOCAL COPY" : "TRY ONLINE COPY";
         var city = $("weatherstar-city");
         if (city) city.value = getCity();
+        frame.src = weatherURL();
+        var source = $("weatherstar-source");
+        if (source) source.textContent = hosted ? "USE LOCAL COPY" : "TRY ONLINE COPY";
+        updateControls();
+        setMessage(hosted ? "Loading hosted WeatherStar…" : "Loading local WeatherStar 4000+…");
     }
     function open() {
+        if (active) return;
         var root = $("weatherstar-view");
         if (!root) return;
         active = true;
@@ -54,93 +170,157 @@ var WeatherChannel = (function () {
         navigate();
     }
     function close() {
+        if (!active) return;
         active = false;
+        ++loadSerial;
+        stopExternal();
         var root = $("weatherstar-view");
         if (root) root.style.display = "none";
         var frame = $("weatherstar-frame");
-        // Dropping the frame URL stops the upstream music immediately.
+        // Unload the actual upstream player, which stops any classic music.
         if (frame) frame.src = "about:blank";
-        lastUrl = "";
         var video = $("player");
         if (video) video.style.display = "block";
     }
     function backToChannels() {
         if (typeof isFullscreen === "function" && isFullscreen()) {
-            toggleFullscreen();
-            return;
+            toggleFullscreen();return;
         }
         close();
         currentChannel = null;
         var msg = $("player-msg");
-        if (msg) { msg.style.display = "flex"; msg.textContent = "Select a TV channel"; }
+        if (msg) {msg.style.display="flex";msg.textContent="Select a TV channel";}
         if (typeof setTVZone === "function") setTVZone("channel-list");
         var list = $("channel-list-wrap");
-        if (list) { try { list.focus(); } catch (_) {} }
+        if (list) {try {list.focus();}catch (_) {}}
+    }
+    function changeSound(next) {
+        if (!sounds[next] || next === soundtrack) return;
+        var wasClassic = soundtrack === "classic";
+        var nowClassic = next === "classic";
+        ++loadSerial;
+        stopExternal();
+        soundtrack = next;
+        soundPaused = false;
+        rememberSound();
+        updateControls();
+        if (!active) return;
+        if (wasClassic !== nowClassic) {
+            // A reload replaces the WeatherStar media player, guaranteeing
+            // the previous sound is stopped even for a cross-origin frame.
+            navigate();
+        } else {
+            startExternal();
+        }
+    }
+    function toggleSound() {
+        if (!active) return;
+        if (soundtrack === "classic") {toggleClassic();return;}
+        var player = externalPlayer();
+        if (!player) return;
+        if (!soundPaused && !player.paused) {
+            soundPaused = true;
+            ++loadSerial;
+            player.pause();
+            setMessage(sounds[soundtrack].name + " paused.");
+        } else {
+            soundPaused = false;
+            startExternal();
+        }
+        updateControls();
     }
     function handleKey(e, key) {
         if (!active) return false;
-        if (key === 461 || key === 27 || key === 8) { // webOS Back / Escape
+        if (key === 461 || key === 27 || key === 8) {
             e.preventDefault();
             if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
             backToChannels();
             return true;
         }
+        if (key === 415 || key === 19 || key === 179) {
+            e.preventDefault();
+            if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+            if (soundtrack === "classic") {
+                if (key === 179 || key === 415 || key === 19) toggleClassic();
+            } else if (key === 179 || key === 415 && soundPaused || key === 19 && !soundPaused) {
+                toggleSound();
+            }
+            return true;
+        }
         return false;
+    }
+    function onFrameLoaded() {
+        if (!active) return;
+        var frame = $("weatherstar-frame");
+        if (!frame || frame.src.indexOf("about:blank") !== -1) return;
+        if (soundtrack !== "classic") {
+            startExternal(); // source URL explicitly mutes native WeatherStar
+        } else {
+            updateControls();
+            setMessage("Classic WeatherStar ready. Press PLAY SOUND if browser blocks autoplay.");
+        }
+        try {
+            var child = frame.contentWindow;
+            if (child && !child.__bunkhouseWeatherKeys) {
+                child.addEventListener("keydown",function(e){
+                    handleKey(e,e.keyCode||e.which);
+                },true);
+                child.__bunkhouseWeatherKeys=true;
+            }
+        } catch (_) {
+            // Hosted cross-origin playback: toolbar stays outside the frame.
+        }
     }
     function setup() {
         var frame = $("weatherstar-frame"), city = $("weatherstar-city");
         if (!frame) return;
+        restoreSound();
+        soundPaused = false;
         if (city) city.value = getCity();
+        updateControls();
+        var select = $("weatherstar-soundtrack");
+        if (select) select.addEventListener("change",function(){changeSound(select.value);});
         var locBtn = $("weatherstar-location-go");
-        if (locBtn) locBtn.addEventListener("click", function () {
+        if (locBtn) locBtn.addEventListener("click",function(){
             var val = (city && city.value || "").trim();
-            if (!val) { setMessage("Enter a US ZIP code or City, State.");return; }
-            if (val.length > 110) { setMessage("Location is too long.");return; }
+            if (!val) {setMessage("Enter a US ZIP code or City, State.");return;}
+            if (val.length > 110) {setMessage("Location is too long.");return;}
             saveCity(val);navigate();
         });
-        if (city) city.addEventListener("keydown", function (e) {
-            if (e.keyCode === 13) { e.preventDefault(); locBtn.click(); }
+        if (city) city.addEventListener("keydown",function(e){
+            if (e.keyCode === 13) {e.preventDefault();locBtn.click();}
         });
-        var home = $("weatherstar-exit");
-        if (home) home.addEventListener("click",function(e){e.stopPropagation();backToChannels();});
-        var toggle = $("weatherstar-fullscreen");
-        if (toggle) toggle.addEventListener("click",function(e){e.stopPropagation();toggleFullscreen();});
+        var exit = $("weatherstar-exit");
+        if (exit) exit.addEventListener("click",function(e){e.stopPropagation();backToChannels();});
+        var fullscreen = $("weatherstar-fullscreen");
+        if (fullscreen) fullscreen.addEventListener("click",function(e){e.stopPropagation();toggleFullscreen();});
         var source = $("weatherstar-source");
         if (source) source.addEventListener("click",function(e){
-            e.stopPropagation(); hosted = !hosted; navigate();
+            e.stopPropagation();hosted=!hosted;navigate();
         });
         var music = $("weatherstar-music");
         if (music) music.addEventListener("click",function(e){
-            e.stopPropagation();
-            try {
-                var ownDoc = frame.contentWindow.document;
-                var button = ownDoc.getElementById("ToggleMedia");
-                if (button) { button.click();setMessage("WeatherStar music toggled");return; }
-            } catch (_) {}
-            // In a hosted cross-origin iframe we cannot control its DOM, so
-            // never pretend to have changed the volume or state.
-            setMessage("For the online copy, use WeatherStar's own music button.");
+            e.stopPropagation();toggleSound();
         });
-        frame.addEventListener("load",function(){
-            if (!active || frame.src.indexOf("about:blank") !== -1) return;
-            setMessage(hosted ? "WeatherStar online • original graphics and music" :
-                                "WeatherStar 4000+ • bundled original source");
-            try {
-                // Local packaged iframe, same application: exit with LG Back
-                // even when the iframe has keyboard focus.
-                var child = frame.contentWindow;
-                if (!child.__bunkhouseBackHooked) {
-                    child.addEventListener("keydown", function(e){
-                        if (e.keyCode === 461 || e.keyCode === 27 || e.keyCode === 8) {
-                            e.preventDefault();e.stopImmediatePropagation();
-                            backToChannels();
-                        }
-                    },true);
-                    child.__bunkhouseBackHooked = true;
+        var player = externalPlayer();
+        if (player) {
+            player.addEventListener("playing",function(){
+                if (active && soundtrack !== "classic" && !soundPaused) {
+                    setMessage("LIVE • " + sounds[soundtrack].name + " • 24/7 vaporwave");
                 }
-            } catch (_) { /* Cross-origin hosted fallback: use visible EXIT. */ }
-        });
+            });
+            player.addEventListener("waiting",function(){
+                if (active && soundtrack !== "classic" && !soundPaused)
+                    setMessage("Buffering " + sounds[soundtrack].name + "…");
+            });
+            player.addEventListener("error",function(){
+                if (active && soundtrack !== "classic" && !soundPaused)
+                    setMessage("Radio stream unavailable. Press PAUSE then PLAY SOUND to retry.");
+            });
+        }
+        frame.addEventListener("load",onFrameLoaded);
     }
-    return {setup:setup,open:open,close:close,isOpen:function(){return active;},
-            handleKey:handleKey,backToChannels:backToChannels};
+    return {setup:setup,open:open,close:close,
+        isOpen:function(){return active;},changeSound:changeSound,
+        handleKey:handleKey,backToChannels:backToChannels};
 }());
