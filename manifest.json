@@ -1,8 +1,8 @@
 {
   "id": "com.oxhyashi.toonamitest",
-  "title": "Toonami + Japan TV",
-  "version": "1.0.35",
-  "appDescription": "Privacy-focused LG webOS player: Toonami, the existing IPTV-org Japan list, and 20 segment-checked Japanese FAST channels. No remote credential relay or upstream updater.",
+  "title": "Toonami + Japan + Radio",
+  "version": "1.0.36",
+  "appDescription": "Privacy-focused IPTV app: Toonami Aftermath, Japan TV, and three direct live radio streams (WTMD FM, WTMD HD2, Shonan Beach FM).",
   "iconUri": "https://raw.githubusercontent.com/0xhyashi/lg-iptv/privacy/toonami-single-stream-test/icon.png",
   "sourceUrl": "https://github.com/0xhyashi/lg-iptv",
   "rootRequired": false
