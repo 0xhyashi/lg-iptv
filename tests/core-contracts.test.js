@@ -65,6 +65,13 @@ async function run() {
     assert.strictEqual(Store.cacheAge('no-such-cache'),-1);
     assert(Store.bytesUsed()>=0);
 
+    // False and zero are valid cached values, not missing entries.
+    assert.strictEqual(Store.cacheSet('cached_false', false), true);
+    assert.strictEqual(Store.cacheSet('cached_zero', 0), true);
+    assert.strictEqual(await Net.cachedJSON('cached_false', 'https://test.example/hangs', 60000), false);
+    assert.strictEqual(await Net.cachedJSON('cached_zero', 'https://test.example/hangs', 60000), 0);
+    assert.strictEqual(await Net.staleWhileRevalidate('cached_zero', 'https://test.example/hangs', 60000), 0);
+
     const http = Net.httpError(403,'https://test.example/api');
     assert.strictEqual(Net.isHttpError(http,403),true);
     assert.strictEqual(Net.isHttpError(http,404),false);
@@ -73,12 +80,14 @@ async function run() {
     // Our fake fetch ignores abort(), simulating the old webOS native-fetch
     // issue. Net.timed must reject on its own, instead of hanging forever.
     let rejected = false;
+    const callerOptions = { cache: 'no-store' };
     try {
-        await Net.timed('https://test.example/hangs',{},20);
+        await Net.timed('https://test.example/hangs', callerOptions, 20);
     } catch (error) {
         rejected = error && error.timeout === true;
     }
+    assert.strictEqual(callerOptions.signal, undefined, 'Timed requests must not mutate caller options.');
     assert(rejected,'Timed requests must reject even when abort() does nothing.');
-    console.log('CORE_CONTRACTS_OK storage formats, cache TTL/eviction and reliable HTTP deadline.');
+    console.log('CORE_CONTRACTS_OK storage formats, cache values, TTL/eviction and reliable HTTP deadline.');
 }
 run().catch(function (error) { console.error(error); process.exitCode = 1; });
