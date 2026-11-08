@@ -91,9 +91,18 @@ const MUSIC_DIR = path.join(TARGET, 'music', ALBUM);
 const STAMP = path.join(TARGET,'.bunkhouse-music-revision');
 const UPSTREAM = 'https://github.com/netbymatt/ws4kp-music.git';
 
+/** Run for licensed 17-track weather soundtrack build.
+ * @param {*} args - Input for run().
+ * @param {number} dir - Direction.
+ * @returns {*} Function result.
+ */
 function run(args, dir) {
     cp.execFileSync('git', args, { cwd: dir, stdio: 'inherit', windowsHide: true });
 }
+/** Git Blob SHA for licensed 17-track weather soundtrack build.
+ * @param {string} file - File path.
+ * @returns {*} Function result.
+ */
 function gitBlobSHA(file) {
     const content=fs.readFileSync(file);
     const h=crypto.createHash('sha1');
@@ -101,6 +110,9 @@ function gitBlobSHA(file) {
     h.update(content);
     return h.digest('hex');
 }
+/** Update Playlist for licensed 17-track weather soundtrack build.
+ * @returns {void} Updates state or the UI.
+ */
 function updatePlaylist() {
     const file = path.join(TARGET, 'playlist.json');
     const data = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -124,6 +136,9 @@ function updatePlaylist() {
     });
     fs.writeFileSync(file, JSON.stringify(data), 'utf8');
 }
+/** Complete for licensed 17-track weather soundtrack build.
+ * @returns {*} Function result.
+ */
 function complete() {
     try {
         return fs.readFileSync(STAMP,'utf8').trim()===MUSIC_REV
