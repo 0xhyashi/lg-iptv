@@ -31,7 +31,7 @@ function loadCatCache()     { return Store.cacheGet(CAT_CACHE_KEY, CACHE_TTL_MS)
 /** Remove unused fields before storing channel data.
  * @param {Array<Object>} channels - Channel entries.
  * @param {boolean} withEpgId - Whether to retain programme guide IDs.
- * @returns {Array<Object>} Value described above.
+ * @returns {Array<Object>} Matching channel or data entries.
  */
 function _slimChannels(channels, withEpgId) {
     return channels.map(ch => {
@@ -44,7 +44,7 @@ function _slimChannels(channels, withEpgId) {
 /** Save channels and categories into bounded caches.
  * @param {Array<Object>} channels - Channel entries.
  * @param {Array<Object>} categories - Category definitions.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function saveChannelCache(channels, categories) {
     if (Store.cacheSet(CHANNEL_CACHE_KEY, _slimChannels(channels, true))) {
@@ -72,7 +72,7 @@ let VS_ROW_H      = 96;
 const VS_OVERSCAN = 5;
 
 /** Measure one TV channel row for virtual scrolling.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function measureRowHeight() {
     try {
@@ -97,7 +97,7 @@ let _vsHeight     = 0;
 let _vsRafPending = false;
 
 /** Set up the virtualized channel list and scroll handlers.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function initVirtualScroll() {
     const wrap = document.getElementById("channel-list-wrap");
@@ -120,7 +120,7 @@ function initVirtualScroll() {
    late for a caller that just jumped the list and needs the target row to exist
    now (see scrollTVRowIntoView in dpad.js). */
 /** Synchronize visible virtual rows with scroll position.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function _vsSyncScroll() {
     const wrap = document.getElementById("channel-list-wrap");
@@ -137,7 +137,7 @@ function _vsSyncScroll() {
 /** Replace the currently displayed channel list.
  * @param {Array<Object>} channels - Channel entries.
  * @param {boolean} keepScroll - Whether to preserve scroll position.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function _vsSetChannels(channels, keepScroll) {
     _vsChannels = channels;
@@ -152,7 +152,7 @@ function _vsSetChannels(channels, keepScroll) {
 }
 
 /** Render only rows currently in or near the viewport.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function _vsRender() {
     const list     = document.getElementById("channel-list");
@@ -214,7 +214,7 @@ const ROW_CACHE_MAX = 240;
 
 /** Remove virtual rows no longer needed.
  * @param {*} needed - Input for _vsEvictRows().
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function _vsEvictRows(needed) {
     if (rowCache.size <= ROW_CACHE_MAX) return;
@@ -340,7 +340,7 @@ function _buildRow(ch, sid) {
 // ── Filtering ─────────────────────────────────────────────────────────────────
 
 /** Return channels matching selected category and search.
- * @returns {Array<Object>} Value described above.
+ * @returns {Array<Object>} Matching channel or data entries.
  */
 function getFilteredChannels() {
     const q = document.getElementById("search").value.toLowerCase();
@@ -366,7 +366,7 @@ function getFilteredChannels() {
 let _applyTimer = null;
 /** Queue or immediately apply channel filtering.
  * @param {boolean} immediate - Whether filtering should run immediately.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function applyFilters(immediate) {
     clearTimeout(_applyTimer);
@@ -375,7 +375,7 @@ function applyFilters(immediate) {
 }
 
 /** Apply the current filters to virtual rows.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function _doApply() {
     const channels  = getFilteredChannels();
@@ -409,7 +409,7 @@ function _doApply() {
 }
 
 /** Bind search input and filter updates.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function setupSearch() {
     document.getElementById("search").addEventListener("input", () => applyFilters(), { passive: true });
