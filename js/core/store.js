@@ -1,5 +1,6 @@
-/* core/store.js — every localStorage read and write in the app goes through
- * here. Exposes window.Store.
+/* core/store.js — the shared, quota-aware storage and cache service.
+ * Exposes window.Store. Some legacy UI modules still use localStorage
+ * directly; new shared storage operations should use this service.
  *
  * Two reasons this exists rather than calling localStorage directly:
  *   • On webOS, localStorage throws rather than returning null in a handful of
