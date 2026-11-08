@@ -7,6 +7,9 @@ on:
       - tools/build-weatherstar.js
       - tools/add-weatherstar-music.js
       - js/livetv/weatherstar.js
+      - assets/weatherstar-compat.js
+      - tools/patch-weatherstar-compat.js
+      - tests/weatherstar-location.test.js
       - pages/livetv.html
       - assets/weatherstar.css
       - appinfo.json
@@ -63,6 +66,21 @@ jobs:
             echo "Duration of all 17 WeatherStar radio tracks:"
             find weatherstar/music -name '*.mp3' -print0 | xargs -0 -n1 -P4 ffprobe -v error -show_entries format=duration -of default=nokey=1:noprint_wrappers=1
           fi
+      - name: Prove location search bypass and old LG browser compatibility
+        run: |
+          node tests/weatherstar-location.test.js
+          node - <<'NODE'
+          const fs=require('fs');
+          const html=fs.readFileSync('weatherstar/index.html','utf8');
+          const base=html.indexOf('../js/polyfills.js');
+          const compat=html.indexOf('../assets/weatherstar-compat.js');
+          const original=html.indexOf('resources/ws.min.js');
+          if(base<0||compat<base||original<compat) throw Error('Old LG fetch/Abort shims not loaded before original weather code');
+          if(!html.includes('WeatherStar 4000+'))throw Error('Original WeatherStar title missing');
+          const shim=fs.readFileSync('assets/weatherstar-compat.js','utf8');
+          if(!shim.includes('AbortSignal.timeout') || !shim.includes('bunkhouseWeatherstar'))throw Error('WeatherStar old-TV shims or diagnostics missing');
+          console.log('WEATHER_COMPAT_OK: upstream WeatherStar kept, compatibility bootstrap runs first.');
+          NODE
       - name: Validate live-radio stream choice and forecast behavior
         run: |
           node --check dist/js/livetv/weatherstar.js
