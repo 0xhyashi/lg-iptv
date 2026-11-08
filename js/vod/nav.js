@@ -18,7 +18,7 @@ var searchFocus = 0;
 var _focusRailsAfterRender = false;
 
 /** Set the active remote-control focus zone and clear old focus rings.
- * @param {*} z - Input for focusZone().
+ * @param {string} z - Remote focus zone name.
  * @returns {void} No return value.
  */
 function focusZone(z) { zone = z; clearRings(); }
@@ -110,7 +110,7 @@ function renderSidebarCats() {
 
 /* Jump the rails to a given category and focus it. */
 /** Select the requested VOD category and move remote focus to it.
- * @param {*} catId - Input for jumpToCategory().
+ * @param {string|number} catId - Category ID to select.
  * @returns {void} No return value.
  */
 function jumpToCategory(catId) {
@@ -169,7 +169,7 @@ function paintSidebarFocus() {
     el.scrollIntoView({ block: 'nearest' });
 }
 /** Run the action represented by a VOD sidebar button.
- * @param {*} item - Input for activateNav().
+ * @param {HTMLElement} item - Clicked VOD navigation item.
  * @returns {void} No return value.
  */
 function activateNav(item) {
@@ -189,7 +189,7 @@ function activateNav(item) {
  */
 function railEls() { return Array.prototype.slice.call(elRails.querySelectorAll('.vod-rail')); }
 /** Get the real movie/series cards in a rail.
- * @param {*} rail - Input for railCards().
+ * @param {HTMLElement|null} rail - Rail whose playable cards are needed.
  * @returns {Array<HTMLElement>} Cards excluding loading placeholders.
  */
 function railCards(rail) { return rail ? Array.prototype.slice.call(rail.querySelectorAll('.vod-card:not(.vod-skeleton)')) : []; }
@@ -358,7 +358,7 @@ window.addEventListener('keydown', function (e) {
 });
 
 /** Fetch a VOD rail if it has not been loaded yet.
- * @param {*} rail - Input for ensureRailLoaded().
+ * @param {HTMLElement|null} rail - Rail to fetch if not yet loaded.
  * @returns {void} No return value.
  */
 function ensureRailLoaded(rail) {
