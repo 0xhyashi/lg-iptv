@@ -1088,8 +1088,10 @@ class IPTVPlayer {
             for (let i = 0; i < at.length; i++) at[i].enabled = (i === track.id);
         } catch (_) { done(false, "This TV refused the audio track change."); return false; }
 
-        const self = this;
+        const self = this, gen = this._gen, tok = this._tok;
         setTimeout(function () {
+            // Channel and engine changes invalidate an in-flight native switch.
+            if (!self._alive(gen, tok)) return;
             let applied = false;
             try { applied = !!(at[track.id] && at[track.id].enabled); } catch (_) {}
             if (applied) { done(true, ""); return; }
@@ -1101,6 +1103,7 @@ class IPTVPlayer {
                     const t = self.video.currentTime;
                     self.video.currentTime = Math.max(0, t - 0.25);
                     setTimeout(function () {
+                        if (!self._alive(gen, tok)) return;
                         let ok = false;
                         try { ok = !!(at[track.id] && at[track.id].enabled); } catch (_) {}
                         done(ok, ok ? "" : self._audioSwitchHint());
