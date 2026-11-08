@@ -111,11 +111,9 @@ window.Config = (function () {
                otherwise switching profiles silently keeps pointing playback at
                the previous provider's host while using the new credentials.
 
-               Checked against candidateUrls(), not the raw entries: login also
-               tries the http twin of every https entry, so the URL that actually
-               worked is frequently one the user never typed. Comparing against
-               the typed list alone threw that away on every launch and sent the
-               app back to an https URL the TV had already failed on. */
+               Checked against candidateUrls(), not an old profile's previous
+               resolved URL. Only user-configured URLs are tried; a failed
+               HTTPS login must not silently send credentials over HTTP. */
             var urls = candidateUrls(p);
             var ok = false;
             for (var i = 0; i < urls.length; i++) if (urls[i] === resolved) { ok = true; break; }
@@ -205,7 +203,12 @@ window.Config = (function () {
         u = String(u === null || u === undefined ? '' : u).trim();
         if (!u) return '';
         if (/^https?:\/\//i.test(u)) return u;
-        if (/^\/\//.test(u)) return 'http:' + u;
+        if (/^\/\//.test(u)) {
+            // Protocol-relative artwork/subtitles must inherit HTTPS when
+            // the user selected an HTTPS provider.
+            var scheme = /^https:/i.test(base(cfg)) ? 'https:' : 'http:';
+            return scheme + u;
+        }
         if (u.charAt(0) === '/') return base(cfg) + u;
         return base(cfg) + '/' + u;
     }
