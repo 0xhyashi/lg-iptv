@@ -37,7 +37,7 @@ var RadioDeck = (function () {
     function $(id) { return document.getElementById(id); }
     function safeText(id, text) { var node = $(id); if (node) node.textContent = text || ""; }
     function audio() { return $("radio-audio"); }
-    function isActive() { return !!current && !!window.currentChannel && window.currentChannel === current; }
+    function isActive() { return !!current && typeof currentChannel !== "undefined" && currentChannel === current; }
     function playing() { var a = audio(); return !!a && !a.paused && a.readyState > 1; }
     function normal(s) { return String(s || "").toLowerCase().normalize ? String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff]+/g, " ").trim() : String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
 
