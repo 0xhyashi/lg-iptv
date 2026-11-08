@@ -46,7 +46,8 @@ body.radio-mode #radio-visual {position:absolute;top:0;bottom:0;left:0;right:0;b
 #radio-visual #radio-track-panel {flex:0 0 42%;width:auto;max-height:48%;min-height:0;}
 .bk-section-title {flex:0 0 auto;text-align:center;color:#e2def1;letter-spacing:.12em;font:bold italic .92rem Arial,sans-serif;background:linear-gradient(#333c66,#151b38);border-bottom:2px ridge #64719a;padding:.4rem .5rem;}
 #bk-current-content {flex:1 1 auto;display:flex;gap:.75rem;box-sizing:border-box;padding:.75rem;min-height:0;overflow:hidden;}
-#radio-visual .radio-cover-box {flex:0 0 36%;height:100%;max-height:none;max-width:36%;border:1px solid #8590c1;background:#0b1529;box-sizing:border-box;}
+/* Keep the album cover square on older webOS browsers that lack aspect-ratio. */
+#radio-visual .radio-cover-box {flex:0 0 18vh;width:18vh;height:18vh;max-width:none;max-height:100%;border:1px solid #8590c1;background:#0b1529;box-sizing:border-box;}
 #radio-visual #radio-cover-placeholder {display:flex;height:100%;width:100%;flex-direction:column;align-items:center;justify-content:center;color:#75ccff;background:linear-gradient(145deg,#152b40,#050812);}
 #radio-visual #radio-cover {width:100%;height:100%;object-fit:contain;background:#080e20;}
 #radio-visual .radio-track-meta {flex:1;min-width:0;padding:0;overflow:hidden;}
