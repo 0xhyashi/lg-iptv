@@ -35,6 +35,7 @@ Read [ARCHITECTURE.md](ARCHITECTURE.md) for the complete source map.
 | WeatherStar remains on its title screen saying location lookup is unresponsive | Resolve coordinates before launching original iframe and pass supported `latLon` parameter | `tests/weatherstar-location.test.js` |
 | Older LG iframe lacks modern Web APIs | Load older-webOS fetch/Promise shims and `AbortSignal.timeout` compatibility bootstrap before original WeatherStar scripts | `ws4kp-package-check.yml` |
 | Previous TV guide response overwrites a newly selected channel | Check `currentChannel` after EPG request, even for empty/error results | `tests/tv-epg-race.test.js` |
+| Invalid or zero-length EPG dates show midnight or NaN progress | Guard invalid timestamp formatting and divide-by-zero progress | `tests/epg-time.test.js` |
 | Wrong storage representation causes player settings to be ignored | Distinguish raw string vs JSON storage methods | `tests/core-contracts.test.js` |
 | HTTP timeout hangs because older-webOS `abort()` does not cancel native fetch | Timeout wrapper rejects its own promise after deadline | `tests/core-contracts.test.js` |
 | Expired cache data or evictions interfere with user settings | Expired cache entries are cleared; cache eviction is isolated from user keys | `tests/core-contracts.test.js` |
@@ -51,6 +52,7 @@ npm.cmd ci
 node tools/check-source-docs.js
 node tests/core-contracts.test.js
 node tests/tv-epg-race.test.js
+node tests/epg-time.test.js
 node tests/radio-station-switch.test.js
 node tests/weatherstar-location.test.js
 npm.cmd run build
