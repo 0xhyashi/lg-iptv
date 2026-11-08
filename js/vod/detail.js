@@ -10,8 +10,17 @@
 /* ── Detail overlay ──────────────────────────────────────────────── */
 var detailItem = null, detailIsSeries = false, seasonsData = null, activeSeason = null;
 
+/** Set Text for VOD title details and episode selection.
+ * @param {string} id - Identifier.
+ * @param {*} txt - Input to setText().
+ * @returns {void} Updates the relevant state or UI.
+ */
 function setText(id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt || ''; }
 
+/** Open Detail for VOD title details and episode selection.
+ * @param {Object} item - VOD item.
+ * @returns {void} Updates the relevant state or UI.
+ */
 function openDetail(item) {
     detailItem = item;
     detailIsSeries = item.__type ? (item.__type === 'series') : (activeType === 'series' || !!item.series_id);
@@ -60,6 +69,9 @@ function openDetail(item) {
     paintDetailFocus();
 }
 
+/** Update List Btn for VOD title details and episode selection.
+ * @returns {void} Updates the relevant state or UI.
+ */
 function updateListBtn() {
     if (!detailItem) return;
     var saved = inWatchlist(detailItem);
@@ -73,6 +85,9 @@ function updateListBtn() {
 /* Closing a title returns you to whatever you opened it from — the rails,
    the search results, or a category grid. Landing back on the rails after
    browsing 200 titles in a category would throw away the user's place. */
+/** Close Detail for VOD title details and episode selection.
+ * @returns {void} Updates the relevant state or UI.
+ */
 function closeDetail() {
     elDetail.hidden = true;
     document.getElementById('vod-detail-backdrop').style.backgroundImage = 'none';
@@ -93,6 +108,10 @@ var EMPTY_SUBS = { files: [], embedded: [], unknown: 0 };
    can wait for it instead of racing it — previously Play read `_subs`
    synchronously and got undefined whenever the user was quicker than the
    request, which was most of the time. */
+/** Lazy Fetch Vod Info for VOD title details and episode selection.
+ * @param {Object} item - VOD item.
+ * @returns {*} Result of the operation.
+ */
 function lazyFetchVodInfo(item) {
     if (item._infoPromise) return item._infoPromise;
     if (!item.stream_id) return Promise.resolve(item);
@@ -143,6 +162,11 @@ function lazyFetchVodInfo(item) {
    file can come from. Guarded inside Subs.probeSidecars so it can never
    pull down a movie by mistake, and raced against playback below so a
    silent panel can't hold up Play. */
+/** With Sidecars for VOD title details and episode selection.
+ * @param {*} subs - Input to withSidecars().
+ * @param {*} streamUrl - Input to withSidecars().
+ * @returns {*} Result of the operation.
+ */
 function withSidecars(subs, streamUrl) {
     if (subs.files.length || !streamUrl) return Promise.resolve(subs);
     return Subs.probeSidecars(streamUrl).then(function (found) {
@@ -154,8 +178,18 @@ function withSidecars(subs, streamUrl) {
 /* Play once subtitles are known, but never let a slow or dead panel block
    playback — whichever of the two fires first wins. `build(subs)` receives
    the full { files, embedded, unknown } result. */
+/** Play When Subs Ready for VOD title details and episode selection.
+ * @param {Object} item - VOD item.
+ * @param {*} build - Input to playWhenSubsReady().
+ * @param {*} streamUrl - Input to playWhenSubsReady().
+ * @returns {*} Result of the operation.
+ */
 function playWhenSubsReady(item, build, streamUrl) {
     var done = false;
+    /** Go for VOD title details and episode selection.
+     * @param {*} subs - Input to go().
+     * @returns {*} Result of the operation.
+     */
     function go(subs) { if (done) return; done = true; playItem(build(subs || EMPTY_SUBS)); }
 
     if (item && item._subs) {
@@ -171,6 +205,10 @@ function playWhenSubsReady(item, build, streamUrl) {
 }
 
 /* ── Series: seasons + episodes ──────────────────────────────────── */
+/** Load Series for VOD title details and episode selection.
+ * @param {Object} item - VOD item.
+ * @returns {*} Result of the operation.
+ */
 function loadSeries(item) {
     var tabs = document.getElementById('vod-season-tabs');
     var list = document.getElementById('vod-episode-list');
@@ -225,6 +263,10 @@ function loadSeries(item) {
    the time an episode ends. Kept slim — this rides in localStorage. */
 var PLAYLIST_CAP = 120;
 
+/** Build Playlist for VOD title details and episode selection.
+ * @param {*} eps - Input to buildPlaylist().
+ * @returns {*} Result of the operation.
+ */
 function buildPlaylist(eps) {
     return eps.slice(0, PLAYLIST_CAP).map(function (ep) {
         var num = ep.episode_num != null ? ep.episode_num : '';
@@ -238,6 +280,10 @@ function buildPlaylist(eps) {
     });
 }
 
+/** Select Season for VOD title details and episode selection.
+ * @param {*} sn - Input to selectSeason().
+ * @returns {*} Result of the operation.
+ */
 function selectSeason(sn) {
     activeSeason = sn;
     document.querySelectorAll('#vod-season-tabs .vod-season-tab').forEach(function (t) {
@@ -264,6 +310,13 @@ function selectSeason(sn) {
 
 /* Start one episode of a season. The whole season travels with it so the
    player can move to the next one on its own. */
+/** Play Episode for VOD title details and episode selection.
+ * @param {*} playlist - Input to playEpisode().
+ * @param {number} idx - Input to playEpisode().
+ * @param {*} season - Input to playEpisode().
+ * @param {*} seriesName - Input to playEpisode().
+ * @returns {*} Result of the operation.
+ */
 function playEpisode(playlist, idx, season, seriesName) {
     var item = playlist[idx];
     if (!item) return;
@@ -284,6 +337,10 @@ function playEpisode(playlist, idx, season, seriesName) {
        never delays starting the episode. */
     if (item.subs.files.length) { playItem(meta); return; }
     var started = false;
+    /** Go for VOD title details and episode selection.
+     * @param {*} subs - Input to go().
+     * @returns {*} Result of the operation.
+     */
     function go(subs) { if (started) return; started = true; meta.subs = subs; playItem(meta); }
     withSidecars(item.subs, buildEpisodeUrl(item.id, item.ext)).then(go);
     setTimeout(function () { go(item.subs); }, 2000);
@@ -312,6 +369,10 @@ function playEpisode(playlist, idx, season, seriesName) {
    than the one in the url. */
 var _navigating = false;
 
+/** Play Item for VOD title details and episode selection.
+ * @param {*} meta - Input to playItem().
+ * @returns {*} Result of the operation.
+ */
 function playItem(meta) {
     if (_navigating) return;
     _navigating = true;
@@ -370,6 +431,9 @@ function playItem(meta) {
                            '&title=' + encodeURIComponent(meta.name || '');
 }
 
+/** Play Current Movie for VOD title details and episode selection.
+ * @returns {*} Result of the operation.
+ */
 function playCurrentMovie() {
     if (!detailItem) return;
     var item = detailItem;
@@ -387,6 +451,10 @@ function playCurrentMovie() {
     startMovie(item);
 }
 
+/** Start Movie for VOD title details and episode selection.
+ * @param {Object} item - VOD item.
+ * @returns {void} Updates the relevant state or UI.
+ */
 function startMovie(item) {
     var prog = loadProgress()['m:' + item.stream_id];
     var ext  = item.container_extension || 'mp4';
@@ -407,6 +475,10 @@ function startMovie(item) {
    it for movies rather than resuming without subtitles. Episodes would need
    the whole series payload again — not worth the wait, so they resume with
    only a sidecar look. */
+/** Resume Play for VOD title details and episode selection.
+ * @param {*} entry - Input to resumePlay().
+ * @returns {*} Result of the operation.
+ */
 function resumePlay(entry) {
     var isEpisode = entry.type === 'episode';
     /* For a movie, the panel's own answer about the file type wins over the
@@ -442,9 +514,19 @@ function resumePlay(entry) {
    binge-watching would expect one. One request to get_series_info is enough,
    and it is raced against a cap so a slow panel delays nothing: worst case you
    resume without the button, exactly as before. */
+/** Resume Episode for VOD title details and episode selection.
+ * @param {*} entry - Input to resumeEpisode().
+ * @param {*} build - Input to resumeEpisode().
+ * @returns {*} Result of the operation.
+ */
 function resumeEpisode(entry, build) {
     var epUrl = buildEpisodeUrl(entry.id, entry.ext);
     var started = false;
+    /** Go for VOD title details and episode selection.
+     * @param {*} subs - Input to go().
+     * @param {*} extra - Input to go().
+     * @returns {*} Result of the operation.
+     */
     function go(subs, extra) {
         if (started) return;
         started = true;
