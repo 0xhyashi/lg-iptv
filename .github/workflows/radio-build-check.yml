@@ -1,22 +1,24 @@
-name: Build-check radio playback
+name: Build-check Bunkhouse Radio playback
 on:
   push:
     branches: [privacy/toonami-single-stream-test]
     paths:
       - .github/workflows/radio-build-check.yml
       - js/app.js
-      - js/livetv/pip.js
-      - pages/livetv.html
-      - assets/player.css
-      - assets/radio.css
       - js/livetv/radio.js
       - js/dpad.js
+      - js/livetv/pip.js
+      - pages/livetv.html
+      - assets/bunkhouse.css
+      - assets/radio.css
+      - assets/bunkhouse-saturn.jpg
       - appinfo.json
+      - manifest.json
   workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -27,21 +29,21 @@ jobs:
         run: |
           npm ci --no-audit
           npm run build
-      - name: Validate radio channels, audio markup and styles
+      - name: Validate Bunkhouse Radio assets, navigation, metadata and channels
         run: |
           node --check dist/js/app.js
-          node --check dist/js/livetv/pip.js
           node --check dist/js/livetv/radio.js
           node --check dist/js/dpad.js
+          node --check dist/js/livetv/pip.js
           node - <<'NODE'
           const fs = require('fs');
           const js = fs.readFileSync('dist/js/app.js','utf8');
           const html = fs.readFileSync('pages/livetv.html','utf8');
-          const css = fs.readFileSync('dist/css/player.css','utf8');
-          const radioCSS = fs.readFileSync('dist/css/radio.css','utf8');
+          const css = fs.readFileSync('dist/css/bunkhouse.css','utf8');
           const deck = fs.readFileSync('dist/js/livetv/radio.js','utf8');
           const remote = fs.readFileSync('dist/js/dpad.js','utf8');
           const info = JSON.parse(fs.readFileSync('appinfo.json','utf8'));
+          const manifest = JSON.parse(fs.readFileSync('manifest.json','utf8'));
           for (const str of [
             'https://wtmd-ice.streamguys1.com/wtmd.mp3',
             'https://wtmd-ice.streamguys1.com/hd2.mp3',
@@ -56,19 +58,21 @@ jobs:
             '/pst/playlist.m3u8',
             '/movies/playlist.m3u8',
             '/radio/playlist.m3u8',
-            '/countries/jp.m3u'
-          ]) if (!js.includes(str)) throw new Error('Missing source: ' + str);
-          if (!html.includes('id="radio-audio"') || !html.includes('id="radio-visual"')) throw new Error('Missing audio UI');
-          for (const id of ['radio-headspace-svg','radio-scope-canvas','radio-frequency','radio-track','radio-artist','radio-cover','radio-toggle']) {
-            if (!html.includes('id="' + id + '"')) throw new Error('Missing deck UI: ' + id);
+            '/countries/jp.m3u',
+            'setupBunkhouseNavigation',
+            'bunkhouseStationStep',
+            'bunkhouseChangeMode'
+          ]) if (!js.includes(str)) throw new Error('Missing station or TV/navigation feature: '+str);
+          for (const id of ['media-tv','media-radio','radio-stations','radio-audio','radio-visual','bk-saturn','bk-equalizer','radio-history-list','radio-track','radio-artist','radio-cover','radio-toggle','radio-prev','radio-next']) {
+            if (!html.includes('id="'+id+'"')) throw new Error('Missing Bunkhouse UI element: '+id);
           }
-          if (!html.includes('liv etv/radio.js'.replace(' ', '')) || !html.includes('radio.css')) throw new Error('Headspace module not linked');
-          if (!radioCSS.includes('.mode-headspace') || !radioCSS.includes('.mode-scope') || !radioCSS.includes('.mode-tuner')) throw new Error('Missing visualizer CSS');
-          if (!deck.includes('itunes.apple.com/search') || !deck.includes('trackHistory') || !deck.includes('WZRHFM') || !deck.includes('radio-head-trace')) throw new Error('Missing metadata/art/oscilloscope engine');
-          if (!remote.includes('RadioDeck.cycleMode')) throw new Error('Missing remote shortcut');
+          if (!html.includes('dist/css/bunkhouse.css') || !html.includes('assets/bunkhouse-saturn.jpg') || !html.includes('dist/js/livetv/radio.js')) throw new Error('Bunkhouse styles, image, or module is not linked');
+          if (!css.includes('body.radio-mode') || !css.includes('.bk-eq-bar') || !css.includes('#bk-history')) throw new Error('Missing compiled Bunkhouse CSS');
+          if (!deck.includes('itunes.apple.com/search') || !deck.includes('trackHistory') || !deck.includes('rememberTrack') || !deck.includes('renderHistory') || !deck.includes('bk-eq-bar')) throw new Error('Missing metadata/history/art/animated EQ engine');
+          if (!remote.includes('bunkhouseHandleKey')) throw new Error('Missing remote navigation');
           if ((js.match(/stream_id: "radio-/g) || []).length !== 8) throw new Error('Expected eight radio streams');
-
-          if (!css.includes('#radio-visual')) throw new Error('Missing compiled CSS');
-          if (info.version !== '1.0.39') throw new Error('Wrong version: '+info.version);
-          console.log('Radio build check passed: v'+info.version);
+          if (info.version !== '1.0.40' || manifest.version !== '1.0.40') throw new Error('Wrong version');
+          if (info.id !== 'com.oxhyashi.toonamitest') throw new Error('App ID changed unexpectedly');
+          if (fs.statSync('assets/bunkhouse-saturn.jpg').size < 1000) throw new Error('Saturn asset missing or empty');
+          console.log('Bunkhouse Radio build check passed v'+info.version+'; all TV and radio URLs preserved');
           NODE
