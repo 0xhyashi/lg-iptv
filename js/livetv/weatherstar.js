@@ -148,10 +148,8 @@ var WeatherChannel = (function () {
             return Promise.reject(new Error("Invalid latitude/longitude."));
         }
         if (/^\d{5}$/.test(city)) {
-            return fetch("https://api.zippopotam.us/us/" + encodeURIComponent(city)).then(function(resp) {
-                if (!resp.ok) throw new Error("ZIP code not found");
-                return resp.json();
-            }).then(function(data) {
+            return Net.json("https://api.zippopotam.us/us/" + encodeURIComponent(city),
+                { timeout: 10000 }).then(function(data) {
                 var place = data && data.places && data.places[0];
                 if (!place) throw new Error("ZIP code has no coordinates");
                 var coords = {lat:Number(place.latitude), lon:Number(place.longitude)};
@@ -164,10 +162,8 @@ var WeatherChannel = (function () {
         // Unlike the upstream iframe, this window has our webOS fetch polyfills.
         var endpoint = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/find" +
             "?f=json&text=" + encodeURIComponent(city);
-        return fetch(endpoint).then(function(resp) {
-            if (!resp.ok) throw new Error("Location lookup HTTP " + resp.status);
-            return resp.json();
-        }).then(function(data) {
+        // Net's timeout rejects even on old webOS versions without working abort().
+        return Net.json(endpoint, { timeout: 10000 }).then(function(data) {
             var geometry = data && data.locations && data.locations[0] &&
                 data.locations[0].feature && data.locations[0].feature.geometry;
             if (!geometry) throw new Error("Location not found");
