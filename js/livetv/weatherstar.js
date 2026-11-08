@@ -67,11 +67,82 @@ var WeatherChannel = (function () {
                 : "Pause or resume the selected live internet-radio station";
         }
     }
-    function weatherURL() {
+    // WeatherStar 8.2.2 normally geocodes latLonQuery with ArcGIS /find
+    // BEFORE it makes any NWS request. That step is the source of the exact
+    // "Location search isn't responding" startup error on the TV.
+    // Supplying BOTH latLon and latLonQuery skips that fragile extra lookup.
+    // The initial city is known and requires no network-based geocoding.
+    var defaultCoordinates = {lat: 39.2673, lon: -76.7983};
+    function coordsOK(p) {
+        return p && isFinite(p.lat) && isFinite(p.lon) &&
+            p.lat >= -90 && p.lat <= 90 && p.lon >= -180 && p.lon <= 180;
+    }
+    function getCachedCoordinates(city) {
+        if (String(city).toLowerCase().trim() === defaultCity.toLowerCase()) {
+            return defaultCoordinates;
+        }
+        try {
+            var old = JSON.parse(localStorage.getItem("bunkhouse_weather_coords") || "null");
+            if (old && old.city === city && coordsOK(old.coords)) return old.coords;
+        } catch (_) {}
+        return null;
+    }
+    function storeCoordinates(city, coords) {
+        try {
+            localStorage.setItem("bunkhouse_weather_coords", JSON.stringify({
+                city: city, coords: coords
+            }));
+        } catch (_) {}
+    }
+    function resolveCoordinates(city) {
+        var cached = getCachedCoordinates(city);
+        if (cached) return Promise.resolve(cached);
+        var direct = /^\\s*(-?\\d{1,2}(?:\\.\\d+)?)\\s*,\\s*(-?\\d{1,3}(?:\\.\\d+)?)\\s*$/.exec(city);
+        if (direct) {
+            var given = {lat: Number(direct[1]), lon: Number(direct[2])};
+            if (coordsOK(given)) return Promise.resolve(given);
+            return Promise.reject(new Error("Invalid latitude/longitude."));
+        }
+        if (/^\\d{5}$/.test(city)) {
+            return fetch("https://api.zippopotam.us/us/" + encodeURIComponent(city)).then(function(resp) {
+                if (!resp.ok) throw new Error("ZIP code not found");
+                return resp.json();
+            }).then(function(data) {
+                var place = data && data.places && data.places[0];
+                if (!place) throw new Error("ZIP code has no coordinates");
+                var coords = {lat:Number(place.latitude), lon:Number(place.longitude)};
+                if (!coordsOK(coords)) throw new Error("Invalid ZIP coordinates");
+                storeCoordinates(city, coords);
+                return coords;
+            });
+        }
+        // For non-default cities, geocode once in the Bunkhouse parent window.
+        // Unlike the upstream iframe, this window has our webOS fetch polyfills.
+        var endpoint = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/find" +
+            "?f=json&text=" + encodeURIComponent(city);
+        return fetch(endpoint).then(function(resp) {
+            if (!resp.ok) throw new Error("Location lookup HTTP " + resp.status);
+            return resp.json();
+        }).then(function(data) {
+            var geometry = data && data.locations && data.locations[0] &&
+                data.locations[0].feature && data.locations[0].feature.geometry;
+            if (!geometry) throw new Error("Location not found");
+            var coords = {lat:Number(geometry.y), lon:Number(geometry.x)};
+            if (!coordsOK(coords)) throw new Error("Location has invalid coordinates");
+            storeCoordinates(city,coords);
+            return coords;
+        });
+    }
+    function weatherURL(coords) {
         var base = hosted ? "https://weatherstar.netbymatt.com/"
                           : "../weatherstar/index.html";
         var isClassic = soundtrack === "classic";
-        return base + "?latLonQuery=" + encodeURIComponent(getCity()) +
+        var query = "?latLonQuery=" + encodeURIComponent(getCity());
+        if (coords && coordsOK(coords)) {
+            // Bypasses upstream ArcGIS findLocation() and loads NWS directly.
+            query += "&latLon=" + encodeURIComponent(JSON.stringify(coords));
+        }
+        return base + query +
             "&kiosk=true&mediaPlaying=" + (isClassic && !soundPaused ? "true" : "false") +
             "&mediaVolume=0.65&viewMode=standard";
     }
@@ -145,19 +216,28 @@ var WeatherChannel = (function () {
     }
     function navigate() {
         if (!active) return;
-        // On any new iframe navigation discard the old external stream first.
-        // This ensures switching from Classic to live music cannot overlap.
-        ++loadSerial;
+        // Never let previous location resolutions reload a different channel.
+        var navigationId = ++loadSerial;
         stopExternal();
         var frame = $("weatherstar-frame");
         if (!frame) return;
-        var city = $("weatherstar-city");
-        if (city) city.value = getCity();
-        frame.src = weatherURL();
+        var city = getCity(), input = $("weatherstar-city");
+        if (input) input.value = city;
+        frame.src = "about:blank";
         var source = $("weatherstar-source");
         if (source) source.textContent = hosted ? "USE LOCAL COPY" : "TRY ONLINE COPY";
         updateControls();
-        setMessage(hosted ? "Loading hosted WeatherStar…" : "Loading local WeatherStar 4000+…");
+        setMessage("Finding forecast coordinates for " + city + "…");
+        resolveCoordinates(city).then(function(coords) {
+            if (!active || navigationId !== loadSerial) return;
+            frame.src = weatherURL(coords);
+            setMessage(hosted ? "Loading original hosted WeatherStar…" :
+                "Loading original WeatherStar 4000+ forecast…");
+        }).catch(function(error) {
+            if (!active || navigationId !== loadSerial) return;
+            setMessage("Cannot find location: " + (error && error.message || "lookup failed") +
+                ". Try a US ZIP code or latitude,longitude.");
+        });
     }
     function open() {
         if (active) return;
