@@ -24,7 +24,7 @@
                             <polyline points="9 22 9 12 15 12 15 22"/>
                         </svg>
                     </button>
-                    <span>Toonami + Japan TV <small>v1.0.35</small></span>
+                    <span>Toonami + Japan TV <small>v1.0.36</small></span>
                     <button id="settings-btn" title="Settings" onclick="location.href='../pages/settings.html'">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="3"/>
@@ -66,6 +66,15 @@
                 </div>
                 <div id="pip-wrap">
                     <video id="player" autoplay playsinline></video>
+                    <!-- Independent native audio player for Icecast/MP3 radio streams. -->
+                    <audio id="radio-audio" preload="none"></audio>
+                    <div id="radio-visual" style="display:none;" aria-live="polite">
+                        <div id="radio-icon" aria-hidden="true">♫</div>
+                        <div id="radio-kicker">LIVE RADIO</div>
+                        <div id="radio-name"></div>
+                        <div id="radio-status">Connecting…</div>
+                        <button id="radio-toggle" type="button">Pause</button>
+                    </div>
                     <div id="player-msg">Select a channel</div>
                     <div id="pip-bar">
                         <span id="pip-channel-name"></span>
