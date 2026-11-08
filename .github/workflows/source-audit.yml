@@ -31,4 +31,6 @@ jobs:
           node tests/radio-station-switch.test.js
           node tests/catchup-navigation-race.test.js
           node tests/player-audio-race.test.js
+          node tests/radio-metadata-timeout.test.js
+          node tests/settings-profile-race.test.js
           node tests/weatherstar-location.test.js
