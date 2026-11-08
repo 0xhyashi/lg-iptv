@@ -179,9 +179,9 @@
 
     /* ── Data table cache (per channel, short TTL) ───────────────────── */
     var dtCache = {};
-    /** Get Data Table for catch-up TV browsing.
-     * @param {*} streamId - Input for getDataTable().
-     * @returns {*} Function result.
+    /** Retrieve a channel's archive schedule, reusing entries for ten minutes.
+     * @param {string|number} streamId - Xtream live stream ID.
+     * @returns {Promise<Array<Object>>} Catch-up listings for the requested channel.
      */
     function getDataTable(streamId) {
         var c = dtCache[streamId];
@@ -528,10 +528,10 @@
 
     // Most recent finished airing within the archive window whose start time-of-
     // day sits near the pinned slot (±45 min absorbs small schedule drift).
-    /** Resolve Pin for catch-up TV browsing.
-     * @param {Object} p - Record or input.
-     * @param {*} listings - Input for resolvePin().
-     * @returns {*} Function result.
+    /** Find the most recent finished airing close to a pinned daily time.
+     * @param {Object} p - Saved pin containing hour and minute.
+     * @param {Array<Object>} listings - Candidate archive programmes.
+     * @returns {Object|null} Matching programme, or null if none is available.
      */
     function resolvePin(p, listings) {
         var now = Date.now(), winStart = now - 14 * 86400000, slot = p.hour * 60 + p.minute, TOL = 45;
