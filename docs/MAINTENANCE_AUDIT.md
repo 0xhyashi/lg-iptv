@@ -33,6 +33,9 @@ Read [ARCHITECTURE.md](ARCHITECTURE.md) for the complete source map.
 | --- | --- | --- |
 | An old radio connection keeps playing after selecting a new station | Replace native `<audio>` on each station switch; check element identity and generation tokens for late events | `tests/radio-station-switch.test.js` |
 | WeatherStar remains on its title screen saying location lookup is unresponsive | Resolve coordinates before launching original iframe and pass supported `latLon` parameter | `tests/weatherstar-location.test.js` |
+| Online WeatherStar iframe produces a black screen | Use only the packaged WeatherStar; the former source toggle is now a local **RETRY FORECAST** action | `tests/weatherstar-location.test.js` |
+| NWS initial point lookup fails in LG browser without explaining why | Remove the forbidden custom browser User-Agent header from the upstream request and surface NWS HTTP/network details; an external API outage can still happen | `tests/weatherstar-nws-compat.test.js` |
+| Radio album artwork is tall and thin | Set equal CSS width/height in legacy-compatible viewport units instead of unrelated 36% width/100% height | `tests/radio-cover-shape.test.js` |
 | Older LG iframe lacks modern Web APIs | Load older-webOS fetch/Promise shims and `AbortSignal.timeout` compatibility bootstrap before original WeatherStar scripts | `ws4kp-package-check.yml` |
 | Previous TV guide response overwrites a newly selected channel | Check `currentChannel` after EPG request, even for empty/error results | `tests/tv-epg-race.test.js` |
 | Invalid or zero-length EPG dates show midnight or NaN progress | Guard invalid timestamp formatting and divide-by-zero progress | `tests/epg-time.test.js` |
@@ -69,6 +72,8 @@ node tests/settings-profile-race.test.js
 node tests/vod-series-race.test.js
 node tests/vod-subtitle-search-race.test.js
 node tests/weatherstar-location.test.js
+node tests/weatherstar-nws-compat.test.js
+node tests/radio-cover-shape.test.js
 npm.cmd run build
 ares-package.cmd -n .
 ```
