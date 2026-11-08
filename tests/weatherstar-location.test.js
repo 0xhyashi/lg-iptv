@@ -26,12 +26,15 @@ const sandbox={
     document:{getElementById:node},
     Promise, console, JSON, Number, String, RegExp,
     isFinite,encodeURIComponent,decodeURIComponent,
-    fetch:url=>{
-        requests.push(String(url));
-        if(String(url).includes('zippopotam')) return Promise.resolve({
-            ok:true,json:()=>Promise.resolve({places:[{latitude:'39.2676',longitude:'-76.805'}]})
-        });
-        return Promise.reject(new Error('Simulated blocked geocoder'));
+    Net: {
+        json: (url, options) => {
+            requests.push(String(url));
+            assert(options && options.timeout > 0, 'Geocoder must have a deadline');
+            if (String(url).includes('zippopotam')) {
+                return Promise.resolve({places:[{latitude:'39.2676',longitude:'-76.805'}]});
+            }
+            return Promise.reject(new Error('Simulated blocked geocoder'));
+        }
     },
     localStorage:localStorage,
     currentChannel:null,
