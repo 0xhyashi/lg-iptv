@@ -157,7 +157,7 @@ var RadioDeck = (function () {
         document.head.appendChild(script);
     }
 
-    function displayTrack(artist, title) {
+    function displayTrack(artist, title, artwork) {
         artist = String(artist || "").trim();
         title = String(title || "").trim();
         if (!title || /commercial break|preroll|^ad\||(^|\s)offline($|\s)/i.test(title)) return;
@@ -168,7 +168,14 @@ var RadioDeck = (function () {
         safeText("radio-track", title);
         safeText("radio-artist", artist || "Live broadcast");
         safeText("radio-metadata-state", "LIVE TRACK DATA");
-        lookupArtwork(artist, title, requestSerial);
+        // Prefer first-party broadcaster artwork when one is available.
+        if (artwork && artwork.art && /^https:\/\//.test(artwork.art)) {
+            cancelArtwork();
+            resetArtwork();
+            showArtwork(artwork);
+        } else {
+            lookupArtwork(artist, title, requestSerial);
+        }
     }
     function fromCombinedText(text) {
         text = String(text || "").replace(/\0/g, "").trim();
@@ -213,6 +220,43 @@ var RadioDeck = (function () {
             }
         });
     }
+    function metaFromIheart(ch) {
+        // Public trackHistory is CORS enabled as of Nov 2026. It reports the
+        // station's own artist, song and album art without scraping an app.
+        var id = ch.stream_id === "radio-wfmf1025-br" ? "1005"
+               : ch.stream_id === "radio-wnoe1011-nola" ? "1045" : null;
+        if (!id) return Promise.reject(Error("No iHeart station ID"));
+        return fetch("https://api.iheart.com/api/v3/live-meta/stream/" + id + "/trackHistory", { cache: "no-store" })
+        .then(function (r) {
+            if (!r.ok) throw Error("iHeart metadata HTTP " + r.status);
+            return r.json();
+        }).then(function (json) {
+            if (!isActive() || current !== ch) return;
+            var songs = json && Array.isArray(json.data) ? json.data : [];
+            if (!songs.length) return;
+            var now = Date.now();
+            var valid = songs.filter(function (song) {
+                if (!song || !song.title || !song.artist) return false;
+                var date = typeof song.startTime === "number" ? song.startTime : Date.parse(song.startTime);
+                if (isFinite(date)) {
+                    if (date > 0 && date < 100000000000) date *= 1000;
+                    song._radioStart = date;
+                    if (date > now + 45000) return false; // never show future songs
+                }
+                return true;
+            });
+            if (!valid.length) return;
+            valid.sort(function (a,b) { return (b._radioStart || 0) - (a._radioStart || 0); });
+            var top = valid[0];
+            var imageUrl = String(top.imagePath || "");
+            // iHeart returns http:// image links despite HTTPS-capable CDN.
+            if (/^http:\/\//i.test(imageUrl)) imageUrl = "https://" + imageUrl.slice(7);
+            var cover = /^https:\/\//i.test(imageUrl)
+                ? { art: imageUrl, album: String(top.album || ""), url: "" }
+                : null;
+            displayTrack(top.artist, top.title, cover);
+        });
+    }
     function metaFromIcy(ch) {
         // Streaming ICY isn't exposed by <audio> in webOS. A short, separate
         // CORS request can read tags only on hosts that allow icy-metadata
@@ -254,12 +298,14 @@ var RadioDeck = (function () {
         var method = "";
         if (ch.stream_id === "radio-alt923-nola") method = "triton";
         else if (ch.stream_id === "radio-shonan") method = "shonan";
+        else if (ch.stream_id === "radio-wfmf1025-br" || ch.stream_id === "radio-wnoe1011-nola") method = "iheart";
         else method = "icy";
         // Don't keep issuing a known-blocked cross-origin preflight every 30s.
         var badKey = ch.stream_id + "|" + method;
         if (pollFailures[badKey]) return;
         var promise = method === "triton" ? metaFromTriton(ch)
             : method === "shonan" ? metaFromIcy(ch).catch(function () { return metaFromAirtime(ch); })
+            : method === "iheart" ? metaFromIheart(ch)
             : metaFromIcy(ch);
         promise.catch(function () {
             pollFailures[badKey] = true;
