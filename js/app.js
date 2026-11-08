@@ -24,10 +24,16 @@
 
 /* From the active profile — see Config.sourceType() for why not from the
    separate iptv_source_type key. */
+/** Read the active IPTV source type.
+ * @returns {string} Value described above.
+ */
 function getSourceType() {
     return Config.sourceType();
 }
 
+/** Load the configured provider and start Live TV.
+ * @returns {Promise<void>} Completion of the asynchronous operation.
+ */
 async function initApp() {
     const status = document.getElementById("status");
     const setStatus = (msg, err) => {
@@ -44,6 +50,10 @@ async function initApp() {
     }
 }
 
+/** Load an M3U playlist and hand its channels to the UI.
+ * @param {Function} setStatus - Callback that reports progress or errors.
+ * @returns {Promise<void>} Completion of the asynchronous operation.
+ */
 async function _initAppM3U(setStatus) {
     let m3uCfg;
     try { m3uCfg = await m3uLoadConfig(); }
@@ -81,6 +91,10 @@ async function _initAppM3U(setStatus) {
     } catch (err) { setStatus("ERR: " + err.message, true); }
 }
 
+/** Load Xtream channels and categories.
+ * @param {Function} setStatus - Callback that reports progress or errors.
+ * @returns {Promise<void>} Completion of the asynchronous operation.
+ */
 async function _initAppXtream(setStatus) {
     setStatus("Loading config…");
     try { cfg = await xtreamLoadConfig(); }
@@ -158,6 +172,11 @@ async function _initAppXtream(setStatus) {
     } catch (err) { setStatus("ERR: " + err.message, true); }
 }
 
+/** Render categories and start Live TV's supporting services.
+ * @param {Array<Object>} categories - Category definitions.
+ * @param {string} playlistEpgUrl - Provider's EPG URL.
+ * @returns {void} Updates module state or the UI.
+ */
 function _bootUI(categories, playlistEpgUrl) {
     renderCategories(categories);
     setupSearch();
@@ -192,8 +211,18 @@ function _bootUI(categories, playlistEpgUrl) {
  * Release the video decoder before radio, and close the radio connection
  * before returning to video playback.
  */
+/** Stop radio playback before leaving its mode.
+ * @returns {void} Updates module state or the UI.
+ */
 function stopRadio() { RadioDeck.stop(); }
+/** Install the radio player and media-button listeners.
+ * @returns {void} Updates module state or the UI.
+ */
 function setupRadioUI() { RadioDeck.init(); }
+/** Stop video and tune the selected radio station.
+ * @param {Object} ch - Channel entry with stream_id, name and source fields.
+ * @returns {void} Updates module state or the UI.
+ */
 function startRadio(ch) {
     // The TV's video decoder is limited; close it before starting audio.
     player.stop();
@@ -209,9 +238,16 @@ var _bkLastTVChannel = null;
 var _bkLastTVCategory = "all";
 var _bkStationIndex = 0;
 var _bkRadioButtons = [];
+/** Return the fixed Bunkhouse radio station entries.
+ * @returns {Array<Object>} Value described above.
+ */
 function bunkhouseRadioChannels() {
     return allChannels.filter(function (c) { return c && c._radio; });
 }
+/** Update the visible TV/Radio navigation and filtering.
+ * @param {string} mode - Requested TV or radio mode.
+ * @returns {void} Updates module state or the UI.
+ */
 function bunkhouseSetMode(mode) {
     var radio = mode === "radio";
     document.body.classList.toggle("radio-mode", radio);
@@ -228,6 +264,9 @@ function bunkhouseSetMode(mode) {
     applyFilters(true);
     if (radio) bunkhouseHighlightStation();
 }
+/** Mark the sidebar station that matches the active channel.
+ * @returns {void} Updates module state or the UI.
+ */
 function bunkhouseHighlightStation() {
     var sid = currentChannel && currentChannel._radio ? String(currentChannel.stream_id) : "";
     _bkRadioButtons.forEach(function (btn, index) {
@@ -236,6 +275,10 @@ function bunkhouseHighlightStation() {
         if (selected) _bkStationIndex = index;
     });
 }
+/** Switch between TV and radio, restoring the previous TV channel.
+ * @param {string} mode - Requested TV or radio mode.
+ * @returns {void} Updates module state or the UI.
+ */
 function bunkhouseChangeMode(mode) {
     if (mode === "radio") {
         bunkhouseSetMode("radio");
@@ -259,12 +302,21 @@ function bunkhouseChangeMode(mode) {
         if (typeof setTVZone === "function") setTVZone("channel-list");
     }
 }
+/** Move to and play the previous or next radio preset.
+ * @param {number} delta - Signed number of positions to move.
+ * @returns {void} Updates module state or the UI.
+ */
 function bunkhouseStationStep(delta) {
     if (!_bkRadioButtons.length) return;
     _bkStationIndex = (_bkStationIndex + delta + _bkRadioButtons.length) % _bkRadioButtons.length;
     _bkRadioButtons[_bkStationIndex].focus();
     _bkRadioButtons[_bkStationIndex].click();
 }
+/** Handle remote keys while the radio view is active.
+ * @param {KeyboardEvent} e - Remote or keyboard event.
+ * @param {number} key - LG/webOS key code.
+ * @returns {boolean} Value described above.
+ */
 function bunkhouseHandleKey(e, key) {
     if (!document.body.classList.contains("radio-mode") || isFullscreen()) return false;
     var focus = document.activeElement;
@@ -296,6 +348,9 @@ function bunkhouseHandleKey(e, key) {
     }
     return false;
 }
+/** Create station buttons and wire TV/Radio tabs.
+ * @returns {void} Updates module state or the UI.
+ */
 function setupBunkhouseNavigation() {
     var tv=document.getElementById("media-tv"),radio=document.getElementById("media-radio");
     if (!tv || !radio) return;
@@ -322,6 +377,10 @@ function setupBunkhouseNavigation() {
 
 // ── Channel selection ─────────────────────────────────────────────────────────
 
+/** Choose the video, radio or WeatherStar player for a channel and update its EPG.
+ * @param {Object} ch - Channel entry with stream_id, name and source fields.
+ * @returns {Promise<void>} Completion of the asynchronous operation.
+ */
 async function selectChannel(ch) {
     currentChannel = ch;
     const _selSid = String(ch.stream_id);
@@ -391,10 +450,20 @@ async function selectChannel(ch) {
     showOSD();
 }
 
+/** Refresh the on-screen display only in fullscreen.
+ * @returns {void} Updates module state or the UI.
+ */
 function updateOSDIfFullscreen() {
     if (isFullscreen()) showOSD();
 }
 
+/** Write the title, time and description for one EPG slot.
+ * @param {string} slot - EPG display slot (now or next).
+ * @param {string} title - Reported track title.
+ * @param {string} time - Formatted program time.
+ * @param {string} desc - Program description.
+ * @returns {void} Updates module state or the UI.
+ */
 function setEPG(slot, title, time, desc) {
     document.getElementById(`epg-${slot}-title`).textContent = title || "—";
     document.getElementById(`epg-${slot}-time`).textContent  = time  || "";
@@ -402,10 +471,17 @@ function setEPG(slot, title, time, desc) {
     if (el) el.textContent = desc || "";
 }
 
+/** Reveal the selected channel's summary.
+ * @returns {void} Updates module state or the UI.
+ */
 function showPreviewInfo() {
     document.getElementById("preview-info")?.classList.add("preview-visible");
 }
 
+/** Move through the filtered TV channel list.
+ * @param {number} delta - Signed number of positions to move.
+ * @returns {void} Updates module state or the UI.
+ */
 function channelStep(delta) {
     if (!_vsChannels.length) return;
     let idx = currentChannel
@@ -511,6 +587,11 @@ function channelStep(delta) {
 
   // Only accept direct HTTP(S) stream URLs from the external M3U list.
   // Source URL, names and logos are data, not scripts or executable code.
+  /** Merge Japan IPTV-org results with the fixed channels.
+   * @param {Array<Object>} list - Channel entries.
+   * @param {boolean} cached - Whether data came from cache.
+   * @returns {void} Updates module state or the UI.
+   */
   function showJapaneseChannels(list, cached) {
     var japanese = [];
     for (var i = 0; i < list.length; i++) {
