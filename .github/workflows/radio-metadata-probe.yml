@@ -28,7 +28,12 @@ jobs:
             ("wfmf_recent","https://us.api.iheart.com/api/v3/live-meta/stream/1005/tracks",False),
             ("alt_triton","https://np.tritondigital.com/public/nowplaying?mountName=WZRHFM&numberToFetch=1&eventType=track",False),
             ("alt_triton_aac","https://np.tritondigital.com/public/nowplaying?mountName=WZRHFMAAC&numberToFetch=1&eventType=track",False),
-            ("itunes","https://itunes.apple.com/search?term=Talking%20Heads%20Psycho%20Killer&entity=song&limit=1",False)
+            ("itunes","https://itunes.apple.com/search?term=Talking%20Heads%20Psycho%20Killer&entity=song&limit=1",False),
+            ("itunes_jsonp","https://itunes.apple.com/search?term=Talking%20Heads%20Psycho%20Killer&entity=song&limit=1&callback=metadataCB",False),
+            ("wfmf_track_history","https://api.iheart.com/api/v3/live-meta/stream/1005/trackHistory",False),
+            ("wfmf_us_track_history","https://us.api.iheart.com/api/v3/live-meta/stream/1005/trackHistory",False),
+            ("wnoe_track_history","https://api.iheart.com/api/v3/live-meta/stream/1045/trackHistory",False),
+            ("wnoe_us_track_history","https://us.api.iheart.com/api/v3/live-meta/stream/1045/trackHistory",False)
           ]
           def probe(item):
             label,url,stream=item
