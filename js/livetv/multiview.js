@@ -67,12 +67,18 @@ window.Multiview = (function () {
     var _starting     = false;
     var _staggerTimer = null;
 
+    /** Is Open for multi-channel playback.
+     * @returns {boolean} Whether the condition holds.
+     */
     function isOpen() { return _open; }
 
     /* How many tiles this TV should attempt. The user can force a number in
        Settings → Player when the automatic choice is wrong for their set —
        either because it is more capable than its Chromium version suggests, or
        because four streams saturate their network rather than their decoder. */
+    /** Tile Count for multi-channel playback.
+     * @returns {*} Function result.
+     */
     function tileCount() {
         var forced = parseInt(Store.getRaw(MAX_TILES_KEY, '0'), 10);
         if (forced === 2 || forced === 3 || forced === 4) return forced;
@@ -107,12 +113,21 @@ window.Multiview = (function () {
         ]
     };
 
+    /** Layout for multi-channel playback.
+     * @returns {*} Function result.
+     */
     function layout() { return LAYOUTS[_tiles.length] || LAYOUTS[4]; }
 
     /* ── Open / close ─────────────────────────────────────────────────────────
        `channels` is whatever list the page is showing, so multiview inherits
        the current category or favourites filter rather than always starting
        from the top of everything. */
+    /** Open for multi-channel playback.
+     * @param {Array<Object>} channels - Channel entries.
+     * @param {*} startIndex - Input for open().
+     * @param {Object} opts - Options.
+     * @returns {void} Updates state or the UI.
+     */
     function open(channels, startIndex, opts) {
         if (_open) return false;
         if (typeof IPTVPlayer === 'undefined') return false;
@@ -142,6 +157,9 @@ window.Multiview = (function () {
         return true;
     }
 
+    /** Close for multi-channel playback.
+     * @returns {void} Updates state or the UI.
+     */
     function close() {
         if (!_open) return;
         var active = _tiles[_active] && _tiles[_active].channel;
@@ -174,6 +192,10 @@ window.Multiview = (function () {
     }
 
     /* ── DOM ──────────────────────────────────────────────────────────────── */
+    /** Build Dom for multi-channel playback.
+     * @param {*} n - Input for buildDom().
+     * @returns {*} Function result.
+     */
     function buildDom(n) {
         _root = Dom.el('div', { id: 'mv-root', 'data-tiles': String(n) });
 
@@ -202,6 +224,11 @@ window.Multiview = (function () {
         document.body.appendChild(_root);
     }
 
+    /** Build Tile for multi-channel playback.
+     * @param {number} i - Zero-based index.
+     * @param {*} grid - Input for buildTile().
+     * @returns {*} Function result.
+     */
     function buildTile(i, grid) {
         var video = Dom.el('video', { className: 'mv-video' });
         video.muted = true;                   // the active tile is unmuted below
@@ -252,6 +279,11 @@ window.Multiview = (function () {
         return tile;
     }
 
+    /** Set Msg for multi-channel playback.
+     * @param {*} tile - Input for setMsg().
+     * @param {string} text - Text to process.
+     * @returns {void} Updates state or the UI.
+     */
     function setMsg(tile, text) {
         tile.msg.textContent = text;
         tile.msg.style.display = 'flex';
@@ -278,6 +310,11 @@ window.Multiview = (function () {
        practice a healthy set of four is fully up in about two seconds, and an
        unhealthy one degrades tile by tile instead of all at once.               */
 
+    /** Enqueue Start for multi-channel playback.
+     * @param {number} i - Zero-based index.
+     * @param {Object} ch - Channel entry.
+     * @returns {*} Function result.
+     */
     function enqueueStart(i, ch) {
         if (!_open || !ch) return;
         /* A tile can only have one pending start — pressing CH+ twice quickly
@@ -298,6 +335,9 @@ window.Multiview = (function () {
         pumpQueue();
     }
 
+    /** Pump Queue for multi-channel playback.
+     * @returns {*} Function result.
+     */
     function pumpQueue() {
         if (_starting || !_queue.length || !_open) return;
         var job = _queue.shift();
@@ -308,6 +348,10 @@ window.Multiview = (function () {
        "this one is done occupying the connection". Idempotent per start job:
        onPlaying fires again on every later reconnect, and those must not
        advance a queue that has long since drained. */
+    /** Tile Started for multi-channel playback.
+     * @param {*} tile - Input for tileStarted().
+     * @returns {*} Function result.
+     */
     function tileStarted(tile) {
         if (typeof tile.settle === 'function') {
             var settle = tile.settle;
@@ -316,6 +360,11 @@ window.Multiview = (function () {
         }
     }
 
+    /** Start Tile for multi-channel playback.
+     * @param {number} i - Zero-based index.
+     * @param {Object} ch - Channel entry.
+     * @returns {void} Updates state or the UI.
+     */
     function startTile(i, ch) {
         var tile = _tiles[i];
         if (!tile || !ch) { releaseAfter(0); return; }
@@ -342,6 +391,10 @@ window.Multiview = (function () {
         applyAudio();
     }
 
+    /** Release After for multi-channel playback.
+     * @param {*} delay - Input for releaseAfter().
+     * @returns {*} Function result.
+     */
     function releaseAfter(delay) {
         clearTimeout(_staggerTimer);
         _staggerTimer = setTimeout(function () {
@@ -355,12 +408,18 @@ window.Multiview = (function () {
 
     /* Exactly one tile has sound. Muting is done on the element rather than by
        pausing, so every tile keeps its picture. */
+    /** Apply Audio for multi-channel playback.
+     * @returns {void} Updates state or the UI.
+     */
     function applyAudio() {
         for (var i = 0; i < _tiles.length; i++) {
             try { _tiles[i].video.muted = (i !== _active); } catch (e) {}
         }
     }
 
+    /** Paint Focus for multi-channel playback.
+     * @returns {void} Updates state or the UI.
+     */
     function paintFocus() {
         for (var i = 0; i < _tiles.length; i++) {
             _tiles[i].el.classList.toggle('mv-active', i === _active);
@@ -376,6 +435,9 @@ window.Multiview = (function () {
 
        One shared timer, and every label is cleared on each call — moving
        quickly between tiles must not leave the previous one's name behind. */
+    /** Flash Label for multi-channel playback.
+     * @returns {*} Function result.
+     */
     function flashLabel() {
         clearTimeout(_labelTimer);
         for (var i = 0; i < _tiles.length; i++) {
@@ -384,12 +446,18 @@ window.Multiview = (function () {
         _labelTimer = setTimeout(hideLabels, LABEL_MS);
     }
 
+    /** Hide Labels for multi-channel playback.
+     * @returns {void} Updates state or the UI.
+     */
     function hideLabels() {
         for (var i = 0; i < _tiles.length; i++) {
             _tiles[i].label.classList.remove('mv-label-visible');
         }
     }
 
+    /** Toggle Zoom for multi-channel playback.
+     * @returns {*} Function result.
+     */
     function toggleZoom() {
         _zoomed = !_zoomed;
         _root.classList.toggle('mv-zoomed', _zoomed);
@@ -401,6 +469,10 @@ window.Multiview = (function () {
     }
 
     /* ── Navigation ───────────────────────────────────────────────────────── */
+    /** Move for multi-channel playback.
+     * @param {*} dir - Input for move().
+     * @returns {*} Function result.
+     */
     function move(dir) {
         if (_zoomed) return;                 // zoomed: there is nowhere to move
         var cell = layout()[_active];
@@ -412,6 +484,10 @@ window.Multiview = (function () {
 
     /* Step the active tile's channel through the page's list. Skips a channel
        already on screen so pressing CH+ never lands you on a duplicate. */
+    /** Step Channel for multi-channel playback.
+     * @param {*} dir - Input for stepChannel().
+     * @returns {*} Function result.
+     */
     function stepChannel(dir) {
         var tile = _tiles[_active];
         if (!tile || !_channels.length) return;
@@ -439,6 +515,10 @@ window.Multiview = (function () {
        deliberately not excluded: stepping is meant to reach a channel you are
        not already watching, and its own is the one it is least useful to
        "move" to. */
+    /** On Screen for multi-channel playback.
+     * @param {Object} ch - Channel entry.
+     * @returns {void} Updates state or the UI.
+     */
     function onScreen(ch) {
         for (var i = 0; i < _tiles.length; i++) {
             var c = _tiles[i].channel;
@@ -450,6 +530,9 @@ window.Multiview = (function () {
     /* ── Hint bar ─────────────────────────────────────────────────────────── */
     var KEY_HINT = null;
 
+    /** Show Hint for multi-channel playback.
+     * @returns {void} Updates state or the UI.
+     */
     function showHint() {
         var hint = Dom.byId('mv-hint');
         if (!hint) return;
@@ -461,6 +544,10 @@ window.Multiview = (function () {
 
     /* Replace the key help with a one-off message, then restore it next time
        the bar is shown. */
+    /** Flash Hint for multi-channel playback.
+     * @param {string} text - Text to process.
+     * @returns {*} Function result.
+     */
     function flashHint(text) {
         var hint = Dom.byId('mv-hint');
         if (!hint) return;
@@ -482,6 +569,10 @@ window.Multiview = (function () {
        everything would also swallow whatever the platform routes through the
        page — volume being the one that matters — and a multiview that mutes the
        remote is worse than one that ignores a stray press. */
+    /** Handle Key for multi-channel playback.
+     * @param {Event} e - Browser event.
+     * @returns {void} Updates state or the UI.
+     */
     function handleKey(e) {
         var kc = Dom.keyCode(e);
         var K  = Dom.KEY;
