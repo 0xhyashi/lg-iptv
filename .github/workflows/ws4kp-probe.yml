@@ -1,0 +1,50 @@
+name: Probe pristine WeatherStar 4000+ integration
+on:
+  push:
+    branches: [privacy/toonami-single-stream-test]
+    paths: [.github/workflows/ws4kp-probe.yml]
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch pinned upstream without modifying source
+        shell: bash
+        run: |
+          git clone --depth 1 https://github.com/netbymatt/ws4kp.git /tmp/ws4kp-src
+          git -C /tmp/ws4kp-src fetch --depth 1 origin 237c60d242f9d70e0ee9c1bab87f3119c4b3b729
+          git -C /tmp/ws4kp-src checkout --detach 237c60d242f9d70e0ee9c1bab87f3119c4b3b729
+          git -C /tmp/ws4kp-src rev-parse HEAD
+      - name: Build identical static site including music
+        run: |
+          cd /tmp/ws4kp-src
+          npm ci --no-audit --no-fund
+          npm run build
+          test -f dist/index.html
+          test -f dist/playlist.json
+          test -f dist/resources/ws.min.js
+          test -f dist/resources/ws.min.css
+          test -d dist/music
+          du -sh dist
+          find dist -type f | wc -l
+          node - <<'NODE'
+          const fs=require('fs');
+          const html=fs.readFileSync('dist/index.html','utf8');
+          const playlist=JSON.parse(fs.readFileSync('dist/playlist.json','utf8'));
+          console.log('WEATHER_BUILD',JSON.stringify({bytes:html.length,playlist,localAssets:html.includes('resources/ws.min.js'),head:html.slice(0,160)}).slice(0,1800));
+          NODE
+      - name: Check official hosted player frame policy, browser headers
+        run: |
+          python3 - <<'PY'
+          import urllib.request,json
+          for site in ['https://weatherstar.netbymatt.com/?kiosk=true', 'https://api.weather.gov/points/39.2673,-76.7983']:
+            try:
+              with urllib.request.urlopen(urllib.request.Request(site,headers={'User-Agent':'BunkhouseTest/1.0 (non-commercial; contact via GitHub)', 'Origin':'null'}),timeout=18) as resp:
+                print('WEATHER_HEADERS',json.dumps({'url':site,'code':resp.status,'frame':resp.headers.get('X-Frame-Options'),'csp':resp.headers.get('Content-Security-Policy'),'cors':resp.headers.get('Access-Control-Allow-Origin'),'bytes':len(resp.read(512))}))
+            except Exception as e:print('WEATHER_HEADERS_ERROR',site,str(e)[:180])
+          PY
