@@ -22,7 +22,7 @@ window.Net = (function () {
        The old code sniffed for the substring "403" in a message, which also
        matched a body that merely happened to contain those digits. */
     /** Create a structured HTTP error with status and URL.
-     * @param {*} status - Input to httpError().
+     * @param {number} status - HTTP response status code.
      * @param {string} url - Requested URL.
      * @returns {Error} HTTP error with status and URL properties.
      */
@@ -33,8 +33,8 @@ window.Net = (function () {
         return err;
     }
     /** Check for an HTTP status, optionally matching a specific code.
-     * @param {*} err - Input to isHttpError().
-     * @param {*} status - Input to isHttpError().
+     * @param {Error} err - Error to inspect.
+     * @param {number|undefined} status - Optional status code to match.
      * @returns {boolean} True when the error has the requested HTTP status.
      */
     function isHttpError(err, status) {
@@ -55,7 +55,7 @@ window.Net = (function () {
        of moving on to the next one. */
     /** Fetch a URL with a deadline, including on older webOS browsers.
      * @param {string} url - Requested URL.
-     * @param {*} init - Input to timed().
+     * @param {Object} init - Fetch options including method, headers and body.
      * @param {number} timeout - Timeout in milliseconds.
      * @returns {Promise<Response>} HTTP response or rejection on timeout/network failure.
      */
