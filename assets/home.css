@@ -1,3 +1,6 @@
+/* home.css — startup navigation tiles, focus outlines and home-page layout.
+ * Used by index.html; media players have separate stylesheets.
+ */
 /* ── Homepage layout ─────────────────────────────────────────────────────────── */
 #home {
     display: flex; flex-direction: column;
