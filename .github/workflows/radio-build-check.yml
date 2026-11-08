@@ -1,4 +1,4 @@
-name: Build-check Bunkhouse + authentic WeatherStar
+name: Build-check Bunkhouse + 24/7 WeatherStar audio
 on:
   push:
     branches: [privacy/toonami-single-stream-test]
@@ -84,6 +84,17 @@ jobs:
           if (!remote.includes('WeatherChannel.handleKey') || !wc.includes('WeatherChannel') && !wc.includes('WeatherStar')) throw new Error('Weather remote integration not found');
           if (!html.includes('dist/css/weatherstar.css') || !html.includes('dist/js/livetv/weatherstar.js')) throw new Error('Weather channel not linked');
           if (!weatherCss.includes('#weatherstar-view') || !weatherCss.includes('#weatherstar-frame')) throw new Error('Weather frame CSS missing');
+          for (const element of ['weatherstar-soundtrack','weatherstar-external-audio','weatherstar-music']) {
+            if (!html.includes('id="' + element + '"')) throw new Error('Missing soundtrack UI: ' + element);
+          }
+          for (const url of ['https://radio.plaza.one/mp3','https://ice5.somafm.com/vaporwaves-128-mp3']) {
+            if (!wc.includes(url)) throw new Error('Missing 24/7 soundtrack source: ' + url);
+          }
+          for (const code of ['DEFAULT_SOUND = "nightwave"','soundtrack === "classic"','stopExternal()','mediaPlaying=','frame.src = "about:blank"','onFrameLoaded','changeSound']) {
+            if (!wc.includes(code)) throw new Error('Missing sound isolation control: ' + code);
+          }
+          if (!weatherCss.includes('#weatherstar-external-audio') || !weatherCss.includes('#weatherstar-toolbar select')) throw new Error('Missing stream selector styles');
+
           for (const p of ['weatherstar/index.html','weatherstar/resources/ws.min.js','weatherstar/resources/ws.min.css','weatherstar/playlist.json','weatherstar/music/default/Catch the Sun.mp3','weatherstar/LICENSE']) {
             if (!fs.existsSync(p) || fs.statSync(p).size < 150) throw new Error('Missing authentic source asset: '+p);
           }
@@ -91,7 +102,7 @@ jobs:
           if (rev !== '237c60d242f9d70e0ee9c1bab87f3119c4b3b729') throw new Error('Wrong upstream source revision: '+rev);
           if (fs.readdirSync('weatherstar/fonts').length < 4) throw new Error('Missing original WeatherStar fonts');
           if ((js.match(/stream_id: "radio-/g) || []).length !== 8) throw new Error('Expected eight radio streams');
-          if (info.version !== '1.0.41' || manifest.version !== '1.0.41') throw new Error('Wrong version');
+          if (info.version !== '1.0.42' || manifest.version !== '1.0.42') throw new Error('Wrong version');
           if (info.id !== 'com.oxhyashi.toonamitest') throw new Error('App ID changed unexpectedly');
           if (fs.statSync('assets/bunkhouse-saturn.jpg').size < 1000) throw new Error('Saturn asset missing or empty');
           console.log('Bunkhouse + WeatherStar source build check passed v'+info.version+'; all TV and radio URLs preserved');
