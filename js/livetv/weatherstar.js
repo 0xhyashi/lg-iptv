@@ -33,15 +33,15 @@ var WeatherChannel = (function () {
 
     /** Find a WeatherStar control by its DOM ID.
      * @param {string} id - DOM element or stored object ID.
-     * @returns {HTMLElement|null} Value described above.
+     * @returns {HTMLElement|null} Matching element, or null.
      */
     function $(id) { return document.getElementById(id); }
     /** Return the separate Nightwave/SomaFM audio element.
-     * @returns {HTMLAudioElement|null} Value described above.
+     * @returns {HTMLAudioElement|null} Active audio element, or null.
      */
     function externalPlayer() { return $("weatherstar-external-audio"); }
     /** Return the user's saved weather location or the default.
-     * @returns {string} Value described above.
+     * @returns {string} Requested text value.
      */
     function getCity() {
         try { return localStorage.getItem("bunkhouse_weather_city") || defaultCity; }
@@ -49,13 +49,13 @@ var WeatherChannel = (function () {
     }
     /** Remember the weather location.
      * @param {string} city - Location name, ZIP code or coordinates.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function saveCity(city) {
         try { localStorage.setItem("bunkhouse_weather_city", city); } catch (_) {}
     }
     /** Restore the preferred music source.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function restoreSound() {
         try {
@@ -64,7 +64,7 @@ var WeatherChannel = (function () {
         } catch (_) {}
     }
     /** Persist the selected soundtrack.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function rememberSound() {
         try { localStorage.setItem("bunkhouse_weather_soundtrack", soundtrack); }
@@ -72,14 +72,14 @@ var WeatherChannel = (function () {
     }
     /** Write a safe WeatherStar status message.
      * @param {string} text - Text to display or parse.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function setMessage(text) {
         var status = $("weatherstar-status");
         if (status) status.textContent = text;
     }
     /** Update soundtrack controls to reflect current playback.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function updateControls() {
         var select = $("weatherstar-soundtrack");
@@ -102,7 +102,7 @@ var WeatherChannel = (function () {
     var defaultCoordinates = {lat: 39.2673, lon: -76.7983};
     /** Validate latitude and longitude bounds.
      * @param {Object} p - Latitude/longitude pair to validate.
-     * @returns {boolean} Value described above.
+     * @returns {boolean} Whether the requested condition is met.
      */
     function coordsOK(p) {
         return p && isFinite(p.lat) && isFinite(p.lon) &&
@@ -110,7 +110,7 @@ var WeatherChannel = (function () {
     }
     /** Read coordinates cached for the specified location.
      * @param {string} city - Location name, ZIP code or coordinates.
-     * @returns {Object|null} Value described above.
+     * @returns {Object|null} Matching object, or null.
      */
     function getCachedCoordinates(city) {
         if (String(city).toLowerCase().trim() === defaultCity.toLowerCase()) {
@@ -125,7 +125,7 @@ var WeatherChannel = (function () {
     /** Cache the resolved coordinates with the location name.
      * @param {string} city - Location name, ZIP code or coordinates.
      * @param {Object} coords - Latitude/longitude pair {lat,lon}.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function storeCoordinates(city, coords) {
         try {
@@ -136,7 +136,7 @@ var WeatherChannel = (function () {
     }
     /** Resolve city, ZIP or explicit coordinates before loading WeatherStar.
      * @param {string} city - Location name, ZIP code or coordinates.
-     * @returns {Promise<Object>} Completion of the asynchronous operation.
+     * @returns {Promise<Object>} Resolves with the requested object.
      */
     function resolveCoordinates(city) {
         var cached = getCachedCoordinates(city);
@@ -179,7 +179,7 @@ var WeatherChannel = (function () {
     }
     /** Build a WeatherStar URL containing native coordinate and music settings.
      * @param {Object} coords - Latitude/longitude pair {lat,lon}.
-     * @returns {string} Value described above.
+     * @returns {string} Requested text value.
      */
     function weatherURL(coords) {
         var base = hosted ? "https://weatherstar.netbymatt.com/"
@@ -195,7 +195,7 @@ var WeatherChannel = (function () {
             "&mediaVolume=0.65&viewMode=standard";
     }
     /** Pause and unload the external vaporwave audio stream.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function stopExternal() {
         var player = externalPlayer();
@@ -206,7 +206,7 @@ var WeatherChannel = (function () {
         try { player.load(); } catch (_) {}
     }
     /** Tune the selected Nightwave/SomaFM stream and show its state.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function startExternal() {
         if (!active || soundtrack === "classic" || soundPaused) return;
@@ -240,7 +240,7 @@ var WeatherChannel = (function () {
         }
     }
     /** Locate WeatherStar's native music button when same-origin.
-     * @returns {HTMLElement|null} Value described above.
+     * @returns {HTMLElement|null} Matching element, or null.
      */
     function getNativeButton() {
         var frame = $("weatherstar-frame");
@@ -249,7 +249,7 @@ var WeatherChannel = (function () {
         catch (_) {return null;}
     }
     /** Control the original internal WeatherStar music.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function toggleClassic() {
         var button = getNativeButton();
@@ -275,7 +275,7 @@ var WeatherChannel = (function () {
         }
     }
     /** Load the selected WeatherStar page after coordinates resolve.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function navigate() {
         if (!active) return;
@@ -303,7 +303,7 @@ var WeatherChannel = (function () {
         });
     }
     /** Enter the WeatherStar channel.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function open() {
         if (active) return;
@@ -318,7 +318,7 @@ var WeatherChannel = (function () {
         navigate();
     }
     /** Unload WeatherStar and stop its external music.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function close() {
         if (!active) return;
@@ -334,7 +334,7 @@ var WeatherChannel = (function () {
         if (video) video.style.display = "block";
     }
     /** Return from weather to the TV channel list.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function backToChannels() {
         if (typeof isFullscreen === "function" && isFullscreen()) {
@@ -350,7 +350,7 @@ var WeatherChannel = (function () {
     }
     /** Switch music source without playing two tracks together.
      * @param {string} next - New soundtrack identifier.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function changeSound(next) {
         if (!sounds[next] || next === soundtrack) return;
@@ -372,7 +372,7 @@ var WeatherChannel = (function () {
         }
     }
     /** Pause or resume the current music source.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function toggleSound() {
         if (!active) return;
@@ -392,7 +392,7 @@ var WeatherChannel = (function () {
     }
     /** Advance the soundtrack picker in its fixed order.
      * @param {number} step - Signed number of modes or tracks to advance.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function cycleSound(step) {
         var options = ["nightwave", "classic", "soma"];
@@ -403,7 +403,7 @@ var WeatherChannel = (function () {
     /** Handle LG remote input while the weather channel is active.
      * @param {KeyboardEvent} e - Remote or keyboard event.
      * @param {number} key - LG/webOS key code.
-     * @returns {boolean} Value described above.
+     * @returns {boolean} Whether the requested condition is met.
      */
     function handleKey(e, key) {
         if (!active) return false;
@@ -468,7 +468,7 @@ var WeatherChannel = (function () {
         return false;
     }
     /** Start the chosen audio and register iframe key handling.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function onFrameLoaded() {
         if (!active) return;
@@ -502,7 +502,7 @@ var WeatherChannel = (function () {
         }
     }
     /** Wire location, soundtrack and exit controls once.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function setup() {
         var frame = $("weatherstar-frame"), city = $("weatherstar-city");
