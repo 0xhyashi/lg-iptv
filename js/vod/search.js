@@ -44,7 +44,7 @@ function closeSearch() {
 }
 
 /** Init Search Engine for VOD catalog search.
- * @returns {void} Updates state or the UI.
+ * @returns {void} No return value.
  */
 function initSearchEngine() {
     if (searchWorker || searchIndex) return;     // already initialised
@@ -92,7 +92,7 @@ function buildIndexInto(idx, arr, type) {
 /** Init Fallback Search for VOD catalog search.
  * @param {*} movieUrl - Input for initFallbackSearch().
  * @param {*} seriesUrl - Input for initFallbackSearch().
- * @returns {void} Updates state or the UI.
+ * @returns {void} No return value.
  */
 function initFallbackSearch(movieUrl, seriesUrl) {
     if (searchIndex) return;
@@ -147,7 +147,7 @@ function runSearch() {
  * @param {*} items - Input for renderSearchResults().
  * @param {*} q - Input for renderSearchResults().
  * @param {*} ready - Input for renderSearchResults().
- * @returns {void} Updates state or the UI.
+ * @returns {void} No return value.
  */
 function renderSearchResults(items, q, ready) {
     var hint = document.getElementById('vod-search-hint');
