@@ -23,7 +23,7 @@ var _focusRailsAfterRender = false;
  */
 function focusZone(z) { zone = z; clearRings(); }
 /** Clear Rings for VOD remote and focus handling.
- * @returns {void} Updates state or the UI.
+ * @returns {void} No return value.
  */
 function clearRings() {
     document.querySelectorAll('.tv-focus-visible').forEach(function (el) { el.classList.remove('tv-focus-visible'); });
@@ -52,7 +52,7 @@ function sidebarItems() {
    two-control shape as Live TV's sidebar, so the D-pad behaves identically
    on both screens. */
 /** Render Sidebar Cats for VOD remote and focus handling.
- * @returns {void} Updates state or the UI.
+ * @returns {void} No return value.
  */
 function renderSidebarCats() {
     var wrap = document.getElementById('vod-nav-cats');
