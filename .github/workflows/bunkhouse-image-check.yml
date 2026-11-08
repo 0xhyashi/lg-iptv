@@ -1,0 +1,26 @@
+name: Verify bundled Saturn JPEG
+on:
+  push:
+    branches: [privacy/toonami-single-stream-test]
+    paths: [.github/workflows/bunkhouse-image-check.yml, assets/bunkhouse-saturn.jpg]
+  workflow_dispatch:
+jobs:
+  jpeg:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify JPEG image and print checksum
+        run: |
+          python3 -m pip install -q --break-system-packages pillow
+          python3 - <<'PY'
+          from PIL import Image
+          import hashlib
+          path='assets/bunkhouse-saturn.jpg'
+          b=open(path,'rb').read()
+          print('SATURN_CHECK size',len(b),'sha256',hashlib.sha256(b).hexdigest())
+          im=Image.open(path)
+          im.load()
+          print('SATURN_CHECK jpeg-decode-ok',im.size,im.mode)
+          assert im.width>=180 and im.height>=180
+          PY
