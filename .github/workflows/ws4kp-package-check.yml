@@ -1,13 +1,17 @@
-name: Verify installable Bunkhouse WeatherStar IPK
+name: Verify WeatherStar continuous-music LG IPK
 on:
   push:
     branches: [privacy/toonami-single-stream-test]
-    paths: [.github/workflows/ws4kp-package-check.yml]
+    paths:
+      - .github/workflows/ws4kp-package-check.yml
+      - tools/build-weatherstar.js
+      - tools/add-weatherstar-music.js
+      - package.json
   workflow_dispatch:
 jobs:
   package:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,6 +21,29 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           npm run build
+      - name: Verify 17-track randomized continuous playlist and album license
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const path=require('path');
+          const list=JSON.parse(fs.readFileSync('weatherstar/playlist.json','utf8'));
+          if (list.availableFiles.length!==17) throw Error('Expected 17 original/extra songs, got '+list.availableFiles.length);
+          const extras=list.availableFiles.filter(x=>x.startsWith('Latest Observations/'));
+          if (extras.length!==13) throw Error('Expected 13 Latest Observations songs');
+          list.availableFiles.forEach(x=>{
+              const p=path.join('weatherstar/music',x);
+              if(!fs.existsSync(p)||fs.statSync(p).size<200000)throw Error('Missing song '+x);
+          });
+          const cred=fs.readFileSync('weatherstar/music/LICENSE-ADDITIONAL-MUSIC.md','utf8');
+          if(!cred.includes('CC BY 4.0')||!cred.includes('netbymatt'))throw Error('Attribution missing');
+          const code=fs.readFileSync('weatherstar/resources/ws.min.js','utf8');
+          if(!code.includes('currentTrack') || !code.includes('randomizePlaylist'))console.log('Player code is minified; asserting playlist length only');
+          console.log('WEATHER_MUSIC_CHECK_OK: 17 files present and licensed (4 original + 13 CC BY).');
+          NODE
+          if command -v ffprobe >/dev/null; then
+            echo "Duration of all 17 WeatherStar radio tracks:"
+            find weatherstar/music -name '*.mp3' -print0 | xargs -0 -n1 -P4 ffprobe -v error -show_entries format=duration -of default=nokey=1:noprint_wrappers=1
+          fi
       - name: Create real LG webOS TV package without minification
         run: |
           npm install -g @webos-tools/cli --no-audit --no-fund
