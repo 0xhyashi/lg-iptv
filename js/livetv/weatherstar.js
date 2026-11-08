@@ -97,13 +97,13 @@ var WeatherChannel = (function () {
     function resolveCoordinates(city) {
         var cached = getCachedCoordinates(city);
         if (cached) return Promise.resolve(cached);
-        var direct = /^\\s*(-?\\d{1,2}(?:\\.\\d+)?)\\s*,\\s*(-?\\d{1,3}(?:\\.\\d+)?)\\s*$/.exec(city);
+        var direct = /^\s*(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$/.exec(city);
         if (direct) {
             var given = {lat: Number(direct[1]), lon: Number(direct[2])};
             if (coordsOK(given)) return Promise.resolve(given);
             return Promise.reject(new Error("Invalid latitude/longitude."));
         }
-        if (/^\\d{5}$/.test(city)) {
+        if (/^\d{5}$/.test(city)) {
             return fetch("https://api.zippopotam.us/us/" + encodeURIComponent(city)).then(function(resp) {
                 if (!resp.ok) throw new Error("ZIP code not found");
                 return resp.json();
