@@ -18,7 +18,7 @@
 
 /** Check whether a channel is favorited.
  * @param {string} sid - Channel stream ID.
- * @returns {boolean} Value described above.
+ * @returns {boolean} Whether the requested condition is met.
  */
 function isFav(sid)     { return Favourites.isChannel(sid); }
 /** Toggle a channel favorite.
@@ -27,7 +27,7 @@ function isFav(sid)     { return Favourites.isChannel(sid); }
  */
 function toggleFav(sid) { return Favourites.toggleChannel(sid); }
 /** List user-created channel groups.
- * @returns {Array<Object>} Value described above.
+ * @returns {Array<Object>} Matching channel or data entries.
  */
 function favGroupsList() { return Favourites.groups(); }
 
@@ -35,7 +35,7 @@ function favGroupsList() { return Favourites.groups(); }
  * @param {string} sid - Channel stream ID.
  * @param {number} dir - Station movement direction.
  * @param {string} subzone - Action to refocus after reordering.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function _reorderAndRefocus(sid, dir, subzone) {
     if (!Favourites.moveChannel(sid, dir)) return;   // already at an end
@@ -52,7 +52,7 @@ function _reorderAndRefocus(sid, dir, subzone) {
 /** Check group membership for a channel.
  * @param {string} gid - Favorites group ID.
  * @param {string} sid - Channel stream ID.
- * @returns {boolean} Value described above.
+ * @returns {boolean} Whether the requested condition is met.
  */
 function isInGroup(gid, sid)          { return Favourites.isInGroup(gid, sid); }
 /** Add or remove a channel from a group.
@@ -74,7 +74,7 @@ function createFavGroup(name)         { return Favourites.createGroup(name); }
 function renameFavGroup(id, name)     { return Favourites.renameGroup(id, name); }
 /** Delete a favorites group and update the panel.
  * @param {string} id - DOM element or stored object ID.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function deleteFavGroup(id) {
     Favourites.deleteGroup(id);
@@ -104,7 +104,7 @@ function toggleFavCategory(catId) {
 }
 
 /** Refresh category favorite markers.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function refreshCategoryStars() {
     document.querySelectorAll(".cat-star-btn[data-cat-id]").forEach(btn => {
@@ -117,7 +117,7 @@ function refreshCategoryStars() {
 
 /** Build sidebar categories and favorite sections.
  * @param {Array<Object>} categories - Category definitions.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function renderCategories(categories) {
     const container = document.getElementById("categories");
@@ -173,7 +173,7 @@ function renderCategories(categories) {
 /** Build the DOM row for one category.
  * @param {*} cat - Input for makeCategoryRow().
  * @param {*} catSection - Input for makeCategoryRow().
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function makeCategoryRow(cat, catSection) {
     const id = String(cat.category_id);
@@ -205,7 +205,7 @@ function makeCategoryRow(cat, catSection) {
 }
 
 /** Highlight the selected category or group.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function updateSidebarActive() {
     document.querySelectorAll(".cat-btn, .cat-sub-btn, .cat-section-hdr").forEach(b => b.classList.remove("active"));
@@ -222,7 +222,7 @@ function updateSidebarActive() {
 }
 
 /** Build the favorites-group section.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function renderFavSectionList() {
     const list = document.getElementById("fav-section-list");
@@ -298,7 +298,7 @@ function renderFavSectionList() {
 // ── Group context menu ────────────────────────────────────────────────────────
 
 /** Open the create-group prompt.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function promptNewGroup() {
     showInputModal("New Favourite Group", "Group name", "", name => { if (!name) return; createFavGroup(name); renderFavSectionList(); });
@@ -306,7 +306,7 @@ function promptNewGroup() {
 /** Open the group-rename prompt.
  * @param {string} id - DOM element or stored object ID.
  * @param {string} currentName - Current group title.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function promptRenameGroup(id, currentName) {
     showInputModal("Rename Group", "Group name", currentName, name => { if (!name) return; renameFavGroup(id, name); renderFavSectionList(); });
@@ -315,7 +315,7 @@ function promptRenameGroup(id, currentName) {
 /** Open the context menu for a group.
  * @param {KeyboardEvent} e - Remote or keyboard event.
  * @param {string} gid - Favorites group ID.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function showGroupContextMenu(e, gid) {
     closeContextMenus();
@@ -338,7 +338,7 @@ function showGroupContextMenu(e, gid) {
     setTimeout(() => document.addEventListener("click", dismiss), 0);
 }
 /** Close any open group context menus.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function closeContextMenus() { document.querySelectorAll(".ctx-menu").forEach(m => m.remove()); }
 
@@ -349,7 +349,7 @@ function closeContextMenus() { document.querySelectorAll(".ctx-menu").forEach(m 
  * @param {KeyboardEvent} e - Remote or keyboard event.
  * @param {string} sid - Channel stream ID.
  * @param {HTMLElement} anchorEl - Element that anchors the panel.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function showAssignPanel(e, sid, anchorEl) {
     e.stopPropagation(); closeAssignPanels();
@@ -381,7 +381,7 @@ let _assignHistoryPushed = false;
 
 /** Close assignment panels and optionally update browser history.
  * @param {boolean} popHistory - Whether to update navigation history.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function closeAssignPanels(popHistory = false) {
     document.querySelectorAll(".assign-panel").forEach(p => p.remove());
@@ -394,7 +394,7 @@ function closeAssignPanels(popHistory = false) {
 }
 /** Refresh a channel's assignment button.
  * @param {string} sid - Channel stream ID.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function updateAssignBtnState(sid) {
     const entry = rowCache.get(String(sid));
