@@ -1,8 +1,8 @@
 {
   "id": "com.oxhyashi.toonamitest",
-  "title": "Bunkhouse TV + Radio",
-  "version": "1.0.40",
-  "appDescription": "Private LG IPTV test app with Toonami and Japanese TV plus Bunkhouse Radio's Saturn player, now playing, album artwork, recent songs and 8 stations.",
+  "title": "Bunkhouse TV + Radio + Weather",
+  "version": "1.0.41",
+  "appDescription": "Privacy-focused Bunkhouse IPTV: Toonami, Japan TV, eight radio stations and authentic WeatherStar 4000+ weather channel.",
   "iconUri": "https://raw.githubusercontent.com/0xhyashi/lg-iptv/privacy/toonami-single-stream-test/icon.png",
   "sourceUrl": "https://github.com/0xhyashi/lg-iptv",
   "rootRequired": false
