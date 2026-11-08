@@ -16,6 +16,10 @@ const cp = require('child_process');
 const ROOT = path.resolve(__dirname, '..');
 const SKIP = new Set(['assets/hls.min.js', 'assets/qrcode.js']);
 
+/** Collect all first-party JavaScript files under a source directory.
+ * @param {string} dir - Directory path relative to the repo.
+ * @returns {Array<string>} Relative source-file paths.
+ */
 function filesIn(dir) {
     const out = [];
     for (const entry of fs.readdirSync(path.join(ROOT, dir), {withFileTypes: true})) {
@@ -31,6 +35,14 @@ const cssFiles = fs.readdirSync(path.join(ROOT, 'assets'))
 
 let total = 0;
 let errors = [];
+/** Check that one declaration has an adjacent input/output contract.
+ * @param {string} source - Complete source file text.
+ * @param {string} file - File path used in failure messages.
+ * @param {number} offset - Character index where the declaration begins.
+ * @param {string} name - Function or method name.
+ * @param {string} args - Raw comma-separated declaration parameters.
+ * @returns {void} Adds errors to the audit report.
+ */
 function checkFunction(source, file, offset, name, args) {
     const prefix = source.slice(0, offset);
     const end = prefix.lastIndexOf('*/');
