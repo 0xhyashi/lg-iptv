@@ -51,7 +51,7 @@ function loadEpgDiskCache() {
 // category that is hundreds of full re-serialisations during one scroll.
 let _epgSaveTimer = null;
 /** Schedule Epg Save for programme guide.
- * @returns {void} Updates state or the UI.
+ * @returns {void} No return value.
  */
 function scheduleEpgSave() {
     clearTimeout(_epgSaveTimer);
@@ -117,7 +117,7 @@ function _epgWindowChannels() {
 let _epgLoadTimer = null;
 /** Schedule Epg Window Load for programme guide.
  * @param {*} delay - Input for scheduleEpgWindowLoad().
- * @returns {void} Updates state or the UI.
+ * @returns {void} No return value.
  */
 function scheduleEpgWindowLoad(delay) {
     clearTimeout(_epgLoadTimer);
@@ -192,7 +192,7 @@ function getTimelineStart() {
 function getTimelineEnd() { return new Date(getTimelineStart().getTime() + TIMELINE_HOURS * 3600000); }
 
 /** Setup Timeline Nav for programme guide.
- * @returns {void} Updates state or the UI.
+ * @returns {void} No return value.
  */
 function setupTimelineNav() {
     document.getElementById("tl-prev").addEventListener("click", () => { timelineOffset -= 60; refreshTimeline(); });
@@ -200,12 +200,12 @@ function setupTimelineNav() {
     document.getElementById("tl-now").addEventListener("click",  () => { timelineOffset  = 0;  refreshTimeline(); });
 }
 /** Refresh Timeline for programme guide.
- * @returns {void} Updates state or the UI.
+ * @returns {void} No return value.
  */
 function refreshTimeline() { renderTimelineHeader(); getFilteredChannels().forEach(ch => patchEpgStrip(ch.stream_id)); }
 
 /** Render Timeline Header for programme guide.
- * @returns {void} Updates state or the UI.
+ * @returns {void} No return value.
  */
 function renderTimelineHeader() {
     const header = document.getElementById("tl-time-header");
