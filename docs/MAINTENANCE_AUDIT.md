@@ -37,7 +37,8 @@ Read [ARCHITECTURE.md](ARCHITECTURE.md) for the complete source map.
 | Previous TV guide response overwrites a newly selected channel | Check `currentChannel` after EPG request, even for empty/error results | `tests/tv-epg-race.test.js` |
 | Invalid or zero-length EPG dates show midnight or NaN progress | Guard invalid timestamp formatting and divide-by-zero progress | `tests/epg-time.test.js` |
 | Wrong storage representation causes player settings to be ignored | Distinguish raw string vs JSON storage methods | `tests/core-contracts.test.js` |
-| HTTP timeout hangs because older-webOS `abort()` does not cancel native fetch | Timeout wrapper rejects its own promise after deadline | `tests/core-contracts.test.js` |
+| HTTP timeout hangs because older-webOS `abort()` does not cancel native fetch | Timeout wrapper rejects its own promise after deadline; request options are copied instead of mutated | `tests/core-contracts.test.js` |
+| Falsy cached values trigger unnecessary network requests | Treat `false` and `0` as valid cache hits | `tests/core-contracts.test.js` |
 | Expired cache data or evictions interfere with user settings | Expired cache entries are cleared; cache eviction is isolated from user keys | `tests/core-contracts.test.js` |
 | Documented return type disagrees with code | Corrected network/storage and virtual-row JSDoc return types; kept functions' behavior intact | `tools/check-source-docs.js` syntax and contract checks |
 
