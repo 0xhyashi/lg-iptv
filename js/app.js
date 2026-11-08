@@ -192,101 +192,12 @@ function _bootUI(categories, playlistEpgUrl) {
  * Release the video decoder before radio, and close the radio connection
  * before returning to video playback.
  */
-function stopRadio() {
-    var audio = document.getElementById("radio-audio");
-    var visual = document.getElementById("radio-visual");
-    if (audio) {
-        try { audio.pause(); } catch (_) {}
-        audio.removeAttribute("src");
-        try { audio.load(); } catch (_) {}
-    }
-    if (visual) visual.style.display = "none";
-    var video = document.getElementById("player");
-    if (video) video.style.display = "block";
-}
-
-function setupRadioUI() {
-    var audio = document.getElementById("radio-audio");
-    var status = document.getElementById("radio-status");
-    var toggle = document.getElementById("radio-toggle");
-    function radioActive() { return currentChannel && currentChannel._radio; }
-    audio.addEventListener("playing", function () {
-        if (!radioActive()) return;
-        status.textContent = "LIVE · Listening";
-        toggle.textContent = "Pause";
-    });
-    audio.addEventListener("waiting", function () {
-        if (radioActive()) status.textContent = "Buffering live radio…";
-    });
-    audio.addEventListener("pause", function () {
-        if (!radioActive() || !audio.getAttribute("src")) return;
-        status.textContent = "Paused";
-        toggle.textContent = "Play";
-    });
-    audio.addEventListener("error", function () {
-        if (!radioActive()) return;
-        status.textContent = "Stream unavailable — try again later";
-        toggle.textContent = "Retry";
-    });
-    // LG remote transport keys: Play (415), Pause (19), Play/Pause (179).
-    // Handle only radio mode; regular video keeps its original key controls.
-    window.addEventListener("keydown", function (event) {
-        if (!radioActive()) return;
-        var key = event.keyCode || event.which;
-        if (key !== 415 && key !== 19 && key !== 179) return;
-        if ((key === 415 && !audio.paused) || (key === 19 && audio.paused)) return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        toggle.click();
-    }, true);
-    toggle.addEventListener("click", function (event) {
-        event.stopPropagation();
-        if (!radioActive()) return;
-        if (audio.paused) {
-            status.textContent = "Connecting…";
-            toggle.textContent = "Pause";
-            var attempt;
-            try { attempt = audio.play(); }
-            catch (_) { status.textContent = "Press Play to start audio"; toggle.textContent = "Play"; return; }
-            if (attempt && typeof attempt.catch === "function") {
-                attempt.catch(function () {
-                    if (radioActive()) { status.textContent = "Couldn't start audio"; toggle.textContent = "Retry"; }
-                });
-            }
-        } else {
-            audio.pause();
-        }
-    });
-}
-
+function stopRadio() { RadioDeck.stop(); }
+function setupRadioUI() { RadioDeck.init(); }
 function startRadio(ch) {
-    player.stop(); // release TV/video decoder first
-    var audio = document.getElementById("radio-audio");
-    var visual = document.getElementById("radio-visual");
-    document.getElementById("player").style.display = "none";
-    document.getElementById("player-msg").style.display = "none";
-    document.getElementById("radio-name").textContent = ch.name;
-    document.getElementById("radio-status").textContent = "Connecting…";
-    document.getElementById("radio-toggle").textContent = "Pause";
-    visual.style.display = "flex";
-
-    try { audio.pause(); } catch (_) {}
-    audio.src = ch.stream_url;
-    var attempt;
-    try { attempt = audio.play(); }
-    catch (_) {
-        document.getElementById("radio-status").textContent = "Press Play to start audio";
-        document.getElementById("radio-toggle").textContent = "Play";
-        return;
-    }
-    if (attempt && typeof attempt.catch === "function") {
-        attempt.catch(function () {
-            if (currentChannel === ch) {
-                document.getElementById("radio-status").textContent = "Press Play to start audio";
-                document.getElementById("radio-toggle").textContent = "Play";
-            }
-        });
-    }
+    // The TV's video decoder is limited; close it before starting audio.
+    player.stop();
+    RadioDeck.play(ch);
 }
 
 // ── Channel selection ─────────────────────────────────────────────────────────
@@ -436,7 +347,8 @@ function channelStep(delta) {
     { stream_id: "radio-b97-nola", name: "B97 97.1 FM — New Orleans", category_id: "radio", stream_icon: "", stream_url: "https://live.amperwave.net/direct/audacy-wezbfmmp3-imc", _radio: true, _source: "m3u" },
     { stream_id: "radio-alt923-nola", name: "ALT 92.3 — New Orleans Alternative Rock", category_id: "radio", stream_icon: "", stream_url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WZRHFM.mp3", _radio: true, _source: "m3u" },
     { stream_id: "radio-magic1019-nola", name: "Magic 101.9 — New Orleans", category_id: "radio", stream_icon: "", stream_url: "https://live.amperwave.net/direct/audacy-wlmgfmmp3-imc", _radio: true, _source: "m3u" },
-    { stream_id: "radio-wfmf1025-br", name: "102.5 WFMF — Baton Rouge", category_id: "radio", stream_icon: "", stream_url: "https://stream.revma.ihrhls.com/zc1005", _radio: true, _source: "m3u" }
+    { stream_id: "radio-wfmf1025-br", name: "102.5 WFMF — Baton Rouge", category_id: "radio", stream_icon: "", stream_url: "https://stream.revma.ihrhls.com/zc1005", _radio: true, _source: "m3u" },
+    { stream_id: "radio-wnoe1011-nola", name: "101.1 WNOE Country — New Orleans", category_id: "radio", stream_icon: "", stream_url: "https://stream.revma.ihrhls.com/zc1045", _radio: true, _source: "m3u" }
   ];
 
   var categories = [
@@ -480,7 +392,7 @@ function channelStep(delta) {
     updateSidebarActive();
     applyFilters(true);
     status.textContent = allChannels.length + " channels (4 Toonami + " +
-        verifiedJapanExtras.length + " verified extras + 7 radio + " + japanese.length +
+        verifiedJapanExtras.length + " verified extras + 8 radio + " + japanese.length +
         " Japan directory" + (cached ? ", cached" : "") + ")";
     return true;
   }
