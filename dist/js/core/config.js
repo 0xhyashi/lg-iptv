@@ -219,10 +219,7 @@ window.Config = function () {
     return base(cfg) + '/' + u;
   }
 
-  /* Every URL worth trying for a given profile, in order. Each https entry
-     gets an http twin: some providers present a certificate the TV browser
-     rejects even though the same host serves fine over http, and without this
-     the app reports "could not reach any server" for a server that is up. */
+  /* Use only the explicitly configured URLs. Never silently downgrade HTTPS to HTTP. */
   function candidateUrls(cfg) {
     var entered = cfg.server_urls && cfg.server_urls.length ? cfg.server_urls : cfg.server_url ? [cfg.server_url] : [];
     var out = [];
@@ -230,10 +227,6 @@ window.Config = function () {
       var u = normaliseServerUrl(entered[i]);
       if (!u || out.indexOf(u) !== -1) continue;
       out.push(u);
-      if (/^https:/i.test(u)) {
-        var alt = u.replace(/^https:/i, 'http:');
-        if (out.indexOf(alt) === -1) out.push(alt);
-      }
     }
     return out;
   }

@@ -25,6 +25,9 @@ var cfg = Config.resolve();
    old URL-based names, which are unreachable dead weight in a store with a
    ~5 MB ceiling. The legacy names are the ones whose suffix starts with the
    URL scheme, so the new keys can never match these prefixes. */
+/** Remove obsolete VOD caches so old identifiers do not corrupt the current library.
+ * @returns {void} Runs its startup, polling, or UI side effects.
+ */
 (function purgeLegacyVodCaches() {
     try {
         var prefixes = ['vod_cats_movie_http', 'vod_cats_series_http', 'vod_content_http'];
@@ -32,12 +35,44 @@ var cfg = Config.resolve();
     } catch (e) {}
 }());
 
+/** Build the current provider's Xtream API URL.
+ * @param {string} params - Xtream query string parameters.
+ * @returns {string} Provider API URL.
+ */
 function apiUrl(params)          { return Config.apiUrl(cfg, params); }
+/** Build a playback URL for a VOD movie.
+ * @param {string} id - Identifier.
+ * @param {string} ext - Movie file extension.
+ * @returns {string} Movie playback URL.
+ */
 function buildMovieUrl(id, ext)  { return Config.movieUrl(cfg, id, ext); }
+/** Build a playback URL for a series episode.
+ * @param {string} id - Identifier.
+ * @param {string} ext - Episode file extension.
+ * @returns {string} Episode playback URL.
+ */
 function buildEpisodeUrl(id, ext){ return Config.episodeUrl(cfg, id, ext); }
+/** Read a stored cache entry.
+ * @param {string} key - Key or identifier.
+ * @returns {*} Cached value, or null when absent.
+ */
 function cacheGet(key)           { return Store.cacheGet(key); }
+/** Write a cache entry.
+ * @param {string} key - Key or identifier.
+ * @param {*} data - Serializable data to store.
+ * @returns {*} Return value of Store.cacheSet.
+ */
 function cacheSet(key, data)     { return Store.cacheSet(key, data); }
+/** Fetch and parse a JSON URL through the shared network layer.
+ * @param {string} url - Requested URL.
+ * @returns {Promise<*>} Promise resolving to parsed JSON.
+ */
 function fetchJSON(url)          { return Net.json(url); }
+/** Fetch JSON using the shared cache.
+ * @param {string} key - Key or identifier.
+ * @param {string} url - Requested URL.
+ * @returns {Promise<*>} Promise resolving to cached or fetched JSON.
+ */
 function fetchCached(key, url)   { return Net.cachedJSON(key, url); }
 
 /* ── Category lists, slimmed before caching ──────────────────────────────
@@ -52,6 +87,10 @@ var VOD_KEEP = ['name', 'title', 'stream_id', 'series_id', 'stream_icon', 'cover
                 'container_extension', 'category_id', 'rating', 'rating_5based', 'year',
                 'releaseDate', 'releasedate', 'genre', 'duration', 'director'];
 
+/** Copy the VOD fields needed by our UI into a small cacheable object.
+ * @param {Object} m - Provider VOD metadata record.
+ * @returns {Object} Pruned VOD item.
+ */
 function slimVodItem(m) {
     var out = {};
     if (!m || typeof m !== 'object') return out;
@@ -69,6 +108,11 @@ function slimVodItem(m) {
     return out;
 }
 
+/** Get a cached VOD list or fetch and simplify it.
+ * @param {string} key - Key or identifier.
+ * @param {string} url - Requested URL.
+ * @returns {Promise<Array<Object>>} Promise resolving to VOD items.
+ */
 function fetchCachedList(key, url) {
     var hit = Store.cacheGet(key);
     if (hit) return Promise.resolve(hit);
@@ -79,6 +123,10 @@ function fetchCachedList(key, url) {
     });
 }
 
+/** Escape untrusted text for safe insertion into HTML.
+ * @param {*} s - Text or value to render safely.
+ * @returns {string} HTML-escaped string.
+ */
 function escHtml(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
         .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -111,10 +159,18 @@ var elCategoryGrid = document.getElementById('vod-category-grid');
 
 
 /* ── Status helpers ──────────────────────────────────────────────── */
+/** Show Status for VOD shared state.
+ * @param {string} text - Status message displayed above the VOD catalog.
+ * @param {boolean} spinner - Whether to show a loading spinner.
+ * @returns {void} No return value.
+ */
 function showStatus(text, spinner) {
     elStatus.style.display = 'flex';
     elStatusTx.textContent = text;
     elStatus.querySelector('.vod-spinner').style.display = spinner ? '' : 'none';
     elRails.style.display = 'none';
 }
+/** Hide Status for VOD shared state.
+ * @returns {void} No return value.
+ */
 function hideStatus() { elStatus.style.display = 'none'; elRails.style.display = ''; }

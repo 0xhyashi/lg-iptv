@@ -16,12 +16,23 @@ const CHANNEL_CACHE_KEY = "iptv_ch_v2";
 const CAT_CACHE_KEY     = "iptv_cat_v2";
 const CACHE_TTL_MS      = 4 * 60 * 60 * 1000;
 
+/** Read cached live channel entries.
+ * @returns {Array<Object>|null} Cached channels, or null.
+ */
 function loadChannelCache() { return Store.cacheGet(CHANNEL_CACHE_KEY, CACHE_TTL_MS); }
+/** Read cached channel categories.
+ * @returns {Array<Object>|null} Cached categories, or null.
+ */
 function loadCatCache()     { return Store.cacheGet(CAT_CACHE_KEY, CACHE_TTL_MS); }
 
 // A provider's channel object carries a dozen fields nothing here reads. With
 // 20 000 channels that difference is the whole storage quota, so only what the
 // list and the guide actually use is kept.
+/** Remove unused fields before storing channel data.
+ * @param {Array<Object>} channels - Channel entries.
+ * @param {boolean} withEpgId - Whether to retain programme guide IDs.
+ * @returns {Array<Object>} Matching channel or data entries.
+ */
 function _slimChannels(channels, withEpgId) {
     return channels.map(ch => {
         const slim = { stream_id: ch.stream_id, name: ch.name, category_id: ch.category_id, stream_icon: ch.stream_icon || "" };
@@ -30,6 +41,11 @@ function _slimChannels(channels, withEpgId) {
     });
 }
 
+/** Save channels and categories into bounded caches.
+ * @param {Array<Object>} channels - Channel entries.
+ * @param {Array<Object>} categories - Category definitions.
+ * @returns {void} No return value.
+ */
 function saveChannelCache(channels, categories) {
     if (Store.cacheSet(CHANNEL_CACHE_KEY, _slimChannels(channels, true))) {
         Store.cacheSet(CAT_CACHE_KEY, categories);
@@ -55,6 +71,9 @@ function saveChannelCache(channels, categories) {
 let VS_ROW_H      = 96;
 const VS_OVERSCAN = 5;
 
+/** Measure one TV channel row for virtual scrolling.
+ * @returns {number} Measured row height in pixels.
+ */
 function measureRowHeight() {
     try {
         const probe = document.createElement("div");
@@ -77,6 +96,9 @@ let _vsScrollTop  = 0;
 let _vsHeight     = 0;
 let _vsRafPending = false;
 
+/** Set up the virtualized channel list and scroll handlers.
+ * @returns {void} No return value.
+ */
 function initVirtualScroll() {
     const wrap = document.getElementById("channel-list-wrap");
     wrap.addEventListener("scroll", () => {
@@ -97,6 +119,9 @@ function initVirtualScroll() {
    LISTENER above defers to a rAF, which is right for scrolling but a frame too
    late for a caller that just jumped the list and needs the target row to exist
    now (see scrollTVRowIntoView in dpad.js). */
+/** Synchronize visible virtual rows with scroll position.
+ * @returns {void} No return value.
+ */
 function _vsSyncScroll() {
     const wrap = document.getElementById("channel-list-wrap");
     if (!wrap) return;
@@ -109,6 +134,11 @@ function _vsSyncScroll() {
     _vsRender();
 }
 
+/** Replace the currently displayed channel list.
+ * @param {Array<Object>} channels - Channel entries.
+ * @param {boolean} keepScroll - Whether to preserve scroll position.
+ * @returns {void} No return value.
+ */
 function _vsSetChannels(channels, keepScroll) {
     _vsChannels = channels;
     const wrap = document.getElementById("channel-list-wrap");
@@ -121,6 +151,9 @@ function _vsSetChannels(channels, keepScroll) {
     _vsRender();
 }
 
+/** Render only rows currently in or near the viewport.
+ * @returns {void} No return value.
+ */
 function _vsRender() {
     const list     = document.getElementById("channel-list");
     const channels = _vsChannels;
@@ -179,6 +212,10 @@ function _vsRender() {
    is cheap next to re-decoding its logo; it only has to be bounded. */
 const ROW_CACHE_MAX = 240;
 
+/** Remove virtual rows no longer needed.
+ * @param {*} needed - Input for _vsEvictRows().
+ * @returns {void} No return value.
+ */
 function _vsEvictRows(needed) {
     if (rowCache.size <= ROW_CACHE_MAX) return;
     const keep = currentChannel ? String(currentChannel.stream_id) : "";
@@ -192,6 +229,11 @@ function _vsEvictRows(needed) {
     }
 }
 
+/** Build one selectable TV channel row.
+ * @param {Object} ch - Channel entry with stream_id, name and source fields.
+ * @param {string} sid - Channel stream ID.
+ * @returns {Object} Row element and associated buttons for the virtual list.
+ */
 function _buildRow(ch, sid) {
     const row = document.createElement("div");
     row.className = "tl-row"; row.dataset.sid = sid;
@@ -297,6 +339,9 @@ function _buildRow(ch, sid) {
 
 // ── Filtering ─────────────────────────────────────────────────────────────────
 
+/** Return channels matching selected category and search.
+ * @returns {Array<Object>} Matching channel or data entries.
+ */
 function getFilteredChannels() {
     const q = document.getElementById("search").value.toLowerCase();
     let list;
@@ -319,12 +364,19 @@ function getFilteredChannels() {
 }
 
 let _applyTimer = null;
+/** Queue or immediately apply channel filtering.
+ * @param {boolean} immediate - Whether filtering should run immediately.
+ * @returns {void} No return value.
+ */
 function applyFilters(immediate) {
     clearTimeout(_applyTimer);
     if (immediate) { _doApply(); return; }
     _applyTimer = setTimeout(_doApply, 80);
 }
 
+/** Apply the current filters to virtual rows.
+ * @returns {void} No return value.
+ */
 function _doApply() {
     const channels  = getFilteredChannels();
     const container = document.getElementById("channel-list");
@@ -356,6 +408,9 @@ function _doApply() {
     loadEPGForCurrentCategory();
 }
 
+/** Bind search input and filter updates.
+ * @returns {void} No return value.
+ */
 function setupSearch() {
     document.getElementById("search").addEventListener("input", () => applyFilters(), { passive: true });
 }

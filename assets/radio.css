@@ -1,0 +1,45 @@
+/* radio.css — shared audio metadata elements for Bunkhouse Radio.
+ *
+ * Radio has one visual layout: assets/bunkhouse.css owns the Saturn image,
+ * Winamp-style panels, simulated equalizer and usable station controls.
+ *
+ * The old Headspace/scope/tuner modes were removed. Keeping their unused CSS
+ * would obscure which stylesheet actually controls the current player.
+ */
+#radio-visual {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 2;
+}
+.radio-cover-box {
+    position: relative;
+    overflow: hidden;
+}
+#radio-cover {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+#radio-cover-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+#radio-cover-placeholder span { font-size: 2.4rem; }
+#radio-cover-placeholder small {
+    font-size: .55rem;
+    letter-spacing: .14em;
+    font-weight: bold;
+}
+
+/* Fullscreen increases text size without changing the artwork's aspect ratio. */
+body.livetv-fs #radio-track { font-size: 2.1rem; }
+body.livetv-fs #radio-artist { font-size: 1.45rem; }
+body.livetv-fs #radio-name { font-size: 1.2rem; }
+body.livetv-fs #radio-metadata-state { font-size: .9rem; }
+body.livetv-fs #radio-status { font-size: 1rem; }

@@ -1,0 +1,50 @@
+name: Probe direct radio streams
+on:
+  push:
+    branches: [privacy/toonami-single-stream-test]
+    paths: [.github/workflows/radio-check.yml]
+  workflow_dispatch:
+jobs:
+  check-audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verify audio bytes and stream headers
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import urllib.request,urllib.error, json,concurrent.futures
+          streams=[
+            ("WTMD 89.7 FM","https://wtmd-ice.streamguys1.com/wtmd.mp3"),
+            ("WTMD HD2","https://wtmd-ice.streamguys1.com/hd2.mp3"),
+            ("Shonan Beach FM 78.9","https://shonanbeachfm.out.airtime.pro/shonanbeachfm_c"),
+            ("Shonan Beach FM fallback","http://shonanbeachfm.out.airtime.pro:8000/shonanbeachfm_c"),
+            ("B97 WEZB Amperwave AAC","https://live.amperwave.net/direct/audacy-wezbfmaac-imc"),
+            ("B97 WEZB Amperwave MP3","https://live.amperwave.net/direct/audacy-wezbfmmp3-imc"),
+            ("B97 WEZB legacy stream","https://playerservices.streamtheworld.com/api/livestream-redirect/WEZBFMAAC.aac"),
+            ("B97 WEZB legacy direct","http://2963.live.streamtheworld.com:80/WEZBFMAAC_SC"),
+            ("ALT 92.3 WZRH AAC","https://playerservices.streamtheworld.com/api/livestream-redirect/WZRHFMAAC.aac"),
+            ("ALT 92.3 WZRH AAC stream","https://playerservices.streamtheworld.com/api/livestream-redirect/WZRHFMAAC"),
+            ("ALT 92.3 WZRH MP3","https://playerservices.streamtheworld.com/api/livestream-redirect/WZRHFM.mp3"),
+            ("ALT 92.3 WZRH MP3 generic","https://playerservices.streamtheworld.com/api/livestream-redirect/WZRHFM"),
+            ("ALT 92.3 WZRH legacy AAC","https://playerservices.streamtheworld.com/pls/WZRHFMAAC.pls"),
+            ("Magic 101.9 WLMG MP3","https://live.amperwave.net/direct/audacy-wlmgfmmp3-imc"),
+            ("Magic 101.9 WLMG AAC","https://live.amperwave.net/direct/audacy-wlmgfmaac-imc"),
+            ("WFMF 102.5 iHeart direct","https://stream.revma.ihrhls.com/zc1005"),
+            ("WFMF 102.5 iHeart HLS","https://stream.revma.ihrhls.com/zc1005/hls.m3u8"),
+            ("WFMF 102.5 iHeart direct MP3","https://stream.revma.ihrhls.com/zc1005?type=mp3"),
+            ("WFMF 102.5 iHeart low bandwidth","https://stream.revma.ihrhls.com/zc1005?stream=low"),
+            ("WNOE 101.1 iHeart country","https://stream.revma.ihrhls.com/zc1045"),
+            ("WNOE 101.1 HLS","https://stream.revma.ihrhls.com/zc1045/hls.m3u8")
+          ]
+          def probe(st):
+            name,url=st
+            try:
+              req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0 (compatible; LGwebOSAudioTest/1.0)","Icy-MetaData":"0"})
+              with urllib.request.urlopen(req,timeout=12) as r:
+                buf=r.read(4096)
+                return dict(name=name,url=url,status=r.status,final_url=r.url,content_type=r.headers.get("Content-Type"),icy_name=r.headers.get("icy-name"),bytes_read=len(buf),head_hex=buf[:18].hex(),is_audio=not buf.lstrip().startswith((b"<html",b"<?xml",b"{",b"#EXTM3U")) and len(buf)>=128)
+            except Exception as e:return dict(name=name,url=url,error=str(e)[:250])
+          with concurrent.futures.ThreadPoolExecutor(max_workers=4) as p:
+            for r in p.map(probe,streams):print("RADIO_PROBE",json.dumps(r,ensure_ascii=False),flush=True)
+          PY

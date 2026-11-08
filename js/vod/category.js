@@ -14,6 +14,12 @@
    the rail needed truncating in the first place. */
 var catItems = [], catFocus = 0, catReturn = 'rails';
 
+/** Open Category for VOD category grid.
+ * @param {*} title - Input to openCategory().
+ * @param {string} type - Input to openCategory().
+ * @param {*} catId - Input to openCategory().
+ * @returns {void} Updates the relevant state or UI.
+ */
 function openCategory(title, type, catId) {
     var ck = 'vod_content_' + Config.scope(cfg) + '_' + type + '_' + catId;
     var cached = cacheGet(ck);
@@ -39,6 +45,11 @@ function openCategory(title, type, catId) {
         });
 }
 
+/** Render Category for VOD category grid.
+ * @param {Array} items - Items to process.
+ * @param {string} type - Input to renderCategory().
+ * @returns {void} Updates the relevant state or UI.
+ */
 function renderCategory(items, type) {
     catItems = items;
     elCategoryGrid.innerHTML = '';
@@ -52,6 +63,9 @@ function renderCategory(items, type) {
     paintCategoryFocus();
 }
 
+/** Close Category for VOD category grid.
+ * @returns {void} Updates the relevant state or UI.
+ */
 function closeCategory() {
     elCategory.hidden = true;
     elCategoryGrid.innerHTML = '';
@@ -60,6 +74,9 @@ function closeCategory() {
     if (zone === 'rails') paintRailFocus(); else paintSidebarFocus();
 }
 
+/** Category Cards for VOD category grid.
+ * @returns {*} Result of the operation.
+ */
 function categoryCards() { return Array.prototype.slice.call(elCategoryGrid.querySelectorAll('.vod-card')); }
 
 /* Column count is measured from the rendered grid rather than assumed, so
@@ -72,6 +89,10 @@ function categoryCards() { return Array.prototype.slice.call(elCategoryGrid.quer
    always returned 1 and every DOWN press moved a single card sideways
    instead of a row down. offsetTop is layout position and ignores
    transforms. */
+/** Grid Cols for VOD category grid.
+ * @param {*} cards - Input to gridCols().
+ * @returns {*} Result of the operation.
+ */
 function gridCols(cards) {
     if (cards.length < 2) return 1;
     var top = cards[0].offsetTop, n = 0;
@@ -82,8 +103,14 @@ function gridCols(cards) {
     return n || 1;
 }
 
+/** Category Cols for VOD category grid.
+ * @returns {*} Result of the operation.
+ */
 function categoryCols() { return gridCols(categoryCards()); }
 
+/** Paint Category Focus for VOD category grid.
+ * @returns {*} Result of the operation.
+ */
 function paintCategoryFocus() {
     clearRings();
     var cards = categoryCards();
@@ -93,6 +120,10 @@ function paintCategoryFocus() {
     cards[catFocus].scrollIntoView({ block: 'nearest' });
 }
 
+/** Category Key for VOD category grid.
+ * @param {*} kc - Input to categoryKey().
+ * @returns {*} Result of the operation.
+ */
 function categoryKey(kc) {
     var cards = categoryCards(), cols = categoryCols();
     if (kc === KEY.BACK) { closeCategory(); return; }

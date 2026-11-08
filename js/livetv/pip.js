@@ -14,6 +14,9 @@
 
 let _osdTimer = null;
 
+/** Wire the video preview and fullscreen controls.
+ * @returns {void} No return value.
+ */
 function setupPip() {
     document.getElementById("pip-fullscreen-btn").addEventListener("click", e => { e.stopPropagation(); toggleFullscreen(); });
     document.getElementById("pip-multiview-btn")?.addEventListener("click", e => { e.stopPropagation(); openMultiview(); });
@@ -63,8 +66,14 @@ function setupPip() {
 // truly viewport-relative on every Chromium back to 38.
 let _fsActive = false;
 
+/** Report whether the CSS fullscreen view is active.
+ * @returns {boolean} Whether the requested condition is met.
+ */
 function isFullscreen() { return _fsActive; }
 
+/** Enter or leave CSS fullscreen without the unreliable native API.
+ * @returns {void} No return value.
+ */
 function toggleFullscreen() {
     _fsActive = !_fsActive;
     document.body.classList.toggle("livetv-fs", _fsActive);
@@ -82,7 +91,12 @@ function toggleFullscreen() {
 // or inside Favourites shows those channels rather than always starting from
 // the top of everything.
 
+/** Launch the multi-channel viewer for the current TV channel.
+ * @returns {void} No return value.
+ */
 function openMultiview() {
+    // Audio-only streams are played by the native radio element, not Multiview.
+    if (currentChannel && (currentChannel._radio || currentChannel._weatherstar)) return;
     if (typeof Multiview === "undefined" || Multiview.isOpen()) return;
     const channels = _vsChannels;
     if (!channels.length) return;
@@ -121,6 +135,9 @@ function openMultiview() {
     if (!opened && currentChannel) selectChannel(currentChannel);
 }
 
+/** Render a short-lived on-screen channel/status overlay.
+ * @returns {void} No return value.
+ */
 function showOSD() {
     const osd = document.getElementById("fs-osd");
     if (!osd) return;

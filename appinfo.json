@@ -1,15 +1,16 @@
 {
-  "id": "com.sharktie.iptv",
-  "version": "1.0.32",
-  "vendor": "sharktie",
+  "id": "com.oxhyashi.toonamitest",
+  "version": "1.0.44",
+  "vendor": "0xhyashi",
   "type": "web",
   "main": "index.html",
-  "title": "IPTV player",
+  "title": "Bunkhouse TV + Radio + Weather",
   "icon": "icon.png",
   "largeIcon": "icon_large.png",
   "iconColor": "#000000",
   "disableBackHistoryAPI": true,
   "requiredPermissions": [
     "com.webos.media"
-  ]
+  ],
+  "requiredACG": []
 }

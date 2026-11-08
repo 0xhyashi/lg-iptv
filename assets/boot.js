@@ -34,6 +34,9 @@
        hardware overlay plane punched through the page rather than compositing
        decoded frames into the page texture. That single fact drives most of
        the branching below — see VIDEO PLANE. */
+    /** Chromium Version for startup and compatibility.
+     * @returns {*} Function result.
+     */
     function chromiumVersion() {
         var m = /Chrome\/(\d+)/.exec(navigator.userAgent || '');
         return m ? parseInt(m[1], 10) : 0;
@@ -102,6 +105,9 @@
        stylesheets (tools/build-css.js) carry margin equivalents scoped to
        html.no-flex-gap. Measured rather than inferred from the version: a
        two-child column with a 1px row-gap is 1px tall exactly when gap works. */
+    /** Supports Flex Gap for startup and compatibility.
+     * @returns {*} Function result.
+     */
     function supportsFlexGap() {
         try {
             var probe = document.createElement('div');
@@ -177,22 +183,37 @@
         { v: 1.55, label: 'Largest', note: '155%' }
     ];
 
+    /** Clean for startup and compatibility.
+     * @param {*} v - Input for clean().
+     * @returns {*} Function result.
+     */
     function clean(v) {
         v = parseFloat(v);
         if (!(v >= MIN && v <= MAX)) return DEFAULT;
         return v;
     }
 
+    /** Get for startup and compatibility.
+     * @returns {*} Function result.
+     */
     function get() {
         var raw;
         try { raw = localStorage.getItem(KEY); } catch (e) { raw = null; }
         return clean(raw);
     }
 
+    /** Apply for startup and compatibility.
+     * @param {*} v - Input for apply().
+     * @returns {void} Updates state or the UI.
+     */
     function apply(v) {
         if (docEl && docEl.style) docEl.style.fontSize = (BASE * clean(v)) + 'px';
     }
 
+    /** Set for startup and compatibility.
+     * @param {*} v - Input for set().
+     * @returns {void} Updates state or the UI.
+     */
     function set(v) {
         v = clean(v);
         try { localStorage.setItem(KEY, String(v)); } catch (e) {}
@@ -211,6 +232,9 @@
        into a single page would pay off. */
     var TIMING_KEY = 'iptv_page_timings';
 
+    /** Record Timing for startup and compatibility.
+     * @returns {*} Function result.
+     */
     function recordTiming() {
         try {
             var t = window.performance && window.performance.timing;

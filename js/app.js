@@ -24,10 +24,16 @@
 
 /* From the active profile — see Config.sourceType() for why not from the
    separate iptv_source_type key. */
+/** Read the active IPTV source type.
+ * @returns {string} Requested text value.
+ */
 function getSourceType() {
     return Config.sourceType();
 }
 
+/** Load the configured provider and start Live TV.
+ * @returns {Promise<void>} Resolves when the operation finishes.
+ */
 async function initApp() {
     const status = document.getElementById("status");
     const setStatus = (msg, err) => {
@@ -44,6 +50,10 @@ async function initApp() {
     }
 }
 
+/** Load an M3U playlist and hand its channels to the UI.
+ * @param {Function} setStatus - Callback that reports progress or errors.
+ * @returns {Promise<void>} Resolves when the operation finishes.
+ */
 async function _initAppM3U(setStatus) {
     let m3uCfg;
     try { m3uCfg = await m3uLoadConfig(); }
@@ -81,6 +91,10 @@ async function _initAppM3U(setStatus) {
     } catch (err) { setStatus("ERR: " + err.message, true); }
 }
 
+/** Load Xtream channels and categories.
+ * @param {Function} setStatus - Callback that reports progress or errors.
+ * @returns {Promise<void>} Resolves when the operation finishes.
+ */
 async function _initAppXtream(setStatus) {
     setStatus("Loading config…");
     try { cfg = await xtreamLoadConfig(); }
@@ -158,10 +172,16 @@ async function _initAppXtream(setStatus) {
     } catch (err) { setStatus("ERR: " + err.message, true); }
 }
 
+/** Render categories and start Live TV's supporting services.
+ * @param {Array<Object>} categories - Category definitions.
+ * @param {string} playlistEpgUrl - Provider's EPG URL.
+ * @returns {void} No return value.
+ */
 function _bootUI(categories, playlistEpgUrl) {
     renderCategories(categories);
     setupSearch();
     setupPip();
+    setupRadioUI();
     setupTimelineNav();
 
     activeCategory = Favourites.isEmpty() ? "all" : "favs";
@@ -183,14 +203,218 @@ function _bootUI(categories, playlistEpgUrl) {
 }
 
 
+
+/* ── Native audio-radio playback ────────────────────────────────────────────
+ * The regular IPTVPlayer drives a <video> decoder. An Internet radio
+ * Icecast/Airtime endpoint returns continuous MP3/AAC bytes, not HLS video.
+ * Use one native <audio> element, as recommended in LG's webOS audio guide.
+ * Release the video decoder before radio, and close the radio connection
+ * before returning to video playback.
+ */
+/** Stop radio playback before leaving its mode.
+ * @returns {void} No return value.
+ */
+function stopRadio() { RadioDeck.stop(); }
+/** Install the radio player and media-button listeners.
+ * @returns {void} No return value.
+ */
+function setupRadioUI() { RadioDeck.init(); }
+/** Stop video and tune the selected radio station.
+ * @param {Object} ch - Channel entry with stream_id, name and source fields.
+ * @returns {void} No return value.
+ */
+function startRadio(ch) {
+    // The TV's video decoder is limited; close it before starting audio.
+    player.stop();
+    RadioDeck.play(ch);
+}
+
+/* ── Bunkhouse TV / Radio quick navigation ────────────────────────────────────
+ * TV retains the existing category browser and channel grid. Radio puts the
+ * dedicated 90s media interface in the main panel and a station list in the
+ * sidebar. Direct buttons and D-pad both work; no custom webOS service.
+ */
+var _bkLastTVChannel = null;
+var _bkLastTVCategory = "all";
+var _bkStationIndex = 0;
+var _bkRadioButtons = [];
+/** Return the fixed Bunkhouse radio station entries.
+ * @returns {Array<Object>} Matching channel or data entries.
+ */
+function bunkhouseRadioChannels() {
+    return allChannels.filter(function (c) { return c && c._radio; });
+}
+/** Update the visible TV/Radio navigation and filtering.
+ * @param {string} mode - Requested TV or radio mode.
+ * @returns {void} No return value.
+ */
+function bunkhouseSetMode(mode) {
+    var radio = mode === "radio";
+    document.body.classList.toggle("radio-mode", radio);
+    var tv = document.getElementById("media-tv"), r = document.getElementById("media-radio");
+    if (tv) tv.classList.toggle("active", !radio);
+    if (r) r.classList.toggle("active", radio);
+    if (radio) {
+        if (activeCategory !== "radio") _bkLastTVCategory = activeCategory;
+        activeCategory = "radio";
+    } else {
+        activeCategory = _bkLastTVCategory === "radio" ? "all" : _bkLastTVCategory;
+    }
+    updateSidebarActive();
+    applyFilters(true);
+    if (radio) bunkhouseHighlightStation();
+}
+/** Mark the sidebar station that matches the active channel.
+ * @returns {void} No return value.
+ */
+function bunkhouseHighlightStation() {
+    var sid = currentChannel && currentChannel._radio ? String(currentChannel.stream_id) : "";
+    _bkRadioButtons.forEach(function (btn, index) {
+        var selected = btn.getAttribute("data-station-id") === sid;
+        btn.classList.toggle("selected", selected);
+        if (selected) _bkStationIndex = index;
+    });
+}
+/** Switch between TV and radio, restoring the previous TV channel.
+ * @param {string} mode - Requested TV or radio mode.
+ * @returns {void} No return value.
+ */
+function bunkhouseChangeMode(mode) {
+    if (mode === "radio") {
+        bunkhouseSetMode("radio");
+        if (!currentChannel || !currentChannel._radio) {
+            var first = bunkhouseRadioChannels()[0];
+            if (first) selectChannel(first);
+        }
+        if (_bkRadioButtons[_bkStationIndex]) _bkRadioButtons[_bkStationIndex].focus();
+    } else {
+        bunkhouseSetMode("tv");
+        if (currentChannel && currentChannel._radio) {
+            stopRadio();
+            currentChannel = null;
+        }
+        if (_bkLastTVChannel) selectChannel(_bkLastTVChannel);
+        else {
+            player.stop();
+            var msg = document.getElementById("player-msg");
+            if (msg) { msg.style.display = "flex"; msg.textContent = "Select a TV channel"; }
+        }
+        if (typeof setTVZone === "function") setTVZone("channel-list");
+    }
+}
+/** Move to and play the previous or next radio preset.
+ * @param {number} delta - Signed number of positions to move.
+ * @returns {void} No return value.
+ */
+function bunkhouseStationStep(delta) {
+    if (!_bkRadioButtons.length) return;
+    _bkStationIndex = (_bkStationIndex + delta + _bkRadioButtons.length) % _bkRadioButtons.length;
+    _bkRadioButtons[_bkStationIndex].focus();
+    _bkRadioButtons[_bkStationIndex].click();
+}
+/** Handle remote keys while the radio view is active.
+ * @param {KeyboardEvent} e - Remote or keyboard event.
+ * @param {number} key - LG/webOS key code.
+ * @returns {boolean} Whether the requested condition is met.
+ */
+function bunkhouseHandleKey(e, key) {
+    if (!document.body.classList.contains("radio-mode") || isFullscreen()) return false;
+    var focus = document.activeElement;
+    if (key === 38 || key === 40) {
+        e.preventDefault();
+        bunkhouseStationStep(key === 38 ? -1 : 1);
+        return true;
+    }
+    if (key === 37) { // LEFT selects the media navigation
+        e.preventDefault();
+        document.getElementById("media-tv").focus();
+        return true;
+    }
+    if (key === 39) { // RIGHT focuses pause / resume control
+        e.preventDefault();
+        document.getElementById("radio-toggle").focus();
+        return true;
+    }
+    if (key === 13) { // ENTER
+        if (focus && /^(media-tv|media-radio|radio-toggle|radio-prev|radio-next)$/.test(focus.id)) {
+            e.preventDefault();focus.click();return true;
+        }
+        if (_bkRadioButtons[_bkStationIndex]) {
+            e.preventDefault();_bkRadioButtons[_bkStationIndex].click();return true;
+        }
+    }
+    if (key === 461 || key === 27 || key === 8) {
+        e.preventDefault();bunkhouseChangeMode("tv");return true;
+    }
+    return false;
+}
+/** Create station buttons and wire TV/Radio tabs.
+ * @returns {void} No return value.
+ */
+function setupBunkhouseNavigation() {
+    var tv=document.getElementById("media-tv"),radio=document.getElementById("media-radio");
+    if (!tv || !radio) return;
+    tv.addEventListener("click",function(){bunkhouseChangeMode("tv");});
+    radio.addEventListener("click",function(){bunkhouseChangeMode("radio");});
+    var panel=document.getElementById("radio-stations");
+    if (!panel) return;
+    panel.innerHTML="";
+    _bkRadioButtons=[];
+    bunkhouseRadioChannels().forEach(function(ch,index) {
+        var btn=document.createElement("button");
+        btn.type="button";btn.className="bk-station";
+        btn.setAttribute("data-station-id",String(ch.stream_id));
+        var title=document.createElement("span");title.textContent=ch.name;
+        btn.appendChild(title);
+        btn.addEventListener("click",function(){
+            _bkStationIndex=index;selectChannel(ch);btn.focus();
+        });
+        panel.appendChild(btn);
+        _bkRadioButtons.push(btn);
+    });
+    RadioDeck.init();
+}
+
 // ── Channel selection ─────────────────────────────────────────────────────────
 
+/** Choose the video, radio or WeatherStar player for a channel and update its EPG.
+ * @param {Object} ch - Channel entry with stream_id, name and source fields.
+ * @returns {Promise<void>} Resolves when the operation finishes.
+ */
 async function selectChannel(ch) {
     currentChannel = ch;
     const _selSid = String(ch.stream_id);
     rowCache.forEach((entry, sid) => entry.row.classList.toggle("selected", sid === _selSid));
     document.getElementById("preview-channel-name").textContent = ch.name || "Unknown";
     document.getElementById("pip-channel-name").textContent     = ch.name || "Unknown";
+    if (ch._radio) {
+        WeatherChannel.close();
+        bunkhouseSetMode("radio");
+        bunkhouseHighlightStation();
+        startRadio(ch);
+        setEPG("now", "Live radio", "", "");
+        setEPG("next", "—", "", "");
+        document.getElementById("epg-bar-fill").style.width = "0%";
+        showPreviewInfo();
+        showOSD();
+        return;
+    }
+    stopRadio();
+    _bkLastTVChannel = ch;
+    if (document.body.classList.contains("radio-mode")) bunkhouseSetMode("tv");
+    if (ch._weatherstar) {
+        // Browser-driven forecast, not a video URL: never pass it to IPTVPlayer.
+        // The third-party artwork, transitions, fonts and music live in their
+        // own pristine packaged iframe, with Bunkhouse handling navigation.
+        player.stop();
+        WeatherChannel.open();
+        setEPG("now", "WeatherStar 4000+ • live forecast", "", "");
+        setEPG("next", "Updates from NOAA / NWS", "", "");
+        document.getElementById("epg-bar-fill").style.width = "0%";
+        showPreviewInfo();
+        return;
+    }
+    WeatherChannel.close();
     const playUrl = ch._source === "m3u" ? m3uBuildLiveURL(ch) : xtreamBuildLiveURL(cfg, ch.stream_id);
     // The key lets the player remember which engine actually worked for THIS
     // channel, so a 4K/HEVC channel that only plays on HLS starts there.
@@ -214,11 +438,10 @@ async function selectChannel(ch) {
         epgCache[ch.stream_id] = listings;
         patchEpgStrip(ch.stream_id); scheduleEpgSave();
     }
-    if (!listings?.length) { setEPG("now", "No EPG data", "", ""); showOSD(); return; }
-
-    // The user may have moved on while the guide was loading; painting this
-    // channel's programme over the next one's would put the wrong title up.
+    // The user may have switched channels while the guide was loading.
+    // Check before updating the display for BOTH empty and nonempty results.
     if (currentChannel !== ch) return;
+    if (!listings?.length) { setEPG("now", "No EPG data", "", ""); showOSD(); return; }
 
     const { cur, next } = _findNowNext(listings);
     setEPG("now", epgTitle(cur), formatTimeRange(cur), epgDesc(cur));
@@ -227,10 +450,20 @@ async function selectChannel(ch) {
     showOSD();
 }
 
+/** Refresh the on-screen display only in fullscreen.
+ * @returns {void} No return value.
+ */
 function updateOSDIfFullscreen() {
     if (isFullscreen()) showOSD();
 }
 
+/** Write the title, time and description for one EPG slot.
+ * @param {string} slot - EPG display slot (now or next).
+ * @param {string} title - Reported track title.
+ * @param {string} time - Formatted program time.
+ * @param {string} desc - Program description.
+ * @returns {void} No return value.
+ */
 function setEPG(slot, title, time, desc) {
     document.getElementById(`epg-${slot}-title`).textContent = title || "—";
     document.getElementById(`epg-${slot}-time`).textContent  = time  || "";
@@ -238,10 +471,17 @@ function setEPG(slot, title, time, desc) {
     if (el) el.textContent = desc || "";
 }
 
+/** Reveal the selected channel's summary.
+ * @returns {void} No return value.
+ */
 function showPreviewInfo() {
     document.getElementById("preview-info")?.classList.add("preview-visible");
 }
 
+/** Move through the filtered TV channel list.
+ * @param {number} delta - Signed number of positions to move.
+ * @returns {void} No return value.
+ */
 function channelStep(delta) {
     if (!_vsChannels.length) return;
     let idx = currentChannel
@@ -275,5 +515,137 @@ function channelStep(delta) {
     initVirtualScroll();
     initTVNavigation();
     if (typeof tvSetBackUrl === "function") tvSetBackUrl("../index.html");
-    initApp();
+    // Fixed local channels: there is no account or remote configuration service.
+  // The live streams below are the publicly listed Toonami Aftermath HLS feeds.
+  var toonamiChannels = [
+    { stream_id: "toonami-aftermath-east", name: "Toonami Aftermath East",  category_id: "toonami", stream_icon: "", stream_url: "http://api.toonamiaftermath.com:3000/est/playlist.m3u8",    _source: "m3u" },
+    { stream_id: "toonami-aftermath-west", name: "Toonami Aftermath West",  category_id: "toonami", stream_icon: "", stream_url: "http://api.toonamiaftermath.com:3000/pst/playlist.m3u8",    _source: "m3u" },
+    { stream_id: "toonami-aftermath-movies", name: "Toonami Aftermath Movies", category_id: "toonami", stream_icon: "", stream_url: "http://api.toonamiaftermath.com:3000/movies/playlist.m3u8", _source: "m3u" },
+    { stream_id: "toonami-aftermath-radio", name: "Toonami Aftermath Radio", category_id: "toonami", stream_icon: "", stream_url: "http://api.toonamiaftermath.com:3000/radio/playlist.m3u8",  _source: "m3u" }
+  ];
+// Supplemental streams tested on 2026-11-07 from a US GitHub runner:
+  // each URL returned an HLS playlist AND a reachable media segment.
+  // This does not prove that playback will work on every LG TV or network.
+  // These are free-to-view FAST streams, not subscription-TV relays.
+  var verifiedJapanExtras = [
+    { stream_id: "japan-extra-01", name: "日テレNEWS", category_id: "japan-news", stream_icon: "", stream_url: "https://cdn-apne1.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-news1hlscmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-02", name: "FNNプライムオンライン", category_id: "japan-news", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-news4-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-03", name: "MBSニュース", category_id: "japan-news", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-news5-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-04", name: "日テレNEWSセレクト", category_id: "japan-news", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-ntv-newsselect-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-05", name: "共同通信News", category_id: "japan-news", stream_icon: "", stream_url: "https://cdn-apne1.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-news3hlscmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-06", name: "オリコンニュース", category_id: "japan-news", stream_icon: "", stream_url: "https://cdn-apne1.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-news2cmafhls-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-07", name: "ムビドラTV", category_id: "japan-entertainment", stream_icon: "", stream_url: "https://cdn-apne1.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-moviecmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-08", name: "手塚プロダクションTV", category_id: "japan-anime", stream_icon: "", stream_url: "https://cdn-apne1.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-anime5-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-09", name: "キッズ", category_id: "japan-anime", stream_icon: "", stream_url: "https://cdn-apne1.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-kids-english-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-10", name: "NTV Pro Wrestling", category_id: "japan-entertainment", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-ntv-pro-wrestling-hls-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-11", name: "that’s 70s", category_id: "japan-music", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01076-lightningintern-lightningnow70s-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-12", name: "that’s 80s", category_id: "japan-music", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01076-lightningintern-lightningnow80s-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-13", name: "that’s 90s00s", category_id: "japan-music", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01076-lightningintern-lightning-now90s00s-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-14", name: "that’s Rock", category_id: "japan-music", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01076-lightningintern-lightningnowrock-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-15", name: "囲碁・将棋ライト", category_id: "japan-lifestyle", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-igo-shogi-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-16", name: "麻雀", category_id: "japan-lifestyle", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-mahjong-cmaf1-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-17", name: "パチンコ・パチスロ", category_id: "japan-lifestyle", stream_icon: "", stream_url: "https://cdn-apne1.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-pachislocmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-18", name: "ぷれいば！", category_id: "japan-lifestyle", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-game-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-19", name: "ワンニャンチャンネル", category_id: "japan-lifestyle", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-pet-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" },
+    { stream_id: "japan-extra-20", name: "九州・沖縄 街ネタ", category_id: "japan-lifestyle", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-local-contents-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" }
+  ];
+
+    var japanPlaylistUrl = "https://iptv-org.github.io/iptv/countries/jp.m3u";
+  // Direct public audio endpoints (MP3). All three returned audio bytes in
+  // a US network check on 2026-11-07. Shonan's URL comes from its official site.
+  var radioChannels = [
+    { stream_id: "radio-wtmd", name: "WTMD 89.7 FM", category_id: "radio", stream_icon: "", stream_url: "https://wtmd-ice.streamguys1.com/wtmd.mp3", _radio: true, _source: "m3u" },
+    { stream_id: "radio-wtmd-hd2", name: "WTMD HD2 — The Baltimore Channel", category_id: "radio", stream_icon: "", stream_url: "https://wtmd-ice.streamguys1.com/hd2.mp3", _radio: true, _source: "m3u" },
+    { stream_id: "radio-shonan", name: "Shonan Beach FM 78.9", category_id: "radio", stream_icon: "", stream_url: "https://shonanbeachfm.out.airtime.pro/shonanbeachfm_c", _radio: true, _source: "m3u" },
+    { stream_id: "radio-b97-nola", name: "B97 97.1 FM — New Orleans", category_id: "radio", stream_icon: "", stream_url: "https://live.amperwave.net/direct/audacy-wezbfmmp3-imc", _radio: true, _source: "m3u" },
+    { stream_id: "radio-alt923-nola", name: "ALT 92.3 — New Orleans Alternative Rock", category_id: "radio", stream_icon: "", stream_url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WZRHFM.mp3", _radio: true, _source: "m3u" },
+    { stream_id: "radio-magic1019-nola", name: "Magic 101.9 — New Orleans", category_id: "radio", stream_icon: "", stream_url: "https://live.amperwave.net/direct/audacy-wlmgfmmp3-imc", _radio: true, _source: "m3u" },
+    { stream_id: "radio-wfmf1025-br", name: "102.5 WFMF — Baton Rouge", category_id: "radio", stream_icon: "", stream_url: "https://stream.revma.ihrhls.com/zc1005", _radio: true, _source: "m3u" },
+    { stream_id: "radio-wnoe1011-nola", name: "101.1 WNOE Country — New Orleans", category_id: "radio", stream_icon: "", stream_url: "https://stream.revma.ihrhls.com/zc1045", _radio: true, _source: "m3u" }
+  ];
+
+  // This is a self-contained web app, not an M3U8 feed. It renders the
+  // ORIGINAL pinned WeatherStar 4000+ 8.2.2 code and bundled music.
+  var weatherChannels = [
+    { stream_id: "local-weatherstar-4000", name: "WeatherStar 4000+ — Local Forecast",
+      category_id: "retro-weather", stream_icon: "", stream_url: "../weatherstar/index.html",
+      _weatherstar: true, _source: "local" }
+  ];
+
+  var categories = [
+    { category_id: "toonami", category_name: "Toonami Aftermath" },
+    { category_id: "retro-weather", category_name: "Retro Weather" },
+    { category_id: "radio", category_name: "Radio Stations" },
+    { category_id: "japan", category_name: "Japan TV (IPTV-org)" },
+    { category_id: "japan-news", category_name: "Japan — News" },
+    { category_id: "japan-anime", category_name: "Japan — Anime & Kids" },
+    { category_id: "japan-entertainment", category_name: "Japan — Entertainment" },
+    { category_id: "japan-music", category_name: "Japan — Music" },
+    { category_id: "japan-lifestyle", category_name: "Japan — Lifestyle" }
+  ];
+  var status = document.getElementById("status");
+
+  // Only accept direct HTTP(S) stream URLs from the external M3U list.
+  // Source URL, names and logos are data, not scripts or executable code.
+  /** Merge Japan IPTV-org results with the fixed channels.
+   * @param {Array<Object>} list - Channel entries.
+   * @param {boolean} cached - Whether data came from cache.
+   * @returns {void} No return value.
+   */
+  function showJapaneseChannels(list, cached) {
+    var japanese = [];
+    for (var i = 0; i < list.length; i++) {
+      var ch = list[i];
+      var url = String(ch.stream_url || "").trim();
+      if (!/^https?:\/\/[^\s]+$/i.test(url)) continue;
+      japanese.push({
+        stream_id: "japan-" + i,
+        name: String(ch.name || "Japan TV"),
+        category_id: "japan",
+        stream_icon: String(ch.stream_icon || ""),
+        epg_channel_id: String(ch.epg_channel_id || ""),
+        stream_url: url,
+        _source: "m3u"
+      });
+    }
+    if (!japanese.length) return false;
+    // Keep all previous Toonami and Japan TV channels, and avoid URL duplicates.
+    var seenUrls = {};
+    for (var v = 0; v < verifiedJapanExtras.length; v++) {
+      seenUrls[verifiedJapanExtras[v].stream_url] = true;
+    }
+    japanese = japanese.filter(function (ch) { return !seenUrls[ch.stream_url]; });
+    allChannels = toonamiChannels.concat(weatherChannels, verifiedJapanExtras, radioChannels, japanese);
+    updateSidebarActive();
+    applyFilters(true);
+    status.textContent = allChannels.length + " channels (4 Toonami + 1 WeatherStar + " +
+        verifiedJapanExtras.length + " verified extras + 8 radio + " + japanese.length +
+        " Japan directory" + (cached ? ", cached" : "") + ")";
+    return true;
+  }
+
+  epgCache = loadEpgDiskCache();
+  allChannels = toonamiChannels.concat(weatherChannels, verifiedJapanExtras, radioChannels);
+  status.textContent = allChannels.length + " channels - loading Japan TV directory...";
+  _bootUI(categories, "");
+  setupBunkhouseNavigation();
+  WeatherChannel.setup();
+
+  // Load any previously downloaded Japanese directory immediately, then
+  // refresh it from the public iptv-org playlist (without sending credentials).
+  var cachedJapan = m3uLoadCache(japanPlaylistUrl);
+  var hasJapan = cachedJapan && showJapaneseChannels(cachedJapan.channels, true);
+  m3uFetchPlaylist(japanPlaylistUrl).then(function (parsed) {
+    if (!parsed.channels.length) throw new Error("empty playlist");
+    m3uSaveCache(japanPlaylistUrl, parsed);
+    if (!showJapaneseChannels(parsed.channels, false)) {
+      throw new Error("no compatible streams");
+    }
+  }).catch(function (err) {
+    // Keep all working channels visible when a directory or network is offline.
+    status.textContent = hasJapan
+      ? "Japan TV: using cached channels (refresh failed)"
+      : allChannels.length + " channels - Japan directory unavailable (" + (err.message || "network error") + ")";
+  });
+
 }());

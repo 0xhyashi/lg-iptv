@@ -1,0 +1,85 @@
+name: Test Japanese IPTV stream segments
+on:
+  push:
+    branches: [privacy/toonami-single-stream-test]
+    paths: [.github/workflows/jp-stream-check.yml]
+  workflow_dispatch:
+jobs:
+  check-streams:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Probe playlists and media segments
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import concurrent.futures,urllib.request,urllib.error,urllib.parse,json
+          from collections import Counter
+          sources={
+            "MrKagesan JP-IPTV":"https://raw.githubusercontent.com/MrKagesan/JP-IPTV/main/JP.m3u",
+            "Free-TV Japan":"https://raw.githubusercontent.com/Free-TV/IPTV/master/playlists/playlist_japan.m3u8",
+            "iptv-org Japan":"https://raw.githubusercontent.com/iptv-org/iptv/master/streams/jp.m3u",
+            "iptv-org Japanese language":"https://iptv-org.github.io/iptv/languages/jpn.m3u"
+          }
+          def fetch(url,timeout=9,limit=150000):
+            req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0 (compatible; JapaneseStreamCheck/1.0)","Accept":"*/*"})
+            with urllib.request.urlopen(req,timeout=timeout) as r:
+              return r.status,r.url,r.read(limit),r.headers.get("Content-Type","")
+          def parse_m3u(data,source):
+            out=[];info=None
+            for line in data.decode("utf-8","replace").splitlines():
+              line=line.strip()
+              if line.startswith("#EXTINF"):info=line.rsplit(",",1)[-1].strip()
+              elif line.startswith(("http://","https://")) and info:
+                out.append((source,info,line));info=None
+            return out
+          entries=[]
+          for source,url in sources.items():
+            try:
+              a,b,data,c=fetch(url,12)
+              found=parse_m3u(data,source);entries+=found
+              print("PLAYLIST",source,"entries",len(found),flush=True)
+            except Exception as e:print("PLAYLIST_ERROR",source,str(e)[:120],flush=True)
+          unique={}
+          for row in entries:
+            if row[2] not in unique:unique[row[2]]=row
+          def next_media_url(playlist_url,text):
+            ls=[line.strip() for line in text.splitlines()]
+            if "#EXT-X-STREAM-INF" in text:
+              for i,line in enumerate(ls[:-1]):
+                if line.startswith("#EXT-X-STREAM-INF"):
+                  for child in ls[i+1:]:
+                    if child and not child.startswith("#"):
+                      return "CHILD",urllib.parse.urljoin(playlist_url,child)
+            if "#EXT-X-TARGETDURATION" in text or "#EXT-X-MEDIA-SEQUENCE" in text:
+              media=[u for u in ls if u and not u.startswith("#")]
+              if media:return "SEGMENT",urllib.parse.urljoin(playlist_url,media[-1])
+            return None,None
+          def check(row):
+            source,name,url=row
+            try:
+              a,final,body,ctype=fetch(url,8,80000)
+              txt=body.decode("utf-8","replace")
+              if not txt.startswith("#EXTM3U"):return ("NOT_HLS",source,name,url)
+              if "#EXT-X-KEY" in txt:return ("ENCRYPTED",source,name,url)
+              kind,target=next_media_url(final,txt)
+              if kind=="CHILD":
+                a,final,body,ctype=fetch(target,8,80000)
+                txt=body.decode("utf-8","replace")
+                if not txt.startswith("#EXTM3U"):return ("CHILD_INVALID",source,name,url)
+                if "#EXT-X-KEY" in txt:return ("ENCRYPTED",source,name,url)
+                kind,target=next_media_url(final,txt)
+              if kind!="SEGMENT":return ("NO_SEGMENT",source,name,url)
+              a,final,body,ctype=fetch(target,8,768)
+              if a not in (200,206) or len(body)<32 or body[:30].lower().lstrip().startswith((b"<html",b"<?xml",b"{",b"#extm3u")):
+                return ("BAD_SEGMENT",source,name,url)
+              return ("SEGMENT_OK",source,name,url)
+            except urllib.error.HTTPError as e:return ("HTTP_"+str(e.code),source,name,url)
+            except Exception as e:return ("ERROR",source,name,url)
+          with concurrent.futures.ThreadPoolExecutor(max_workers=14) as p:
+            results=list(p.map(check,unique.values()))
+          print("SUMMARY",json.dumps({"entries":len(entries),"unique":len(unique),"results":dict(Counter(x[0] for x in results))}),flush=True)
+          for state,source,name,url in results:
+            if state=="SEGMENT_OK":
+              print("SEGMENT_OK",json.dumps({"source":source,"name":name,"url":url},ensure_ascii=False),flush=True)
+          PY

@@ -14,9 +14,17 @@
  */
 
 /* Helpers for human-readable playback diagnostics. */
+/** Esc for media codec labels.
+ * @param {string} s - Input text.
+ * @returns {*} Value produced by the operation.
+ */
 function _esc(s) {
     return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
+/** Media Err Text for media codec labels.
+ * @param {*} err - Input for _mediaErrText().
+ * @returns {*} Value produced by the operation.
+ */
 function _mediaErrText(err) {
     if (!err) return "playback error";
     var map = { 1: "aborted", 2: "network error", 3: "decode error — codec not supported", 4: "format/codec not supported" };
@@ -24,6 +32,10 @@ function _mediaErrText(err) {
     if (err.message) t += " — " + err.message;
     return t;
 }
+/** Is Dolby for media codec labels.
+ * @param {*} c - Input for _isDolby().
+ * @returns {*} Value produced by the operation.
+ */
 function _isDolby(c) {
     c = (c || "").toLowerCase();
     return c.indexOf("ec-3") !== -1 || c.indexOf("ac-3") !== -1 ||
@@ -36,6 +48,10 @@ function _isDolby(c) {
    in data/subtitles.js, which needs the same mapping for the panel's subtitle
    list — one table, so the audio menu and the subtitle menu can never disagree
    about what "nld" is called. */
+/** Lang Name for media codec labels.
+ * @param {*} code - Input for _langName().
+ * @returns {*} Value produced by the operation.
+ */
 function _langName(code) {
     return (typeof Subs !== "undefined") ? Subs.langName(code)
                                          : (code ? String(code).toUpperCase() : "");
@@ -43,12 +59,23 @@ function _langName(code) {
 
 // Builds a human label, appending a Dolby hint when the codec suggests one so
 // the user can spot the track that's likely to be silent on their TV.
+/** Track Label for media codec labels.
+ * @param {string} name - Name.
+ * @param {string} lang - Language code.
+ * @param {number} index - Zero-based index.
+ * @param {*} codec - Input for _trackLabel().
+ * @returns {*} Value produced by the operation.
+ */
 function _trackLabel(name, lang, index, codec) {
     var base = (name && String(name).trim()) || _langName(lang) || ("Track " + (index + 1));
     if (codec && _isDolby(codec) && !/dolby|ac-?3/i.test(base)) base += " (Dolby)";
     return base;
 }
 
+/** Is Hevc for media codec labels.
+ * @param {string} s - Input text.
+ * @returns {*} Value produced by the operation.
+ */
 function _isHevc(s) {
     s = (s || "").toLowerCase();
     return s.indexOf("hvc") !== -1 || s.indexOf("hev") !== -1 ||

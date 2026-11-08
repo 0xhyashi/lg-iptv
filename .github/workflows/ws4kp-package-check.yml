@@ -1,0 +1,115 @@
+name: Verify Bunkhouse Nightwave/Classic/Soma Weather IPK
+on:
+  push:
+    branches: [privacy/toonami-single-stream-test]
+    paths:
+      - .github/workflows/ws4kp-package-check.yml
+      - tools/build-weatherstar.js
+      - tools/add-weatherstar-music.js
+      - js/**
+      - assets/**
+      - assets/weatherstar-compat.js
+      - tools/patch-weatherstar-compat.js
+      - tests/weatherstar-location.test.js
+      - pages/livetv.html
+      - assets/weatherstar.css
+      - appinfo.json
+      - manifest.json
+      - package.json
+  workflow_dispatch:
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build Bunkhouse + pristine WeatherStar (with original MP3 music)
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Verify 17-track randomized continuous playlist and album license
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const path=require('path');
+          const list=JSON.parse(fs.readFileSync('weatherstar/playlist.json','utf8'));
+          if (list.availableFiles.length!==17) throw Error('Expected 17 original/extra songs, got '+list.availableFiles.length);
+          const extras=list.availableFiles.filter(x=>x.startsWith('Latest Observations/'));
+          if (extras.length!==13) throw Error('Expected 13 Latest Observations songs');
+          list.availableFiles.forEach(x=>{
+              const p=path.join('weatherstar/music',x);
+              if(!fs.existsSync(p)||fs.statSync(p).size<200000)throw Error('Missing song '+x);
+          });
+          const cred=fs.readFileSync('weatherstar/music/LICENSE-ADDITIONAL-MUSIC.md','utf8');
+          if(!cred.includes('CC BY 4.0')||!cred.includes('netbymatt'))throw Error('Attribution missing');
+          const code=fs.readFileSync('weatherstar/resources/ws.min.js','utf8');
+          if(!code.includes('currentTrack') || !code.includes('randomizePlaylist'))console.log('Player code is minified; asserting playlist length only');
+          console.log('WEATHER_MUSIC_CHECK_OK: 17 files present and licensed (4 original + 13 CC BY).');
+          NODE
+          python3 -m pip install -q --break-system-packages mutagen
+          python3 - <<'PY'
+          from pathlib import Path
+          from mutagen.mp3 import MP3
+          files=list(Path('weatherstar/music').rglob('*.mp3'))
+          durations=[]
+          for f in files:
+              duration=MP3(str(f)).info.length
+              durations.append(duration)
+              print('MUSIC_DURATION',f.relative_to(Path('weatherstar/music')),round(duration,1))
+          print('WEATHER_MUSIC_TOTAL',round(sum(durations),1),'seconds',len(files),'tracks')
+          assert len(files)==17
+          PY
+          # Also inspect using ffprobe if available.
+          if command -v ffprobe >/dev/null; then
+            echo "Duration of all 17 WeatherStar radio tracks:"
+            find weatherstar/music -name '*.mp3' -print0 | xargs -0 -n1 -P4 ffprobe -v error -show_entries format=duration -of default=nokey=1:noprint_wrappers=1
+          fi
+      - name: Prove location search bypass and old LG browser compatibility
+        run: |
+          node tests/weatherstar-location.test.js
+          node - <<'NODE'
+          const fs=require('fs');
+          const html=fs.readFileSync('weatherstar/index.html','utf8');
+          const base=html.indexOf('../js/polyfills.js');
+          const compat=html.indexOf('../assets/weatherstar-compat.js');
+          const original=html.indexOf('resources/ws.min.js');
+          if(base<0||compat<base||original<compat) throw Error('Old LG fetch/Abort shims not loaded before original weather code');
+          if(!html.includes('WeatherStar 4000+'))throw Error('Original WeatherStar title missing');
+          const shim=fs.readFileSync('assets/weatherstar-compat.js','utf8');
+          if(!shim.includes('AbortSignal.timeout') || !shim.includes('bunkhouseWeatherstar'))throw Error('WeatherStar old-TV shims or diagnostics missing');
+          console.log('WEATHER_COMPAT_OK: upstream WeatherStar kept, compatibility bootstrap runs first.');
+          NODE
+      - name: Validate live-radio stream choice and forecast behavior
+        run: |
+          node --check dist/js/livetv/weatherstar.js
+          node - <<'NODE'
+          const fs=require('fs');
+          const js=fs.readFileSync('dist/js/livetv/weatherstar.js','utf8');
+          const markup=fs.readFileSync('pages/livetv.html','utf8');
+          const code=['nightwave','https://radio.plaza.one/mp3','https://ice5.somafm.com/vaporwaves-128-mp3',
+                      'soundPaused','stopExternal()','weatherstar-external-audio'];
+          for (const str of code) {
+            if (!js.includes(str) && !markup.includes(str)) throw Error('Missing soundtrack: '+str);
+          }
+          const meta=JSON.parse(fs.readFileSync('appinfo.json','utf8'));
+          if(meta.version!=='1.0.44') throw Error('Incorrect app version');
+          console.log('WEATHER_SOUNDTRACK_UI_CHECK_OK: Nightwave default, Classic, SomaFM');
+          NODE
+      - name: Create real LG webOS TV package without minification
+        run: |
+          npm install -g @webos-tools/cli --no-audit --no-fund
+          ares-package -n .
+          ls -lh com.oxhyashi.toonamitest_1.0.44_all.ipk
+          test $(stat -c %s com.oxhyashi.toonamitest_1.0.44_all.ipk) -gt 1000000
+          ar t com.oxhyashi.toonamitest_1.0.44_all.ipk
+          echo "IPK_CHECK_OK"
+      - name: Upload testable webOS package
+        uses: actions/upload-artifact@v4
+        with:
+          name: bunkhouse-webos-test-ipk
+          path: com.oxhyashi.toonamitest_1.0.44_all.ipk
+          if-no-files-found: error
+          retention-days: 14

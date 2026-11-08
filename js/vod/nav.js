@@ -17,15 +17,31 @@ var detailFocus = 0;
 var searchFocus = 0;
 var _focusRailsAfterRender = false;
 
+/** Set the active remote-control focus zone and clear old focus rings.
+ * @param {string} z - Remote focus zone name.
+ * @returns {void} No return value.
+ */
 function focusZone(z) { zone = z; clearRings(); }
+/** Clear Rings for VOD remote and focus handling.
+ * @returns {void} No return value.
+ */
 function clearRings() {
     document.querySelectorAll('.tv-focus-visible').forEach(function (el) { el.classList.remove('tv-focus-visible'); });
 }
 
 /* ── Sidebar (collapsible left nav + categories) ─────────────────── */
+/** Get the VOD sidebar container.
+ * @returns {HTMLElement|null} Sidebar DOM element, or null.
+ */
 function sidebarEl() { return document.getElementById('vod-sidebar'); }
+/** Get the top-level VOD sidebar navigation buttons.
+ * @returns {Array<HTMLElement>} Navigation elements in display order.
+ */
 function navItems()  { return Array.prototype.slice.call(document.querySelectorAll('#vod-sidebar .vod-nav-item')); }
 /* Focusable sidebar items = top sections + (when expanded) categories. */
+/** Get the sidebar items for remote navigation.
+ * @returns {Array<HTMLElement>} Sidebar navigation elements.
+ */
 function sidebarItems() {
     return Array.prototype.slice.call(document.querySelectorAll('#vod-sidebar .vod-nav-item, #vod-sidebar .vod-cat-item'))
         .filter(function (el) { return el.offsetParent !== null; });
@@ -35,6 +51,9 @@ function sidebarItems() {
    ★ that pins the whole category to the top of the rails — the same
    two-control shape as Live TV's sidebar, so the D-pad behaves identically
    on both screens. */
+/** Render Sidebar Cats for VOD remote and focus handling.
+ * @returns {void} No return value.
+ */
 function renderSidebarCats() {
     var wrap = document.getElementById('vod-nav-cats');
     wrap.innerHTML = '';
@@ -90,6 +109,10 @@ function renderSidebarCats() {
 }
 
 /* Jump the rails to a given category and focus it. */
+/** Select the requested VOD category and move remote focus to it.
+ * @param {string|number} catId - Category ID to select.
+ * @returns {void} No return value.
+ */
 function jumpToCategory(catId) {
     collapseSidebar();
     focusZone('rails');
@@ -105,6 +128,9 @@ function jumpToCategory(catId) {
     if (target) { try { target.scrollIntoView({ block: 'start' }); } catch (e) {} }
 }
 
+/** Expand the VOD sidebar and give it focus.
+ * @returns {void} No return value.
+ */
 function openSidebar() {
     focusZone('sidebar');
     sidebarEl().classList.add('expanded');
@@ -112,15 +138,25 @@ function openSidebar() {
     sidebarSub = 'item';
     paintSidebarFocus();
 }
+/** Collapse the VOD sidebar.
+ * @returns {void} No return value.
+ */
 function collapseSidebar() { sidebarEl().classList.remove('expanded'); }
 /* The ★ belonging to a sidebar row, or null for the top-level nav items
    (Search / Movies / Series / Settings) which have none. */
+/** Find the favourite star for a sidebar category row.
+ * @param {number} idx - Index.
+ * @returns {HTMLElement|null} Star button, or null.
+ */
 function sidebarStarFor(idx) {
     var el = sidebarItems()[idx];
     var row = el && el.closest ? el.closest('.vod-cat-row') : null;
     return row ? row.querySelector('.vod-cat-star') : null;
 }
 
+/** Draw the remote focus ring on the selected sidebar item.
+ * @returns {void} No return value.
+ */
 function paintSidebarFocus() {
     clearRings();
     var items = sidebarItems();
@@ -132,6 +168,10 @@ function paintSidebarFocus() {
     (star || el).classList.add('tv-focus-visible');
     el.scrollIntoView({ block: 'nearest' });
 }
+/** Run the action represented by a VOD sidebar button.
+ * @param {HTMLElement} item - Clicked VOD navigation item.
+ * @returns {void} No return value.
+ */
 function activateNav(item) {
     if (!item) return;
     var action = item.dataset.action;
@@ -144,8 +184,18 @@ function activateNav(item) {
     }
 }
 
+/** Get all VOD category rails.
+ * @returns {Array<HTMLElement>} Rail elements in display order.
+ */
 function railEls() { return Array.prototype.slice.call(elRails.querySelectorAll('.vod-rail')); }
+/** Get the real movie/series cards in a rail.
+ * @param {HTMLElement|null} rail - Rail whose playable cards are needed.
+ * @returns {Array<HTMLElement>} Cards excluding loading placeholders.
+ */
 function railCards(rail) { return rail ? Array.prototype.slice.call(rail.querySelectorAll('.vod-card:not(.vod-skeleton)')) : []; }
+/** Draw the remote focus ring on a VOD rail card.
+ * @returns {void} No return value.
+ */
 function paintRailFocus() {
     clearRings();
     var rails = railEls();
@@ -162,6 +212,9 @@ function paintRailFocus() {
     rails[railIndex].scrollIntoView({ block: 'nearest' });
 }
 
+/** Get focusable controls in the open VOD details panel.
+ * @returns {Array<HTMLElement>} Detail controls in navigation order.
+ */
 function detailItems() {
     var arr = [];
     var playBtn = document.getElementById('vod-play-btn');
@@ -172,6 +225,9 @@ function detailItems() {
     arr = arr.concat(Array.prototype.slice.call(document.querySelectorAll('#vod-episode-list .vod-ep-row')));
     return arr;
 }
+/** Draw the remote focus ring in the details panel.
+ * @returns {void} No return value.
+ */
 function paintDetailFocus() {
     clearRings();
     var items = detailItems();
@@ -181,9 +237,18 @@ function paintDetailFocus() {
     items[detailFocus].scrollIntoView({ block: 'nearest' });
 }
 
+/** Get the current VOD search-result cards.
+ * @returns {Array<HTMLElement>} Search-result card elements.
+ */
 function searchCards() { return Array.prototype.slice.call(elSearchGrid.querySelectorAll('.vod-card')); }
 /* Same measurement — and the same transform trap — as the category grid. */
+/** Determine the number of columns in the search grid.
+ * @returns {number} Number of search-result columns.
+ */
 function searchCols() { return gridCols(searchCards()); }
+/** Draw the remote focus ring in search results.
+ * @returns {void} No return value.
+ */
 function paintSearchFocus() {
     clearRings();
     var cards = searchCards();
@@ -292,6 +357,10 @@ window.addEventListener('keydown', function (e) {
     }
 });
 
+/** Fetch a VOD rail if it has not been loaded yet.
+ * @param {HTMLElement|null} rail - Rail to fetch if not yet loaded.
+ * @returns {void} No return value.
+ */
 function ensureRailLoaded(rail) {
     if (rail && rail.dataset.loaded === '0') fillRail(rail);
 }

@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="../dist/css/base.css" />
     <link rel="stylesheet" href="../dist/css/livetv.css" />
     <link rel="stylesheet" href="../dist/css/player.css" />
+    <link rel="stylesheet" href="../dist/css/radio.css" />
+    <link rel="stylesheet" href="../dist/css/bunkhouse.css" />
+    <link rel="stylesheet" href="../dist/css/weatherstar.css" />
     <link rel="stylesheet" href="../dist/css/multiview.css" />
     <!-- Blocking on purpose: detects the video pipeline and sets the UI scale
          before first paint. Must stay in <head> and must stay synchronous. -->
@@ -24,7 +27,7 @@
                             <polyline points="9 22 9 12 15 12 15 22"/>
                         </svg>
                     </button>
-                    <span>IPTV <small>v1.0.32</small></span>
+                    <span>Bunkhouse <small>v1.0.44</small></span>
                     <button id="settings-btn" title="Settings" onclick="location.href='../pages/settings.html'">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="3"/>
@@ -35,8 +38,13 @@
                 <input id="search" type="text" placeholder="Search channels…" autocomplete="off" spellcheck="false" />
                 <div id="status">Connecting…</div>
             </div>
+            <nav id="bunkhouse-switch" aria-label="Media type">
+                <button id="media-tv" class="active" type="button">▣ <span>TV</span></button>
+                <button id="media-radio" type="button">♫ <span>RADIO</span></button>
+            </nav>
             <div id="panel-channels" class="sidebar-panel active">
                 <div id="categories"></div>
+                <div id="radio-stations" style="display:none;"></div>
             </div>
 
         </aside>
@@ -66,6 +74,87 @@
                 </div>
                 <div id="pip-wrap">
                     <video id="player" autoplay playsinline></video>
+                    <!-- Independent native audio player for Icecast/MP3 radio streams. -->
+                    <audio id="radio-audio" preload="none"></audio>
+                    <div id="radio-visual" class="mode-saturn" style="display:none;">
+                        <header id="bunkhouse-header">
+                            <span class="bk-eq-indicator" aria-hidden="true">▥ ▥ ▥</span>
+                            <span id="bunkhouse-title">BUNKHOUSE RADIO</span>
+                            <span id="bk-live-led">● LIVE</span>
+                        </header>
+                        <div id="bk-body">
+                            <section id="bk-stage">
+                                <div id="bk-planet-frame">
+                                    <img id="bk-saturn" src="../assets/bunkhouse-saturn.jpg" alt="Blue Saturn with glowing rings — vintage 1990s computer artwork" />
+                                    <span id="bk-planet-caption">SATURN // SPACE RADIO</span>
+                                </div>
+                                <div id="bk-station-box">
+                                    <div class="bk-tiny">TUNED TO</div>
+                                    <div id="radio-name">Internet Radio</div>
+                                    <div id="radio-frequency" class="bk-frequency">NET</div>
+                                    <div id="bk-equalizer" aria-label="Decorative simulated equalizer"></div>
+                                    <div class="bk-visual-note">ANIMATED EQ · SIMULATED</div>
+                                </div>
+                            </section>
+                            <section id="bk-information">
+                                <div id="radio-track-panel" class="bk-panel">
+                                    <div class="bk-section-title">NOW PLAYING</div>
+                                    <div id="bk-current-content">
+                                        <div class="radio-cover-box">
+                                            <div id="radio-cover-placeholder"><span>♫</span><small>ALBUM ART</small></div>
+                                            <img id="radio-cover" alt="Album cover for the current song" style="display:none;" />
+                                        </div>
+                                        <div class="radio-track-meta">
+                                            <div id="radio-track">Waiting for the next song</div>
+                                            <div id="radio-artist">Live broadcast</div>
+                                            <div id="radio-album"></div>
+                                            <div id="radio-metadata-state">Waiting for station metadata…</div>
+                                            <a id="radio-art-source" style="display:none;" target="_blank" rel="noopener noreferrer">See album on Apple Music</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="bk-history" class="bk-panel">
+                                    <div class="bk-section-title">PREVIOUSLY PLAYED</div>
+                                    <ol id="radio-history-list"><li class="bk-no-history">Recent tracks will appear here when station metadata is available.</li></ol>
+                                </div>
+                            </section>
+                        </div>
+                        <footer id="bunkhouse-controls">
+                            <div class="bk-controls-main">
+                                <button id="radio-prev" type="button" title="Previous radio station">◀ STATION</button>
+                                <button id="radio-toggle" type="button">Pause</button>
+                                <button id="radio-next" type="button" title="Next radio station">STATION ▶</button>
+                                <span id="radio-status">Connecting…</span>
+                            </div>
+                            <div class="bk-controls-note">LIVE STREAM · NO SEEKING</div>
+                        </footer>
+                    </div>
+                    <!-- Unmodified WeatherStar 4000+ in a local HTML frame.
+                         Not a video stream: the original live NOAA app runs here. -->
+                    <div id="weatherstar-view" style="display:none;">
+                        <div id="weatherstar-toolbar">
+                            <strong>WEATHERSTAR 4000+ / LIVE</strong>
+                            <input id="weatherstar-city" type="text" placeholder="ZIP or City, State"
+                                   aria-label="Weather location" spellcheck="false" />
+                            <button id="weatherstar-location-go" type="button">SET LOCATION</button>
+                            <label id="weatherstar-soundtrack-label" for="weatherstar-soundtrack">SOUNDTRACK</label>
+                            <select id="weatherstar-soundtrack" aria-label="WeatherStar soundtrack">
+                                <option value="nightwave">Nightwave Plaza • 24/7</option>
+                                <option value="classic">Classic WeatherStar • 17 songs</option>
+                                <option value="soma">SomaFM Vaporwaves • 24/7</option>
+                            </select>
+                            <button id="weatherstar-music" type="button">▶ PLAY SOUND</button>
+                            <button id="weatherstar-retry" type="button">RETRY FORECAST</button>
+                            <button id="weatherstar-fullscreen" type="button">FULL SCREEN</button>
+                            <button id="weatherstar-exit" type="button">◀ TV</button>
+                        </div>
+                        <!-- ONE radio element shared by the two live soundtrack choices;
+                             classic mode uses WeatherStar's own internal player. -->
+                        <audio id="weatherstar-external-audio" preload="none"></audio>
+                        <iframe id="weatherstar-frame" title="WeatherStar 4000+ original forecast"
+                                src="about:blank" allow="autoplay" referrerpolicy="no-referrer"></iframe>
+                        <div id="weatherstar-status" aria-live="polite">Select WeatherStar 4000+ to load local forecasts.</div>
+                    </div>
                     <div id="player-msg">Select a channel</div>
                     <div id="pip-bar">
                         <span id="pip-channel-name"></span>
@@ -121,6 +210,8 @@
     <script defer src="../dist/js/livetv/channels.js"></script>
     <script defer src="../dist/js/livetv/sidebar.js"></script>
     <script defer src="../dist/js/livetv/pip.js"></script>
+    <script defer src="../dist/js/livetv/radio.js"></script>
+    <script defer src="../dist/js/livetv/weatherstar.js"></script>
     <script defer src="../dist/js/livetv/numpad.js"></script>
     <script defer src="../dist/js/livetv/multiview.js"></script>
     <script defer src="../dist/js/dpad.js"></script>

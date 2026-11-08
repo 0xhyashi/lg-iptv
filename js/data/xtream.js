@@ -11,9 +11,21 @@
  * callers can spot a 403 and stop hammering a panel that has switched EPG off.
  */
 
+/** Xt Base for Xtream provider requests.
+ * @param {Object} cfg - Provider configuration.
+ * @returns {*} Function result.
+ */
 function _xtBase(cfg) { return Config.base(cfg); }
+/** Xt Api for Xtream provider requests.
+ * @param {Object} cfg - Provider configuration.
+ * @param {*} params - Input for _xtApi().
+ * @returns {*} Function result.
+ */
 function _xtApi(cfg, params) { return Config.apiUrl(cfg, params); }
 
+/** Xtream Load Config for Xtream provider requests.
+ * @returns {*} Function result.
+ */
 function xtreamLoadConfig() {
     if (window.IPTV_CONFIG) return Promise.resolve(window.IPTV_CONFIG);
     var cfg = Config.resolve();
@@ -26,9 +38,8 @@ function xtreamLoadConfig() {
 
 /* Try each candidate URL in turn until one answers. Returns { cfg, data } with
    cfg.server_url set to the URL that worked, or null when none did.
-   Config.candidateUrls() supplies the http twin of every https entry — some
-   panels present a certificate the TV browser rejects while plain http on the
-   same host is fine. */
+   Config.candidateUrls() supplies only explicitly configured server URLs;
+   never silently replace an HTTPS endpoint with HTTP. */
 /* A panel that REJECTS the credentials still answers HTTP 200, with
    { user_info: { auth: 0 } } — and an expired or banned line answers
    { auth: 1, status: "Expired" }. Both are truthy, so accepting any JSON here
@@ -37,6 +48,10 @@ function xtreamLoadConfig() {
    returned", which sends the user looking for the wrong problem entirely.
    settings.js already distinguishes these when saving a profile — this is the
    same test, applied on the path the app actually boots through. */
+/** Xt Auth Problem for Xtream provider requests.
+ * @param {Object} result - Result.
+ * @returns {*} Function result.
+ */
 function _xtAuthProblem(result) {
     const info = result && result.user_info;
     if (!info) return null;                       // no user_info: not an auth reply, let it through
@@ -53,6 +68,10 @@ function _xtAuthProblem(result) {
     return null;
 }
 
+/** Xtream Login for Xtream provider requests.
+ * @param {Object} cfg - Provider configuration.
+ * @returns {Promise<*>} Promise for the asynchronous operation.
+ */
 async function xtreamLogin(cfg) {
     const urls = Config.candidateUrls(cfg);
     /* Held rather than returned immediately: a later URL may authenticate fine
@@ -78,6 +97,10 @@ async function xtreamLogin(cfg) {
     return authProblem ? { authFailed: true, message: authProblem } : null;
 }
 
+/** Xtream Get Live Channels for Xtream provider requests.
+ * @param {Object} cfg - Provider configuration.
+ * @returns {Promise<*>} Promise for the asynchronous operation.
+ */
 async function xtreamGetLiveChannels(cfg) {
     try {
         const data = await Net.json(_xtApi(cfg, 'action=get_live_streams'), { timeout: 20000 });
@@ -85,6 +108,10 @@ async function xtreamGetLiveChannels(cfg) {
     } catch (_) { return []; }
 }
 
+/** Xtream Get Categories for Xtream provider requests.
+ * @param {Object} cfg - Provider configuration.
+ * @returns {Promise<*>} Promise for the asynchronous operation.
+ */
 async function xtreamGetCategories(cfg) {
     try {
         const data = await Net.json(_xtApi(cfg, 'action=get_live_categories'));
@@ -95,6 +122,11 @@ async function xtreamGetCategories(cfg) {
 /* Short "now and next" guide for one channel. Rethrows HTTP errors — a 403
    here means the panel has EPG disabled for this account, and the caller stops
    asking rather than firing one doomed request per channel. */
+/** Xtream Get EPG for Xtream provider requests.
+ * @param {Object} cfg - Provider configuration.
+ * @param {*} streamId - Input for xtreamGetEPG().
+ * @returns {Promise<*>} Promise for the asynchronous operation.
+ */
 async function xtreamGetEPG(cfg, streamId) {
     try {
         const data = await Net.json(
@@ -112,6 +144,10 @@ async function xtreamGetEPG(cfg, streamId) {
    Arabic, Greek or Cyrillic titles came out as unreadable runs of accented
    Latin. The escape/decodeURIComponent pair is the ES5 way to reassemble UTF-8;
    if the bytes aren't valid UTF-8 the raw decode is kept. */
+/** Xtream Decode EPG for Xtream provider requests.
+ * @param {*} str - Input for xtreamDecodeEPG().
+ * @returns {*} Function result.
+ */
 function xtreamDecodeEPG(str) {
     if (!str) return '';
     var s = String(str);
@@ -126,6 +162,11 @@ function xtreamDecodeEPG(str) {
    get_short_epg this returns the whole stored archive window, and each listing
    carries `has_archive` (1 = a catch-up recording exists). Titles/descriptions
    are base64 like the short EPG. Used by the Catch-up page. */
+/** Xtream Get Simple Data Table for Xtream provider requests.
+ * @param {Object} cfg - Provider configuration.
+ * @param {*} streamId - Input for xtreamGetSimpleDataTable().
+ * @returns {Promise<*>} Promise for the asynchronous operation.
+ */
 async function xtreamGetSimpleDataTable(cfg, streamId) {
     try {
         const data = await Net.json(
@@ -138,12 +179,20 @@ async function xtreamGetSimpleDataTable(cfg, streamId) {
 }
 
 /* Two-digit pad helper for the timeshift start string. */
+/** Ts2 for Xtream provider requests.
+ * @param {*} n - Input for _ts2().
+ * @returns {*} Function result.
+ */
 function _ts2(n) { return (n < 10 ? '0' : '') + n; }
 
 /* Format a Date as the `Y-m-d:H-i` string Xtream timeshift endpoints expect,
    in the device's local timezone (matches the wall-clock time shown in the
    programme list — correct when the TV and IPTV server share a timezone, which
    is the common case for same-country providers). */
+/** Xtream Format Timeshift Start for Xtream provider requests.
+ * @param {*} date - Input for xtreamFormatTimeshiftStart().
+ * @returns {*} Function result.
+ */
 function xtreamFormatTimeshiftStart(date) {
     return date.getFullYear() + '-' + _ts2(date.getMonth() + 1) + '-' + _ts2(date.getDate()) +
            ':' + _ts2(date.getHours()) + '-' + _ts2(date.getMinutes());
@@ -153,6 +202,13 @@ function xtreamFormatTimeshiftStart(date) {
    priority order so the player can walk the list until one plays — different
    panels expose different endpoints. `start` is the programme's start Date;
    `durationMin` is its length in minutes. */
+/** Xtream Build Timeshift URLs for Xtream provider requests.
+ * @param {Object} cfg - Provider configuration.
+ * @param {*} streamId - Input for xtreamBuildTimeshiftURLs().
+ * @param {*} start - Input for xtreamBuildTimeshiftURLs().
+ * @param {*} durationMin - Input for xtreamBuildTimeshiftURLs().
+ * @returns {*} Function result.
+ */
 function xtreamBuildTimeshiftURLs(cfg, streamId, start, durationMin) {
     const baseUrl  = _xtBase(cfg);
     const u        = encodeURIComponent(cfg.username);
@@ -170,6 +226,11 @@ function xtreamBuildTimeshiftURLs(cfg, streamId, start, durationMin) {
     ];
 }
 
+/** Xtream Build Live URL for Xtream provider requests.
+ * @param {Object} cfg - Provider configuration.
+ * @param {*} streamId - Input for xtreamBuildLiveURL().
+ * @returns {*} Function result.
+ */
 function xtreamBuildLiveURL(cfg, streamId) {
     return Config.liveUrl(cfg, streamId);
 }

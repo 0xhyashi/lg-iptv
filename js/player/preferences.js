@@ -32,11 +32,19 @@ var PLAYER_MEM_MAX   = 200;                     // entries before pruning oldest
    that worked is recorded against the content key, and the next play of that
    same content starts there. Purely an ordering hint — every other tier is
    still tried if the remembered one stops working. */
+/** Engine Memory for player engine selection.
+ * @returns {*} Value produced by the operation.
+ */
 function _engineMemory() {
     try { return JSON.parse(localStorage.getItem(PLAYER_MEM_KEY) || "{}") || {}; }
     catch (_) { return {}; }
 }
 
+/** Remember Engine for player engine selection.
+ * @param {string} key - Saved key or lookup ID.
+ * @param {string} kind - Content kind.
+ * @returns {*} Value produced by the operation.
+ */
 function _rememberEngine(key, kind) {
     if (!key || PLAYER_ENGINES.indexOf(kind) === -1) return;
     try {
@@ -51,6 +59,10 @@ function _rememberEngine(key, kind) {
     } catch (_) {}
 }
 
+/** Recalled Engine for player engine selection.
+ * @param {string} key - Saved key or lookup ID.
+ * @returns {*} Value produced by the operation.
+ */
 function _recalledEngine(key) {
     if (!key) return "";
     var kind = _engineMemory()[key];
@@ -84,6 +96,9 @@ var TRACK_SUB_KEY   = "vod_subs_pref";          // global fallback — subtitle 
 var TRACK_AUDIO_KEY = "vod_audio_pref";         // global fallback — audio language
 var TRACK_MEM_MAX   = 200;
 
+/** Track Memory for player engine selection.
+ * @returns {*} Value produced by the operation.
+ */
 function _trackMemory() {
     try { return JSON.parse(localStorage.getItem(TRACK_MEM_KEY) || "{}") || {}; }
     catch (_) { return {}; }
@@ -92,6 +107,11 @@ function _trackMemory() {
 /* `what` is "sub" or "audio". Returns "" when nothing is remembered, which
    callers must treat as "leave the stream's own default alone" — never as a
    reason to guess. */
+/** Recalled Track for player engine selection.
+ * @param {string} key - Saved key or lookup ID.
+ * @param {*} what - Input for _recalledTrack().
+ * @returns {*} Value produced by the operation.
+ */
 function _recalledTrack(key, what) {
     if (key) {
         var rec = _trackMemory()[key];
@@ -102,6 +122,12 @@ function _recalledTrack(key, what) {
     } catch (_) { return ""; }
 }
 
+/** Remember Track for player engine selection.
+ * @param {string} key - Saved key or lookup ID.
+ * @param {*} what - Input for _rememberTrack().
+ * @param {*} value - Value.
+ * @returns {*} Value produced by the operation.
+ */
 function _rememberTrack(key, what, value) {
     value = String(value === undefined || value === null ? "" : value);
     try {
@@ -131,12 +157,19 @@ function _rememberTrack(key, what, value) {
    chosen in Settings; choosing one there clears it. */
 var PLAYER_LIVE_HINT_KEY = "iptv_live_engine_hint";
 
+/** Live Engine Hint for player engine selection.
+ * @returns {*} Value produced by the operation.
+ */
 function _liveEngineHint() {
     var v;
     try { v = localStorage.getItem(PLAYER_LIVE_HINT_KEY) || ""; } catch (_) { return ""; }
     return PLAYER_ENGINES.indexOf(v) !== -1 ? v : "";
 }
 
+/** Remember Live Engine for player engine selection.
+ * @param {string} kind - Content kind.
+ * @returns {*} Value produced by the operation.
+ */
 function _rememberLiveEngine(kind) {
     if (PLAYER_ENGINES.indexOf(kind) === -1) return;
     try { localStorage.setItem(PLAYER_LIVE_HINT_KEY, kind); } catch (_) {}
@@ -144,6 +177,9 @@ function _rememberLiveEngine(kind) {
 
 // Resolves the stored preference to a `kind`, or "" meaning "use the automatic
 // order" (native → hls → ts, the historical behaviour).
+/** Preferred Engine for player engine selection.
+ * @returns {*} Value produced by the operation.
+ */
 function _preferredEngine() {
     var pref, last;
     try {
