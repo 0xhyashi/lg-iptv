@@ -60,8 +60,8 @@
         return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     }
 
-    /** Load Profiles for provider and account settings.
-     * @returns {*} Value produced by the operation.
+    /** Read IPTV profiles, migrate legacy settings and recover corrupt data.
+     * @returns {Array<Object>} Editable Xtream and M3U profile records.
      */
     function loadProfiles() {
         var profiles = load('iptv_profiles', null);
@@ -453,9 +453,9 @@
         var reachedButAuthFailed = false;   // got a valid auth:0 from some server
         var accountIssue         = null;    // auth ok but Expired/Banned/Disabled
 
-        /** Connect Success for provider and account settings.
-         * @param {string} url - Requested URL.
-         * @returns {*} Value produced by the operation.
+        /** Activate the currently edited profile after a confirmed login.
+         * @param {string} url - Server URL that accepted the credentials.
+         * @returns {void} Updates active profile, storage and navigation.
          */
         function connectSuccess(url) {
             if (connectId !== connectSerial || selectedId !== profile.id) return;
@@ -468,8 +468,8 @@
             setTimeout(function () { tvGoBack('../index.html'); }, 900);
         }
 
-        /** Report Failure for provider and account settings.
-         * @returns {*} Value produced by the operation.
+        /** Report why all candidate servers failed for the active login.
+         * @returns {void} Updates the profile status message.
          */
         function reportFailure() {
             if (connectId !== connectSerial || selectedId !== profile.id) return;
