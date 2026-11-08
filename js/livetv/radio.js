@@ -35,7 +35,7 @@ var RadioDeck = (function () {
     var nowByStation = {};
     var equalizerBars = [];
     /** Render the active station's real, observed track history.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function renderHistory() {
         var list = $("radio-history-list");
@@ -66,7 +66,7 @@ var RadioDeck = (function () {
     /** Save the previous song when a station reports a new track.
      * @param {string} artist - Reported artist name.
      * @param {string} title - Reported track title.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function rememberTrack(artist, title) {
         if (!current) return;
@@ -84,25 +84,25 @@ var RadioDeck = (function () {
 
     /** Find a page element by its ID.
      * @param {string} id - DOM element or stored object ID.
-     * @returns {HTMLElement|null} Value described above.
+     * @returns {HTMLElement|null} Matching element, or null.
      */
     function $(id) { return document.getElementById(id); }
     /** Set a DOM element's text safely.
      * @param {string} id - DOM element or stored object ID.
      * @param {string} text - Text to display or parse.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function safeText(id, text) { var node = $(id); if (node) node.textContent = text || ""; }
     /** Return the current radio audio element.
-     * @returns {HTMLAudioElement|null} Value described above.
+     * @returns {HTMLAudioElement|null} Active audio element, or null.
      */
     function audio() { return $("radio-audio"); }
     /** Check that RadioDeck still owns the selected channel.
-     * @returns {boolean} Value described above.
+     * @returns {boolean} Whether the requested condition is met.
      */
     function isActive() { return !!current && typeof currentChannel !== "undefined" && currentChannel === current; }
     /** Check whether native radio audio is actually ready and playing.
-     * @returns {boolean} Value described above.
+     * @returns {boolean} Whether the requested condition is met.
      */
     function playing() { var a = audio(); return !!a && !a.paused && a.readyState > 1; }
     /* Never reuse a native audio decoder across different live stations.
@@ -114,12 +114,12 @@ var RadioDeck = (function () {
      */
     /** Bind playback status to a single specific audio element.
      * @param {HTMLAudioElement} a - Native audio element for this tune.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function bindAudioEvents(a) {
         if (!a) return;
         /** Check whether this event belongs to the current audio element.
-         * @returns {boolean} Value described above.
+         * @returns {boolean} Whether the requested condition is met.
          */
         function active() { return a === audio() && isActive(); }
         a.addEventListener("playing", function () {
@@ -143,7 +143,7 @@ var RadioDeck = (function () {
         });
     }
     /** Stop and replace the native decoder so old stations cannot leak into a new tune.
-     * @returns {HTMLAudioElement|null} Value described above.
+     * @returns {HTMLAudioElement|null} Active audio element, or null.
      */
     function releaseAudio() {
         var old = audio();
@@ -164,12 +164,12 @@ var RadioDeck = (function () {
 
     /** Normalize text for artist/title matching.
      * @param {string} s - Text to normalize.
-     * @returns {string} Value described above.
+     * @returns {string} Requested text value.
      */
     function normal(s) { return String(s || "").toLowerCase().normalize ? String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff]+/g, " ").trim() : String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
 
     /** Restore the bounded album-art lookup cache.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function loadArtworkCache() {
         try {
@@ -178,7 +178,7 @@ var RadioDeck = (function () {
         } catch (_) {}
     }
     /** Persist a bounded cache of album artwork matches.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function cacheArtwork() {
         try {
@@ -192,7 +192,7 @@ var RadioDeck = (function () {
         } catch (_) {}
     }
     /** Cancel the pending album-art lookup and timer.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function cancelArtwork() {
         if (artTimer) { clearTimeout(artTimer); artTimer = null; }
@@ -203,7 +203,7 @@ var RadioDeck = (function () {
         }
     }
     /** Return the album-art panel to its placeholder.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function resetArtwork() {
         var img = $("radio-cover");
@@ -219,7 +219,7 @@ var RadioDeck = (function () {
     }
     /** Display a verified album cover and catalog link.
      * @param {Object} entry - Cover or cached metadata entry.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function showArtwork(entry) {
         if (!entry || !entry.art || !/^https:\/\//i.test(entry.art)) { resetArtwork(); return; }
@@ -245,7 +245,7 @@ var RadioDeck = (function () {
      * @param {string} artist - Reported artist name.
      * @param {string} title - Reported track title.
      * @param {number} gen - Request generation token.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function lookupArtwork(artist, title, gen) {
         cancelArtwork();
@@ -269,7 +269,7 @@ var RadioDeck = (function () {
         artRequest = req;
         /** Accept artwork only when the track, station and request are still current.
          * @param {Object} data - Provider response or result.
-         * @returns {void} Updates module state or the UI.
+         * @returns {void} No return value.
          */
         function finish(data) {
             if (finished) return;
@@ -312,7 +312,7 @@ var RadioDeck = (function () {
      * @param {string} artist - Reported artist name.
      * @param {string} title - Reported track title.
      * @param {Object} artwork - Provider artwork, if supplied.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function displayTrack(artist, title, artwork) {
         artist = String(artist || "").trim();
@@ -337,7 +337,7 @@ var RadioDeck = (function () {
     }
     /** Parse an ICY station metadata title string.
      * @param {string} text - Text to display or parse.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function fromCombinedText(text) {
         text = String(text || "").replace(/\0/g, "").trim();
@@ -353,7 +353,7 @@ var RadioDeck = (function () {
 
     /** Fetch ALT 92.3's current track from Triton.
      * @param {Object} ch - Channel entry with stream_id, name and source fields.
-     * @returns {Promise<void>} Completion of the asynchronous operation.
+     * @returns {Promise<void>} Resolves when the operation finishes.
      */
     function metaFromTriton(ch) {
         var url = "https://np.tritondigital.com/public/nowplaying?mountName=WZRHFM&numberToFetch=1&eventType=track";
@@ -374,7 +374,7 @@ var RadioDeck = (function () {
     }
     /** Fetch Shonan's now-playing details from Airtime.
      * @param {Object} ch - Channel entry with stream_id, name and source fields.
-     * @returns {Promise<void>} Completion of the asynchronous operation.
+     * @returns {Promise<void>} Resolves when the operation finishes.
      */
     function metaFromAirtime(ch) {
         return fetch("https://shonanbeachfm.airtime.pro/api/live-info", { cache: "no-store" })
@@ -392,7 +392,7 @@ var RadioDeck = (function () {
     }
     /** Fetch iHeart current track plus broadcaster song history.
      * @param {Object} ch - Channel entry with stream_id, name and source fields.
-     * @returns {Promise<void>} Completion of the asynchronous operation.
+     * @returns {Promise<void>} Resolves when the operation finishes.
      */
     function metaFromIheart(ch) {
         // Public trackHistory is CORS enabled as of Nov 2026. It reports the
@@ -441,7 +441,7 @@ var RadioDeck = (function () {
     }
     /** Attempt to read a single ICY metadata block.
      * @param {Object} ch - Channel entry with stream_id, name and source fields.
-     * @returns {Promise<void>} Completion of the asynchronous operation.
+     * @returns {Promise<void>} Resolves when the operation finishes.
      */
     function metaFromIcy(ch) {
         // Streaming ICY isn't exposed by <audio> in webOS. A short, separate
@@ -460,7 +460,7 @@ var RadioDeck = (function () {
             // Consume only enough bytes for one metadata frame; never download
             // the whole endless radio stream or store user listening history.
             /** Read one ICY metadata block without downloading an entire stream.
-             * @returns {Promise<void>} Completion of the asynchronous operation.
+             * @returns {Promise<void>} Resolves when the operation finishes.
              */
             function consume() {
                 return reader.read().then(function (packet) {
@@ -484,7 +484,7 @@ var RadioDeck = (function () {
     }
     /** Use the appropriate metadata provider for this station.
      * @param {Object} ch - Channel entry with stream_id, name and source fields.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function pollMetadata(ch) {
         if (!isActive() || current !== ch || document.hidden) return;
@@ -511,11 +511,11 @@ var RadioDeck = (function () {
         });
     }
     /** Stop this station's metadata polling timer.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function clearPoll() { if (infoTimer) { clearInterval(infoTimer); infoTimer = null; } }
     /** Animate the deliberately synthetic equalizer bars.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function drawTrace() {
         var now = Date.now();
@@ -537,7 +537,7 @@ var RadioDeck = (function () {
         if (led) led.style.opacity = active ? ".93" : ".45";
     }
     /** Draw one synthetic equalizer frame and schedule the next.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function animate() {
         if(!current || document.hidden){frame=null;return;}
@@ -545,13 +545,13 @@ var RadioDeck = (function () {
         frame=requestAnimationFrame(animate);
     }
     /** Start the equalizer loop when not already running.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function startAnimation() {
         if(!frame && typeof requestAnimationFrame === "function")frame=requestAnimationFrame(animate);
     }
     /** Register radio controls and create equalizer bars once.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function init() {
         if (initDone) return;
@@ -590,7 +590,7 @@ var RadioDeck = (function () {
         });
         /** Ask the app's station list to move by one station.
          * @param {number} dir - Station movement direction.
-         * @returns {void} Updates module state or the UI.
+         * @returns {void} No return value.
          */
         function moveStation(dir) {
             if (typeof bunkhouseStationStep === "function") bunkhouseStationStep(dir);
@@ -614,7 +614,7 @@ var RadioDeck = (function () {
     }
     /** Stop the previous decoder and start the requested radio URL.
      * @param {Object} ch - Channel entry with stream_id, name and source fields.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function play(ch) {
         init();
@@ -656,7 +656,7 @@ var RadioDeck = (function () {
         infoTimer=setInterval(function(){pollMetadata(ch);},30000);
     }
     /** Stop timers, audio, artwork and stale playback work.
-     * @returns {void} Updates module state or the UI.
+     * @returns {void} No return value.
      */
     function stop() {
         clearPoll();
