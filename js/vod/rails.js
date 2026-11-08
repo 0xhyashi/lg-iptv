@@ -25,8 +25,8 @@ var railObserver = ('IntersectionObserver' in window)
    screen of the visible area. Called on scroll and after the focus moves, so
    the D-pad (which scrolls by focusing) and the pointer both reach it. */
 var RAIL_NEAR_PX = 900;
-/** Load Rails Near View for VOD category rows.
- * @returns {*} Function result.
+/** Load VOD rails close to the visible scroll area.
+ * @returns {void} No return value.
  */
 function loadRailsNearView() {
     if (railObserver) return;
@@ -48,9 +48,9 @@ if (!railObserver) {
     });
 }
 
-/** Unload Rail for VOD category rows.
+/** Release the rendered cards of a distant VOD rail.
  * @param {*} rail - Input for unloadRail().
- * @returns {*} Function result.
+ * @returns {void} No return value.
  */
 function unloadRail(rail) {
     if (!rail || rail.dataset.loaded !== '1' || rail.dataset.keep === '1') return;
@@ -64,11 +64,11 @@ function unloadRail(rail) {
     rail.dataset.loaded = '0';
 }
 
-/** Make Rail for VOD category rows.
+/** Create a VOD category rail and its DOM structure.
  * @param {*} titleText - Input for makeRail().
  * @param {*} type - Input for makeRail().
  * @param {*} catId - Input for makeRail().
- * @returns {*} Function result.
+ * @returns {HTMLElement} New rail element.
  */
 function makeRail(titleText, type, catId) {
     var rail = document.createElement('section');
@@ -88,9 +88,9 @@ function makeRail(titleText, type, catId) {
     return rail;
 }
 
-/** Fill Rail for VOD category rows.
+/** Load and render cards for a VOD rail.
  * @param {*} rail - Input for fillRail().
- * @returns {*} Function result.
+ * @returns {void} No return value.
  */
 function fillRail(rail) {
     if (rail.dataset.loaded !== '0') return;
@@ -203,9 +203,9 @@ function renderRails() {
 }
 
 /* ── Category load + section switch ──────────────────────────────── */
-/** Load Type for VOD category rows.
+/** Choose Movies or Series and load its categories.
  * @param {*} type - Input for loadType().
- * @returns {*} Function result.
+ * @returns {void} No return value.
  */
 function loadType(type) {
     activeType = type;
