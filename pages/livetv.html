@@ -27,7 +27,7 @@
                             <polyline points="9 22 9 12 15 12 15 22"/>
                         </svg>
                     </button>
-                    <span>Bunkhouse <small>v1.0.41</small></span>
+                    <span>Bunkhouse <small>v1.0.42</small></span>
                     <button id="settings-btn" title="Settings" onclick="location.href='../pages/settings.html'">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="3"/>
@@ -137,11 +137,20 @@
                             <input id="weatherstar-city" type="text" placeholder="ZIP or City, State"
                                    aria-label="Weather location" spellcheck="false" />
                             <button id="weatherstar-location-go" type="button">SET LOCATION</button>
-                            <button id="weatherstar-music" type="button">♫ MUSIC</button>
+                            <label id="weatherstar-soundtrack-label" for="weatherstar-soundtrack">SOUNDTRACK</label>
+                            <select id="weatherstar-soundtrack" aria-label="WeatherStar soundtrack">
+                                <option value="nightwave">Nightwave Plaza • 24/7</option>
+                                <option value="classic">Classic WeatherStar • 17 songs</option>
+                                <option value="soma">SomaFM Vaporwaves • 24/7</option>
+                            </select>
+                            <button id="weatherstar-music" type="button">▶ PLAY SOUND</button>
                             <button id="weatherstar-source" type="button">TRY ONLINE COPY</button>
                             <button id="weatherstar-fullscreen" type="button">FULL SCREEN</button>
                             <button id="weatherstar-exit" type="button">◀ TV</button>
                         </div>
+                        <!-- ONE radio element shared by the two live soundtrack choices;
+                             classic mode uses WeatherStar's own internal player. -->
+                        <audio id="weatherstar-external-audio" preload="none"></audio>
                         <iframe id="weatherstar-frame" title="WeatherStar 4000+ original forecast"
                                 src="about:blank" allow="autoplay" referrerpolicy="no-referrer"></iframe>
                         <div id="weatherstar-status" aria-live="polite">Select WeatherStar 4000+ to load local forecasts.</div>
