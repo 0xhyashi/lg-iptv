@@ -21,10 +21,10 @@ window.Net = (function () {
        no" (403 on EPG → back off permanently) from "the network died" (retry).
        The old code sniffed for the substring "403" in a message, which also
        matched a body that merely happened to contain those digits. */
-    /** Http Error for timeout-aware HTTP and caching.
+    /** Create a structured HTTP error with status and URL.
      * @param {*} status - Input to httpError().
      * @param {string} url - Requested URL.
-     * @returns {*} Result of the operation.
+     * @returns {Error} HTTP error with status and URL properties.
      */
     function httpError(status, url) {
         var err = new Error('HTTP ' + status);
@@ -32,10 +32,10 @@ window.Net = (function () {
         err.url    = url;
         return err;
     }
-    /** Is Http Error for timeout-aware HTTP and caching.
+    /** Check for an HTTP status, optionally matching a specific code.
      * @param {*} err - Input to isHttpError().
      * @param {*} status - Input to isHttpError().
-     * @returns {boolean} Whether the condition is met.
+     * @returns {boolean} True when the error has the requested HTTP status.
      */
     function isHttpError(err, status) {
         if (!err || typeof err.status !== 'number') return false;
@@ -53,11 +53,11 @@ window.Net = (function () {
        never answered hung the request forever. That is how a dead entry in a
        profile's URL list stalled login on "Trying 1/3…" indefinitely instead
        of moving on to the next one. */
-    /** Timed for timeout-aware HTTP and caching.
+    /** Fetch a URL with a deadline, including on older webOS browsers.
      * @param {string} url - Requested URL.
      * @param {*} init - Input to timed().
      * @param {number} timeout - Timeout in milliseconds.
-     * @returns {*} Result of the operation.
+     * @returns {Promise<Response>} HTTP response or rejection on timeout/network failure.
      */
     function timed(url, init, timeout) {
         timeout = timeout || DEFAULT_TIMEOUT;
@@ -89,10 +89,10 @@ window.Net = (function () {
         });
     }
 
-    /** Request for timeout-aware HTTP and caching.
+    /** Fetch a URL and reject unsuccessful HTTP status codes.
      * @param {string} url - Requested URL.
      * @param {Object} opts - Optional request or display settings.
-     * @returns {*} Result of the operation.
+     * @returns {Promise<Response>} Successful HTTP response.
      */
     function request(url, opts) {
         opts = opts || {};
@@ -117,9 +117,9 @@ window.Net = (function () {
        Native fetch refuses file:// URLs outright on every Chromium, and that is
        where a webOS app lives, so this is XHR, where a local file arrives with
        status 0 rather than 200. */
-    /** Local for timeout-aware HTTP and caching.
+    /** Read a local packaged file with XHR, which supports file:// on webOS.
      * @param {string} url - Requested URL.
-     * @returns {*} Result of the operation.
+     * @returns {Promise<string>} Contents of the local text file.
      */
     function local(url) {
         return new Promise(function (resolve, reject) {
@@ -138,27 +138,27 @@ window.Net = (function () {
         });
     }
 
-    /** Local JSON for timeout-aware HTTP and caching.
+    /** Parse a JSON file from the local app package.
      * @param {string} url - Requested URL.
-     * @returns {*} Result of the operation.
+     * @returns {Promise<*>} Parsed local JSON value.
      */
     function localJSON(url) {
         return local(url).then(function (text) { return JSON.parse(text); });
     }
 
-    /** Json for timeout-aware HTTP and caching.
+    /** Fetch JSON from an HTTP endpoint.
      * @param {string} url - Requested URL.
      * @param {Object} opts - Optional request or display settings.
-     * @returns {*} Result of the operation.
+     * @returns {Promise<*>} Parsed JSON response.
      */
     function json(url, opts) {
         return request(url, opts).then(function (r) { return r.json(); });
     }
 
-    /** Text for timeout-aware HTTP and caching.
+    /** Fetch a text response from an HTTP endpoint.
      * @param {string} url - Requested URL.
      * @param {Object} opts - Optional request or display settings.
-     * @returns {*} Result of the operation.
+     * @returns {Promise<string>} Response text.
      */
     function text(url, opts) {
         return request(url, opts).then(function (r) { return r.text(); });
@@ -168,12 +168,12 @@ window.Net = (function () {
        the network result is cached before being handed back; on a network
        failure the rejection propagates untouched so callers can show a real
        error rather than an empty list that looks like "no content". */
-    /** Cached JSON for timeout-aware HTTP and caching.
+    /** Reuse unexpired cached JSON or fetch it and store the response.
      * @param {string} key - Stored key or key-code.
      * @param {string} url - Requested URL.
      * @param {number} ttl - Maximum cached age in milliseconds.
      * @param {Object} opts - Optional request or display settings.
-     * @returns {*} Result of the operation.
+     * @returns {Promise<*>} Cached or fetched parsed JSON.
      */
     function cachedJSON(key, url, ttl, opts) {
         var hit = Store.cacheGet(key, ttl);
@@ -188,12 +188,12 @@ window.Net = (function () {
        called only if the network answer differs in length from the cached one,
        which is the cheap test that matters for channel/VOD lists — it avoids
        repainting a 20 000-row list on every visit for no visible change. */
-    /** Stale While Revalidate for timeout-aware HTTP and caching.
+    /** Return cached JSON immediately while refreshing it in the background.
      * @param {string} key - Stored key or key-code.
      * @param {string} url - Requested URL.
      * @param {number} ttl - Maximum cached age in milliseconds.
      * @param {Function} onFresh - Callback invoked on changed fresh data.
-     * @returns {*} Result of the operation.
+     * @returns {Promise<*>} Cached JSON if available; otherwise the fresh response.
      */
     function staleWhileRevalidate(key, url, ttl, onFresh) {
         var hit = Store.cacheGet(key, ttl);
@@ -212,10 +212,10 @@ window.Net = (function () {
        rejects, because every caller treats "no" as an ordinary answer rather
        than a failure. Kept short-timeout on purpose: it runs speculatively
        against endpoints a panel may simply not implement. */
-    /** Probe Text for timeout-aware HTTP and caching.
+    /** Probe a URL for nonempty text without propagating errors.
      * @param {string} url - Requested URL.
      * @param {number} timeout - Timeout in milliseconds.
-     * @returns {*} Result of the operation.
+     * @returns {Promise<string|null>} Text if available, otherwise null.
      */
     function probeText(url, timeout) {
         return text(url, { timeout: timeout || 4000 }).then(function (body) {
