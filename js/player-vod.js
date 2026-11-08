@@ -768,9 +768,9 @@
     /* Run every provider in parallel and merge. One that throws is dropped
        rather than failing the search — a dead provider must not take a working
        one down with it, which is the whole reason for running them together. */
-    /** Search All for VOD playback and remote controls.
-     * @param {*} q - Input for searchAll().
-     * @returns {*} Value produced by the operation.
+    /** Search available subtitle providers in parallel and isolate their errors.
+     * @param {Object} q - Movie or episode title and external identifiers.
+     * @returns {Promise<Object>} Ranked results, provider errors and response count.
      */
     function searchAll(q) {
         var providers = searchProviders();
@@ -837,8 +837,8 @@
 
     var _osSearchId = 0; // Ignore results from an earlier search or download.
 
-    /** Open Os Search for VOD playback and remote controls.
-     * @returns {void} Updates module or UI state.
+    /** Start a subtitle search and ignore any older search's results.
+     * @returns {void} Replaces the active subtitle menu contents.
      */
     function openOsSearch() {
         var searchId = ++_osSearchId;
