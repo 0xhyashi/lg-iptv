@@ -281,7 +281,7 @@ var WeatherChannel = (function () {
         var city = getCity(), input = $("weatherstar-city");
         if (input) input.value = city;
         frame.src = "about:blank";
-        var source = $("weatherstar-source");
+        var source = $("weatherstar-retry");
         if (source) source.textContent = "RETRY FORECAST";
         updateControls();
         setMessage("Finding forecast coordinates for " + city + "…");
@@ -422,7 +422,7 @@ var WeatherChannel = (function () {
             e.preventDefault();
             if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
             var ids = ["weatherstar-city","weatherstar-location-go",
-                "weatherstar-soundtrack","weatherstar-music","weatherstar-source",
+                "weatherstar-soundtrack","weatherstar-music","weatherstar-retry",
                 "weatherstar-fullscreen","weatherstar-exit"];
             var idx = ids.indexOf(fid);
             var newIdx = idx === -1 ? 2 : (idx + ids.length + (key === 37 ? -1 : 1)) % ids.length;
@@ -436,7 +436,7 @@ var WeatherChannel = (function () {
                 if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
                 cycleSound(1);return true;
             }
-            if (/^weatherstar-(?:music|source|fullscreen|exit|location-go)$/.test(fid)) {
+            if (/^weatherstar-(?:music|retry|fullscreen|exit|location-go)$/.test(fid)) {
                 e.preventDefault();
                 if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
                 focus.click();return true;
@@ -520,7 +520,7 @@ var WeatherChannel = (function () {
         if (exit) exit.addEventListener("click",function(e){e.stopPropagation();backToChannels();});
         var fullscreen = $("weatherstar-fullscreen");
         if (fullscreen) fullscreen.addEventListener("click",function(e){e.stopPropagation();toggleFullscreen();});
-        var source = $("weatherstar-source");
+        var source = $("weatherstar-retry");
         if (source) source.addEventListener("click",function(e){
             e.stopPropagation();navigate();
         });
