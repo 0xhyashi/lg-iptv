@@ -493,15 +493,18 @@ var RadioDeck = (function () {
         else if (ch.stream_id === "radio-shonan") method = "shonan";
         else if (ch.stream_id === "radio-wfmf1025-br" || ch.stream_id === "radio-wnoe1011-nola") method = "iheart";
         else method = "icy";
-        // Don't keep issuing a known-blocked cross-origin preflight every 30s.
+        // Retry metadata after five minutes. A temporary provider failure
+        // must not disable song titles until the app is restarted.
         var badKey = ch.stream_id + "|" + method;
-        if (pollFailures[badKey]) return;
+        if (pollFailures[badKey] && Date.now() - pollFailures[badKey] < 300000) return;
         var promise = method === "triton" ? metaFromTriton(ch)
             : method === "shonan" ? metaFromIcy(ch).catch(function () { return metaFromAirtime(ch); })
             : method === "iheart" ? metaFromIheart(ch)
             : metaFromIcy(ch);
-        promise.catch(function () {
-            pollFailures[badKey] = true;
+        promise.then(function () {
+            delete pollFailures[badKey];
+        }, function () {
+            pollFailures[badKey] = Date.now();
             if (isActive() && current === ch && !currentTrackKey) {
                 safeText("radio-metadata-state", "Song data unavailable from this station");
             }
