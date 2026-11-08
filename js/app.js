@@ -379,11 +379,10 @@ async function selectChannel(ch) {
         epgCache[ch.stream_id] = listings;
         patchEpgStrip(ch.stream_id); scheduleEpgSave();
     }
-    if (!listings?.length) { setEPG("now", "No EPG data", "", ""); showOSD(); return; }
-
-    // The user may have moved on while the guide was loading; painting this
-    // channel's programme over the next one's would put the wrong title up.
+    // The user may have switched channels while the guide was loading.
+    // Check before updating the display for BOTH empty and nonempty results.
     if (currentChannel !== ch) return;
+    if (!listings?.length) { setEPG("now", "No EPG data", "", ""); showOSD(); return; }
 
     const { cur, next } = _findNowNext(listings);
     setEPG("now", epgTitle(cur), formatTimeRange(cur), epgDesc(cur));
