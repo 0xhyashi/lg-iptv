@@ -1,8 +1,8 @@
 {
   "id": "com.oxhyashi.toonamitest",
-  "title": "Toonami + Japan + Radio",
-  "version": "1.0.39",
-  "appDescription": "LG IPTV privacy fork: Toonami, Japanese channels, eight radio stations, Headspace-style visualizer, live song metadata and album art.",
+  "title": "Bunkhouse TV + Radio",
+  "version": "1.0.40",
+  "appDescription": "Private LG IPTV test app with Toonami and Japanese TV plus Bunkhouse Radio's Saturn player, now playing, album artwork, recent songs and 8 stations.",
   "iconUri": "https://raw.githubusercontent.com/0xhyashi/lg-iptv/privacy/toonami-single-stream-test/icon.png",
   "sourceUrl": "https://github.com/0xhyashi/lg-iptv",
   "rootRequired": false
