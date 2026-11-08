@@ -482,9 +482,8 @@
             }
         }
 
-        /* For each https URL, also try http on the same host/port. Some servers
-           use a cert/TLS version the TV's browser rejects (even though a native
-           app accepts it) — http sidesteps that. https is always tried first. */
+        /* Only try URLs explicitly supplied by the user. Do not silently
+           downgrade HTTPS when an older TV rejects a server certificate. */
         var tryList = Config.candidateUrls({ server_urls: urls });
 
         /** Try configured IPTV server URLs in order without downgrading HTTPS.
