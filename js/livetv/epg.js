@@ -27,8 +27,8 @@ const EPG_CACHE_BASE   = "iptv_epg_v2";
 const EPG_CACHE_LEGACY = EPG_CACHE_BASE;      // the old unscoped key
 const EPG_TTL_MS       = 30 * 60 * 1000;
 
-/** Epg Cache Key for programme guide.
- * @returns {*} Function result.
+/** Make the provider-scoped storage key for programme guide entries.
+ * @returns {string} Storage key for the active provider.
  */
 function epgCacheKey() {
     var scope = "none";
@@ -36,8 +36,8 @@ function epgCacheKey() {
     return EPG_CACHE_BASE + ":" + scope;
 }
 
-/** Load Epg Disk Cache for programme guide.
- * @returns {*} Function result.
+/** Read the non-expired programme guide cache for this provider.
+ * @returns {Object} Stored listings keyed by channel ID.
  */
 function loadEpgDiskCache() {
     /* The unscoped key can only hold another profile's data now, and it is one
@@ -77,9 +77,9 @@ function scheduleEpgSave() {
    `undefined` — an entry left at `null` is never fetched again for the rest of
    the session, and buildEpgStrip draws it as a permanent "Loading…". Switching
    category mid-load is the ordinary way that happened. */
-/** Release In Flight Epg for programme guide.
+/** Clear interrupted EPG loading markers so channels can retry.
  * @param {Array} list - Items to process.
- * @returns {*} Function result.
+ * @returns {number} Number of pending markers cleared.
  */
 function releaseInFlightEpg(list) {
     let n = 0;
@@ -100,8 +100,8 @@ function releaseInFlightEpg(list) {
 const EPG_ROWS_BEHIND = 8;
 const EPG_ROWS_AHEAD  = 24;
 
-/** Epg Window Channels for programme guide.
- * @returns {*} Function result.
+/** Select channels near the visible virtual-list viewport for guide fetches.
+ * @returns {Array<Object>} Channel entries near the visible list.
  */
 function _epgWindowChannels() {
     const list = (typeof _vsChannels !== "undefined" && _vsChannels.length) ? _vsChannels : getFilteredChannels();
@@ -116,7 +116,7 @@ function _epgWindowChannels() {
 
 let _epgLoadTimer = null;
 /** Schedule Epg Window Load for programme guide.
- * @param {*} delay - Input for scheduleEpgWindowLoad().
+ * @param {number|undefined} delay - Milliseconds to wait before fetching visible rows.
  * @returns {void} No return value.
  */
 function scheduleEpgWindowLoad(delay) {
@@ -176,8 +176,8 @@ async function loadEPGForCurrentCategory() {
 
 // ── Timeline ──────────────────────────────────────────────────────────────────
 
-/** Get Timeline Start for programme guide.
- * @returns {*} Function result.
+/** Round the current time to the guide's half-hour window.
+ * @returns {Date} Beginning of the visible timeline.
  */
 function getTimelineStart() {
     const now     = new Date();
@@ -186,8 +186,8 @@ function getTimelineStart() {
     d.setHours(0, rounded + timelineOffset, 0, 0);
     return d;
 }
-/** Get Timeline End for programme guide.
- * @returns {*} Function result.
+/** Calculate the end of the visible programme timeline.
+ * @returns {Date} End of the visible timeline.
  */
 function getTimelineEnd() { return new Date(getTimelineStart().getTime() + TIMELINE_HOURS * 3600000); }
 
@@ -229,19 +229,19 @@ function renderTimelineHeader() {
 
 // ── EPG strip rendering ───────────────────────────────────────────────────────
 
-/** Patch Epg Strip for programme guide.
- * @param {*} streamId - Input for patchEpgStrip().
- * @returns {*} Function result.
+/** Update one cached channel row's programme strip if it exists.
+ * @param {string|number} streamId - Channel stream ID.
+ * @returns {void} No return value.
  */
 function patchEpgStrip(streamId) {
     const entry = rowCache.get(String(streamId));
     if (entry) buildEpgStrip(entry.epgStrip, String(streamId));
 }
 
-/** Build Epg Strip for programme guide.
- * @param {*} strip - Input for buildEpgStrip().
+/** Render programme blocks for one channel across the visible timeline.
+ * @param {HTMLElement} strip - EPG strip container to render into.
  * @param {string} sid - Stream identifier.
- * @returns {*} Function result.
+ * @returns {void} No return value.
  */
 function buildEpgStrip(strip, sid) {
     const listings = epgCache[sid];
@@ -322,9 +322,9 @@ const EPG_TIME_CACHE_MAX = 20000;
 let _epgTimeCache = Object.create(null);
 let _epgTimeCacheN = 0;
 
-/** Parse Epg Time for programme guide.
- * @param {*} s - Input for parseEpgTime().
- * @returns {*} Function result.
+/** Parse a provider-supplied timestamp string as UTC.
+ * @param {string} s - Provider timestamp text.
+ * @returns {number} Epoch milliseconds, or zero for an empty value.
  */
 function parseEpgTime(s) {
     if (!s) return 0;
@@ -339,17 +339,17 @@ function parseEpgTime(s) {
 }
 // Prefer the Unix-epoch timestamps: they're absolute UTC and unambiguous, which
 // avoids the constant timezone offset the localized strings caused.
-/** Epg Start for programme guide.
- * @param {Event} e - Browser event.
- * @returns {*} Function result.
+/** Get a programme's start time, preferring its Unix timestamp.
+ * @param {Object} e - Programme guide entry.
+ * @returns {number} Programme start in epoch milliseconds.
  */
 function epgStart(e) {
     if (e && e.start_timestamp) return Number(e.start_timestamp) * 1000;
     return parseEpgTime(e && e.start);
 }
-/** Epg End for programme guide.
- * @param {Event} e - Browser event.
- * @returns {*} Function result.
+/** Get a programme's end time, preferring its Unix timestamp.
+ * @param {Object} e - Programme guide entry.
+ * @returns {number} Programme end in epoch milliseconds.
  */
 function epgEnd(e) {
     const ts = e && (e.stop_timestamp || e.end_timestamp);
@@ -358,34 +358,34 @@ function epgEnd(e) {
 }
 // Current programme + the one after it. Falls back to the first two listings
 // when nothing matches "now" (e.g. all-future or stale EPG data).
-/** Find Now Next for programme guide.
- * @param {*} listings - Input for _findNowNext().
- * @returns {*} Function result.
+/** Find the active and following programme in a sorted guide.
+ * @param {Array<Object>} listings - Sorted programme entries for one channel.
+ * @returns {Object} Object with cur and next programme entries.
  */
 function _findNowNext(listings) {
     const now = Date.now();
     const idx = listings.findIndex(e => { const s = epgStart(e), n = epgEnd(e); return now >= s && now < n; });
     return { cur: listings[idx >= 0 ? idx : 0], next: listings[idx >= 0 ? idx + 1 : 1] };
 }
-/** Fmt Time for programme guide.
- * @param {*} ms - Input for fmtTime().
- * @returns {*} Function result.
+/** Format a valid epoch timestamp as a local clock time.
+ * @param {number} ms - Epoch timestamp in milliseconds.
+ * @returns {string} Local time string, or empty for invalid time.
  */
 function fmtTime(ms) {
     if (!(ms > 0) || !isFinite(ms)) return "";
     return new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
-/** Format Time Range for programme guide.
- * @param {Event} e - Browser event.
- * @returns {*} Function result.
+/** Format a programme's start and end times.
+ * @param {Object} e - Programme guide entry.
+ * @returns {string} Readable time interval, or empty when missing.
  */
 function formatTimeRange(e) {
     const a = fmtTime(epgStart(e)), b = fmtTime(epgEnd(e));
     return a && b ? `${a} – ${b}` : (a || "");
 }
-/** Calc Progress for programme guide.
- * @param {Event} e - Browser event.
- * @returns {*} Function result.
+/** Calculate the current programme's elapsed percentage.
+ * @param {Object} e - Programme guide entry.
+ * @returns {number} Integer progress percentage, or zero for invalid times.
  */
 function calcProgress(e) {
     try {
@@ -398,14 +398,14 @@ function calcProgress(e) {
 /* Xtream sends titles and descriptions base64-encoded; XMLTV sends plain text
    and its entries are marked `_plain`. Decoding a plain title as base64 is not
    harmless — "News" and "Golf" are valid base64 and came out as binary junk. */
-/** Epg Title for programme guide.
- * @param {Event} e - Browser event.
- * @returns {*} Function result.
+/** Decode the guide title, respecting plain-text XMLTV entries.
+ * @param {Object} e - Programme guide entry.
+ * @returns {string} Readable programme title.
  */
 function epgTitle(e) { return !e ? "" : e._plain ? (e.title || "") : xtreamDecodeEPG(e.title); }
-/** Epg Desc for programme guide.
- * @param {Event} e - Browser event.
- * @returns {*} Function result.
+/** Decode the guide description, respecting plain-text XMLTV entries.
+ * @param {Object} e - Programme guide entry.
+ * @returns {string} Readable programme description.
  */
 function epgDesc(e)  { return !e ? "" : e._plain ? (e.description || "") : xtreamDecodeEPG(e.description); }
 
@@ -434,9 +434,9 @@ const XMLTV_DESC_MAX       = 400;
 let xmltvCache = {};
 let _xmltvLoading = "";
 
-/** Xmltv Source for programme guide.
- * @param {*} playlistEpgUrl - Input for xmltvSource().
- * @returns {*} Function result.
+/** Choose the profile, app or playlist XMLTV URL and matching method.
+ * @param {string} playlistEpgUrl - Optional XMLTV URL declared by an M3U playlist.
+ * @returns {Object} Object containing url and match properties.
  */
 function xmltvSource(playlistEpgUrl) {
     let active = null;
@@ -450,9 +450,9 @@ function xmltvSource(playlistEpgUrl) {
 }
 
 /* The entry point, called once the channel list is known. */
-/** Load XMLTV for programme guide.
- * @param {*} playlistEpgUrl - Input for loadXMLTV().
- * @returns {*} Function result.
+/** Load a configured XMLTV guide from cache or start its download.
+ * @param {string} playlistEpgUrl - Optional XMLTV URL declared by an M3U playlist.
+ * @returns {void} No return value.
  */
 function loadXMLTV(playlistEpgUrl) {
     const src = xmltvSource(playlistEpgUrl);
@@ -468,7 +468,7 @@ function loadXMLTV(playlistEpgUrl) {
 
 /** Load Custom XMLTV for programme guide.
  * @param {string} url - URL.
- * @param {*} matchField - Input for loadCustomXMLTV().
+ * @param {string} matchField - Field used to match XMLTV channels to IPTV entries.
  * @returns {Promise<*>} Promise for the asynchronous operation.
  */
 async function loadCustomXMLTV(url, matchField) {
@@ -499,9 +499,9 @@ async function loadCustomXMLTV(url, matchField) {
 
 const _XML_ENTITIES = { amp: "&", lt: "<", gt: ">", quot: "\"", apos: "'", nbsp: "\u00a0" };
 
-/** Char From Code for programme guide.
- * @param {*} code - Input for _charFromCode().
- * @returns {*} Function result.
+/** Decode a valid Unicode code point into a JavaScript string.
+ * @param {number} code - Unicode code point.
+ * @returns {string} Decoded character, or empty string when invalid.
  */
 function _charFromCode(code) {
     if (!(code > 0 && code < 0x110000)) return "";
@@ -510,9 +510,9 @@ function _charFromCode(code) {
     return String.fromCharCode(0xD800 + (code >> 10), 0xDC00 + (code & 0x3FF));
 }
 
-/** Xml Text for programme guide.
- * @param {*} s - Input for _xmlText().
- * @returns {*} Function result.
+/** Strip XML tags and decode XML entities for a programme field.
+ * @param {string} s - Raw XMLTV field text.
+ * @returns {string} Plain text from an XMLTV element.
  */
 function _xmlText(s) {
     return String(s || "")
@@ -529,10 +529,10 @@ function _xmlText(s) {
 }
 
 const _xmlAttrRe = {};
-/** Xml Attr for programme guide.
- * @param {*} attrs - Input for _xmlAttr().
+/** Read and decode a named XML attribute from source text.
+ * @param {string} attrs - Raw attribute text from an XML tag.
  * @param {string} name - Display name.
- * @returns {*} Function result.
+ * @returns {string} Attribute value, or empty string.
  */
 function _xmlAttr(attrs, name) {
     const re = _xmlAttrRe[name] || (_xmlAttrRe[name] = new RegExp("\\b" + name + "\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)')"));
@@ -540,11 +540,11 @@ function _xmlAttr(attrs, name) {
     return m ? _xmlText(m[1] !== undefined ? m[1] : m[2]) : "";
 }
 
-/** Parse XMLTV for programme guide.
+/** Parse only programmes in the permitted time window.
  * @param {string} text - Text to process.
- * @param {*} keepFrom - Input for parseXMLTV().
- * @param {*} keepTo - Input for parseXMLTV().
- * @returns {*} Function result.
+ * @param {number} keepFrom - Earliest programme end to retain, epoch milliseconds.
+ * @param {number} keepTo - Latest programme start to retain, epoch milliseconds.
+ * @returns {Object} Channel-name map and per-channel programme arrays.
  */
 function parseXMLTV(text, keepFrom, keepTo) {
     const channelMap = {};
@@ -587,9 +587,9 @@ function parseXMLTV(text, keepFrom, keepTo) {
 /* "20240101203000 +0100". Computed with Date.UTC rather than by building an
    ISO string for Date to parse — older engines disagree about how to read an
    ISO string with an offset, and this needs no parsing at all. */
-/** Parse XMLTVDate for programme guide.
- * @param {*} str - Input for parseXMLTVDate().
- * @returns {*} Function result.
+/** Parse a compact XMLTV time with optional UTC offset.
+ * @param {string} str - Compact XMLTV date/time string.
+ * @returns {number} Epoch milliseconds, or zero if invalid.
  */
 function parseXMLTVDate(str) {
     if (!str) return 0;
@@ -603,9 +603,9 @@ function parseXMLTVDate(str) {
     return t;
 }
 
-/** Load XMLTVFrom Cache for programme guide.
+/** Restore a matching XMLTV guide from disk cache.
  * @param {string} url - URL.
- * @returns {*} Function result.
+ * @returns {boolean} True if the requested guide was available.
  */
 function loadXMLTVFromCache(url) {
     const data = Store.cacheGet(XMLTV_CACHE_KEY, XMLTV_TTL_MS);
@@ -614,8 +614,8 @@ function loadXMLTVFromCache(url) {
     return true;
 }
 
-/** Merge XMLTVInto Epg Cache for programme guide.
- * @returns {*} Function result.
+/** Match XMLTV programmes to current IPTV channels.
+ * @returns {void} No return value.
  */
 function mergeXMLTVIntoEpgCache() {
     if (!xmltvCache.programmes) return;
