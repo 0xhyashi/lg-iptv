@@ -9,8 +9,8 @@
  *
  * Metadata: direct public CORS endpoints where available (Triton for WZRH,
  * Airtime / ICY for Shonan). Other direct streams often send ICY tags but
- * block the browser's preflight required by the Icy-MetaData header; we try
- * only once and then show a truthful "unavailable" status.
+ * block the browser's preflight required by the Icy-MetaData header. Failed
+ * polls back off for five minutes instead of issuing unbounded requests.
  *
  * Artwork: Apple iTunes Search API JSONP; Apple documents the callback option
  * for browser apps. Only public artist/title are sent. Results are cached.
