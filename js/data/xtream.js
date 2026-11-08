@@ -26,7 +26,7 @@ function xtreamLoadConfig() {
 
 /* Try each candidate URL in turn until one answers. Returns { cfg, data } with
    cfg.server_url set to the URL that worked, or null when none did.
-   Config.candidateUrls() supplies the http twin of every https entry — some
+   Config.candidateUrls() supplies only the explicitly configured servers — some
    panels present a certificate the TV browser rejects while plain http on the
    same host is fine. */
 /* A panel that REJECTS the credentials still answers HTTP 200, with
