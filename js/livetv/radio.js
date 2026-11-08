@@ -357,10 +357,7 @@ var RadioDeck = (function () {
      */
     function metaFromTriton(ch) {
         var url = "https://np.tritondigital.com/public/nowplaying?mountName=WZRHFM&numberToFetch=1&eventType=track";
-        return fetch(url, { cache: "no-store" }).then(function (r) {
-            if (!r.ok) throw Error("Metadata HTTP " + r.status);
-            return r.text();
-        }).then(function (xml) {
+        return Net.text(url, { timeout: 7000, cache: "no-store" }).then(function (xml) {
             if (!isActive() || current !== ch) return;
             var doc = new DOMParser().parseFromString(xml, "text/xml");
             var props = doc.getElementsByTagName("property"), vals = {};
@@ -377,9 +374,8 @@ var RadioDeck = (function () {
      * @returns {Promise<void>} Resolves when the operation finishes.
      */
     function metaFromAirtime(ch) {
-        return fetch("https://shonanbeachfm.airtime.pro/api/live-info", { cache: "no-store" })
-        .then(function (r) { if (!r.ok) throw Error("Airtime HTTP " + r.status); return r.json(); })
-        .then(function (data) {
+        return Net.json("https://shonanbeachfm.airtime.pro/api/live-info",
+            { timeout: 7000, cache: "no-store" }).then(function (data) {
             if (!isActive() || current !== ch) return;
             var cur = data && data.current;
             if (cur) {
@@ -400,11 +396,8 @@ var RadioDeck = (function () {
         var id = ch.stream_id === "radio-wfmf1025-br" ? "1005"
                : ch.stream_id === "radio-wnoe1011-nola" ? "1045" : null;
         if (!id) return Promise.reject(Error("No iHeart station ID"));
-        return fetch("https://api.iheart.com/api/v3/live-meta/stream/" + id + "/trackHistory", { cache: "no-store" })
-        .then(function (r) {
-            if (!r.ok) throw Error("iHeart metadata HTTP " + r.status);
-            return r.json();
-        }).then(function (json) {
+        return Net.json("https://api.iheart.com/api/v3/live-meta/stream/" + id + "/trackHistory",
+            { timeout: 7000, cache: "no-store" }).then(function (json) {
             if (!isActive() || current !== ch) return;
             var songs = json && Array.isArray(json.data) ? json.data : [];
             if (!songs.length) return;
@@ -448,11 +441,19 @@ var RadioDeck = (function () {
         // CORS request can read tags only on hosts that allow icy-metadata
         // preflight (Shonan's Icecast does; others vary by network/provider).
         var controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-        var killer = setTimeout(function () { if (controller) controller.abort(); }, 7000);
+        var killer;
+        // A timer that only aborts fetch does not work on older webOS builds.
+        // Reject the metadata operation even if fetch or reader.read() hangs.
+        var deadline = new Promise(function (resolve, reject) {
+            killer = setTimeout(function () {
+                if (controller) controller.abort();
+                reject(new Error("ICY metadata timeout"));
+            }, 7000);
+        });
         var headers = { "Icy-MetaData": "1" };
         var opts = { headers: headers, cache: "no-store" };
         if (controller) opts.signal = controller.signal;
-        return fetch(ch.stream_url, opts).then(function (r) {
+        var request = fetch(ch.stream_url, opts).then(function (r) {
             if (!r.ok) throw Error("ICY HTTP " + r.status);
             var interval = parseInt(r.headers.get("icy-metaint"),10);
             if (!(interval > 0 && interval <= 65536) || !r.body || !r.body.getReader) throw Error("ICY not readable");
@@ -479,8 +480,16 @@ var RadioDeck = (function () {
                 });
             }
             return consume();
-        }).then(function (r) { clearTimeout(killer); if (controller) controller.abort(); return r; },
-                 function (e) { clearTimeout(killer); if (controller) controller.abort(); throw e; });
+        });
+        return Promise.race([request, deadline]).then(function (value) {
+            clearTimeout(killer);
+            if (controller) controller.abort();
+            return value;
+        }, function (error) {
+            clearTimeout(killer);
+            if (controller) controller.abort();
+            throw error;
+        });
     }
     /** Use the appropriate metadata provider for this station.
      * @param {Object} ch - Channel entry with stream_id, name and source fields.
