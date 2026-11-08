@@ -999,6 +999,9 @@
      */
     function waitForTrack(label, done) {
         var tries = 0;
+        /** Poll the active player for status updates while the screen remains open.
+         * @returns {void} Runs its startup, polling, or UI side effects.
+         */
         (function poll() {
             var subs = (window.player && player.listSubtitles) ? player.listSubtitles() : [];
             for (var i = 0; i < subs.length; i++) if (subs[i].label === label) { done(true); return; }
