@@ -47,6 +47,19 @@ jobs:
                     meta=repr(chunk[i+1:i+1+n])[:260]
                 return dict(name=label,status=r.status,mime=r.headers.get("content-type"),cors=r.headers.get("access-control-allow-origin"),icymeta=metaint,icytitle=r.headers.get("icy-name"),meta=meta,preview=("" if stream else chunk[:400].decode("utf8","replace")),body_bytes=len(chunk))
             except Exception as e:return dict(name=label,error=str(e)[:200])
+          def preflight(item):
+            name,url,stream=item
+            if not stream:return
+            req=urllib.request.Request(url,method="OPTIONS",headers={"Origin":"null","Access-Control-Request-Method":"GET","Access-Control-Request-Headers":"icy-metadata","User-Agent":"Mozilla/5.0"})
+            try:
+              with urllib.request.urlopen(req,timeout=7) as r:
+                return dict(name=name,status=r.status,cors=r.headers.get("Access-Control-Allow-Origin"),headers=r.headers.get("Access-Control-Allow-Headers"),methods=r.headers.get("Access-Control-Allow-Methods"))
+            except urllib.error.HTTPError as e:
+              return dict(name=name,status=e.code,cors=e.headers.get("Access-Control-Allow-Origin"),headers=e.headers.get("Access-Control-Allow-Headers"),methods=e.headers.get("Access-Control-Allow-Methods"))
+            except Exception as e:return dict(name=name,error=str(e)[:180])
+          with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+            for r in pool.map(preflight,endpoints):
+              if r:print("PREFLIGHT_PROBE",json.dumps(r,ensure_ascii=False),flush=True)
           with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
             for r in pool.map(probe,endpoints):print("METADATA_PROBE",json.dumps(r,ensure_ascii=False),flush=True)
           PY
