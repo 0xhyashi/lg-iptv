@@ -114,6 +114,7 @@ function onTVKeyDown(e) {
     if (ctxMenu)     { _handleCtxMenuKey(e, ctxMenu);         return; }
     // Bunkhouse radio mode is a real separate navigation surface; station
     // buttons in the sidebar own UP/DOWN/ENTER rather than the hidden TV grid.
+    if (typeof WeatherChannel !== "undefined" && WeatherChannel.handleKey(e, kc)) return;
     if (typeof bunkhouseHandleKey === "function" && bunkhouseHandleKey(e, kc)) return;
 
 
