@@ -65,7 +65,7 @@
      */
     function loadProfiles() {
         var profiles = load('iptv_profiles', null);
-        if (!profiles) {
+        if (!Array.isArray(profiles)) {
             profiles = [];
             var old = load('iptv_custom_config', null);
             if (old && old.server_url) {
@@ -139,6 +139,7 @@
     var profiles   = loadProfiles();
     var activeId   = getActiveId();
     var selectedId = null;
+    var connectSerial = 0; // Identifies the latest profile connection attempt.
 
     /** Choose an available settings option automatically.
      * @returns {void} Runs its startup, polling, or UI side effects.
@@ -234,6 +235,7 @@
                 '<span class="profile-type-badge">' + typeLabel + '</span>' +
                 (profile.id === activeId ? '<span class="profile-active-dot"></span>' : '');
             btn.addEventListener('click', function () {
+                ++connectSerial; // Ignore a login response for the previous editor.
                 selectedId = profile.id;
                 renderProfileList();
                 renderEditor();
@@ -376,6 +378,7 @@
 
     /* ── Delete profile ────────────────────────────────────────────────────── */
     document.getElementById('delete-profile-btn').addEventListener('click', function () {
+        ++connectSerial;
         var profile = profiles.find(function (p) { return p.id === selectedId; });
         if (!profile) return;
         var statusEl = document.getElementById('profile-status');
@@ -406,6 +409,7 @@
 
     /* ── Save & Connect ────────────────────────────────────────────────────── */
     document.getElementById('save-profile-btn').addEventListener('click', function () {
+        var connectId = ++connectSerial;
         var profile = profiles.find(function (p) { return p.id === selectedId; });
         if (!profile) return;
         var name     = document.getElementById('prof-name').value.trim();
@@ -454,6 +458,7 @@
          * @returns {*} Value produced by the operation.
          */
         function connectSuccess(url) {
+            if (connectId !== connectSerial || selectedId !== profile.id) return;
             activeId = profile.id; setActiveId(activeId);
             save('iptv_active_resolved_url', url);
             Store.remove('iptv_ch_v2');
@@ -467,6 +472,7 @@
          * @returns {*} Value produced by the operation.
          */
         function reportFailure() {
+            if (connectId !== connectSerial || selectedId !== profile.id) return;
             if (accountIssue) {
                 setStatus('profile-status', 'Login worked, but the account is ' + accountIssue + '.', 'err');
             } else if (reachedButAuthFailed) {
@@ -486,6 +492,7 @@
          * @returns {void} Runs its startup, polling, or UI side effects.
          */
         (function tryUrls(index) {
+            if (connectId !== connectSerial || selectedId !== profile.id) return;
             if (index >= tryList.length) { reportFailure(); return; }
             var url = tryList[index];
             setStatus('profile-status', 'Trying ' + (index + 1) + '/' + tryList.length + '…', '');
@@ -498,6 +505,7 @@
                and the working URL after it was never reached. */
             Net.json(loginUrl, { timeout: 12000 })
                 .then(function (data) {
+                    if (connectId !== connectSerial || selectedId !== profile.id) return;
                     var ui = data && data.user_info;
                     // Explicit failed login → server is fine, credentials are wrong.
                     if (ui && Number(ui.auth) === 0) { reachedButAuthFailed = true; tryUrls(index + 1); return; }
@@ -515,7 +523,9 @@
                     if (data) { connectSuccess(url); return; }
                     tryUrls(index + 1);
                 })
-                .catch(function () { tryUrls(index + 1); });
+                .catch(function () {
+                    if (connectId === connectSerial && selectedId === profile.id) tryUrls(index + 1);
+                });
         }(0));
     });
 
