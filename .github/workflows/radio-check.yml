@@ -22,7 +22,12 @@ jobs:
             ("B97 WEZB Amperwave AAC","https://live.amperwave.net/direct/audacy-wezbfmaac-imc"),
             ("B97 WEZB Amperwave MP3","https://live.amperwave.net/direct/audacy-wezbfmmp3-imc"),
             ("B97 WEZB legacy stream","https://playerservices.streamtheworld.com/api/livestream-redirect/WEZBFMAAC.aac"),
-            ("B97 WEZB legacy direct","http://2963.live.streamtheworld.com:80/WEZBFMAAC_SC")
+            ("B97 WEZB legacy direct","http://2963.live.streamtheworld.com:80/WEZBFMAAC_SC"),
+            ("ALT 92.3 WZRH AAC","https://playerservices.streamtheworld.com/api/livestream-redirect/WZRHFMAAC.aac"),
+            ("ALT 92.3 WZRH AAC stream","https://playerservices.streamtheworld.com/api/livestream-redirect/WZRHFMAAC"),
+            ("ALT 92.3 WZRH MP3","https://playerservices.streamtheworld.com/api/livestream-redirect/WZRHFM.mp3"),
+            ("ALT 92.3 WZRH MP3 generic","https://playerservices.streamtheworld.com/api/livestream-redirect/WZRHFM"),
+            ("ALT 92.3 WZRH legacy AAC","https://playerservices.streamtheworld.com/pls/WZRHFMAAC.pls")
           ]
           def probe(st):
             name,url=st
