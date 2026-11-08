@@ -1,0 +1,41 @@
+name: Diagnose LG WeatherStar geolocation and NWS
+on:
+  push:
+    branches: [privacy/toonami-single-stream-test]
+    paths: [.github/workflows/ws4kp-geocode-diagnostic.yml]
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Compare geocoding and forecast endpoints with file-origin browser
+        run: |
+          python3 - <<'PY'
+          import urllib.request,json
+          sites = {
+            'arcgis-find': 'https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/find?text=Ellicott%20City%2C%20MD&f=json',
+            'arcgis-suggest':'https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/suggest?text=Ellicott%20City&f=json',
+            'nws-points':'https://api.weather.gov/points/39.2673,-76.7983',
+            'us-zipcode':'https://api.zippopotam.us/us/21043',
+            'osm-geocode':'https://nominatim.openstreetmap.org/search?q=Ellicott%20City%2C%20MD%2C%20USA&format=json&limit=1',
+          }
+          for name,url in sites.items():
+            for origin in ['null','https://weatherstar.netbymatt.com']:
+              req=urllib.request.Request(url,headers={
+                'User-Agent':'BunkhouseWeather/1.0 (personal webOS TV forecast diagnostic)',
+                'Origin':origin,'Accept':'application/json'
+              })
+              try:
+                with urllib.request.urlopen(req,timeout=12) as r:
+                  chunk=r.read(180)
+                  print('WEATHER_ORIGIN_TEST',json.dumps({
+                    'name':name,'origin':origin,'status':r.status,
+                    'cors':r.headers.get('Access-Control-Allow-Origin'),
+                    'allow-headers':r.headers.get('Access-Control-Allow-Headers'),
+                    'content-type':r.headers.get('content-type'),
+                    'example':chunk[:110].decode('utf-8','replace')
+                  }))
+              except Exception as e:
+                print('WEATHER_ORIGIN_TEST_ERROR',json.dumps({'name':name,'origin':origin,'error':str(e)[:120]}))
+          PY
