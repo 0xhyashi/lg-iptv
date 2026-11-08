@@ -1,10 +1,10 @@
-/* radio.js — Headspace-inspired radio deck, now-playing metadata and artwork.
+/* radio.js — Bunkhouse Saturn radio deck, now-playing metadata and artwork.
  * Compatible with packaged webOS TV apps; runs with no server or root.
  *
  * Playback: exactly ONE native <audio> element; normal video player is stopped
  * before entry. No AudioContext.createMediaElementSource: LG webOS TV's official
  * documentation says it is unsupported, and touching protected streams risks
- * silencing them. The display trace is an honest, synthetic animation, not
+ * silencing them. Equalizer bars are an honest synthetic animation, not
  * decoded PCM from the stream.
  *
  * Metadata: direct public CORS endpoints where available (Triton for WZRH,
@@ -17,10 +17,10 @@
  */
 var RadioDeck = (function () {
     "use strict";
-    var MODES = ["headspace", "scope", "tuner"];
+    var MODES = ["saturn"];
     var current = null;
     var requestSerial = 0;
-    var mode = "headspace";
+    var mode = "saturn";
     var infoTimer = null;
     var frame = null;
     var initDone = false;
@@ -33,6 +33,48 @@ var RadioDeck = (function () {
     var lastDraw = 0;
     var renderFrame = 0;
     var noMetadataMessage = "Waiting for station metadata…";
+    var historyByStation = {};
+    var nowByStation = {};
+    var equalizerBars = [];
+    function renderHistory() {
+        var list = $("radio-history-list");
+        if (!list) return;
+        list.textContent = "";
+        var entries = current && historyByStation[current.stream_id] || [];
+        if (!entries.length) {
+            var empty = document.createElement("li");
+            empty.className = "bk-no-history";
+            empty.textContent = "Previous songs appear here when this station provides track history.";
+            list.appendChild(empty);return;
+        }
+        entries.slice(0,12).forEach(function (entry) {
+            var row = document.createElement("li");
+            var song = document.createElement("span");
+            song.className = "bk-history-song";
+            song.textContent = (entry.artist ? entry.artist + " — " : "") + entry.title;
+            row.appendChild(song);
+            if (entry.time && isFinite(entry.time)) {
+                var when = document.createElement("span");
+                when.className = "bk-history-when";
+                when.textContent = new Date(entry.time).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+                row.appendChild(when);
+            }
+            list.appendChild(row);
+        });
+    }
+    function rememberTrack(artist, title) {
+        if (!current) return;
+        var id = current.stream_id, key = normal(artist) + "|" + normal(title);
+        var previous = nowByStation[id];
+        var entries = historyByStation[id] || [];
+        if (previous && previous.key !== key && previous.title) {
+            entries = [previous].concat(entries.filter(function (item) { return item.key !== previous.key; })).slice(0,12);
+            historyByStation[id] = entries;
+        }
+        nowByStation[id] = { artist:artist,title:title,key:key,time:Date.now() };
+        renderHistory();
+    }
+
 
     function $(id) { return document.getElementById(id); }
     function safeText(id, text) { var node = $(id); if (node) node.textContent = text || ""; }
@@ -164,6 +206,7 @@ var RadioDeck = (function () {
         if (/\.(?:mp3|wav|aac)(?:\s|$)/i.test(title)) return;
         var key = normal(artist) + "|" + normal(title);
         if (key === currentTrackKey) return;
+        rememberTrack(artist, title);
         currentTrackKey = key;
         safeText("radio-track", title);
         safeText("radio-artist", artist || "Live broadcast");
@@ -248,6 +291,14 @@ var RadioDeck = (function () {
             if (!valid.length) return;
             valid.sort(function (a,b) { return (b._radioStart || 0) - (a._radioStart || 0); });
             var top = valid[0];
+            // This endpoint supplies *real* recently played tracks, unlike
+            // most Icecast stations that expose only the current song.
+            historyByStation[ch.stream_id] = valid.slice(1,12).map(function(song){
+                return { artist:String(song.artist),title:String(song.title),
+                         key:normal(song.artist)+"|"+normal(song.title),
+                         time:song._radioStart || null };
+            });
+            renderHistory();
             var imageUrl = String(top.imagePath || "");
             // iHeart returns http:// image links despite HTTPS-capable CDN.
             if (/^http:\/\//i.test(imageUrl)) imageUrl = "https://" + imageUrl.slice(7);
@@ -333,44 +384,22 @@ var RadioDeck = (function () {
     }
     function drawTrace() {
         var now = Date.now();
-        if (now-lastDraw<45) return;
-        lastDraw=now;
+        if (now - lastDraw < 48) return; // ~20fps; lightweight on older TVs
+        lastDraw = now;
         renderFrame++;
-        var active = playing();
-        var amp = active ? 13 : 0.9;
-        var pts = [];
-        for (var i=0;i<125;i++) {
-            var x = 164+i*2.34;
-            var y = 221 + amp*(Math.sin(i*0.73+renderFrame*0.19)*0.24 + Math.sin(i*0.19+renderFrame*0.06)*0.58 + Math.sin(i*1.7+renderFrame*0.13)*0.18);
-            pts.push((i?"L":"M")+x.toFixed(1)+","+y.toFixed(1));
+        // No Web Audio access on this platform. This is deliberately synthetic,
+        // with motion gated by playback state, NOT by sampled audio amplitudes.
+        var active = playing(), t = renderFrame;
+        for (var i=0;i<equalizerBars.length;i++) {
+            var amount = active ? (16 + 75*Math.abs(
+                Math.sin(t*.135+i*.47)*.55 +
+                Math.sin(t*.083-i*.61)*.32 +
+                Math.sin(t*.035+i*.19)*.13
+            )) : 4;
+            equalizerBars[i].style.height = Math.min(98,amount).toFixed(0)+"%";
         }
-        var trace = $("radio-head-trace");
-        if(trace) trace.setAttribute("d",pts.join(" "));
-        var canvas = $("radio-scope-canvas");
-        if(canvas && mode === "scope") {
-            var w=canvas.clientWidth||600,h=canvas.clientHeight||280;
-            var scale = window.devicePixelRatio && window.devicePixelRatio <= 2 ? window.devicePixelRatio : 1;
-            var cw=Math.min(1200,Math.round(w*scale)),ch=Math.min(580,Math.round(h*scale));
-            if(canvas.width!==cw || canvas.height!==ch){canvas.width=cw;canvas.height=ch;}
-            var ctx=canvas.getContext("2d");
-            if(ctx){
-                ctx.fillStyle="#030c08";ctx.fillRect(0,0,cw,ch);
-                ctx.strokeStyle="rgba(39,121,75,.35)";ctx.lineWidth=1;
-                for(var a=1;a<10;a++){ctx.beginPath();ctx.moveTo(a*cw/10,0);ctx.lineTo(a*cw/10,ch);ctx.stroke();}
-                for(var b=1;b<6;b++){ctx.beginPath();ctx.moveTo(0,b*ch/6);ctx.lineTo(cw,b*ch/6);ctx.stroke();}
-                ctx.shadowColor="#6affaf";ctx.shadowBlur=8;ctx.strokeStyle="#7affbc";ctx.lineWidth=2.0*scale;
-                ctx.beginPath();
-                for(var n=0;n<200;n++){
-                    var xx=n*cw/199;
-                    var yy=ch*0.5+(active?ch*.16:ch*.008)*
-                       (Math.sin(n*.23+renderFrame*.22)*.48+Math.sin(n*.08+renderFrame*.047)*.40+Math.sin(n*.96+renderFrame*.17)*.12);
-                    if(!n)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);
-                }
-                ctx.stroke();ctx.shadowBlur=0;
-            }
-        }
-        var vu = $("radio-vu-fill");
-        if(vu)vu.style.width = (active?42+25*Math.abs(Math.sin(renderFrame*.21)):4)+"%";
+        var led = $("bk-live-led");
+        if (led) led.style.opacity = active ? ".93" : ".45";
     }
     function animate() {
         if(!current || document.hidden){frame=null;return;}
@@ -386,6 +415,17 @@ var RadioDeck = (function () {
         readSettings();
         var a=audio();
         var toggle=$("radio-toggle");
+        var eq = $("bk-equalizer");
+        if (eq) {
+            eq.textContent = "";
+            for (var j=0;j<30;j++) {
+                var bar = document.createElement("span");
+                bar.className = "bk-eq-bar";
+                bar.style.height = (5+(j%5)*2) + "%";
+                eq.appendChild(bar);
+                equalizerBars.push(bar);
+            }
+        }
         function active(){return isActive();}
         a.addEventListener("playing",function(){if(!active())return;safeText("radio-status","LIVE · Listening");safeText("radio-toggle","Pause");startAnimation();});
         a.addEventListener("waiting",function(){if(active())safeText("radio-status","Buffering live radio…");});
@@ -400,10 +440,12 @@ var RadioDeck = (function () {
                 if(attempt && attempt.catch)attempt.catch(function(){if(active()){safeText("radio-status","Press Play to start");safeText("radio-toggle","Play");}});
             }else a.pause();
         });
-        var modeButtons=document.querySelectorAll("[data-radio-mode]");
-        for(var i=0;i<modeButtons.length;i++)(function(button){
-            button.addEventListener("click",function(e){e.stopPropagation();changeMode(button.getAttribute("data-radio-mode"));});
-        })(modeButtons[i]);
+        function moveStation(dir) {
+            if (typeof bunkhouseStationStep === "function") bunkhouseStationStep(dir);
+        }
+        var prev = $("radio-prev"), next = $("radio-next");
+        if (prev) prev.addEventListener("click", function (e) { e.stopPropagation();moveStation(-1); });
+        if (next) next.addEventListener("click", function (e) { e.stopPropagation();moveStation(1); });
         // Native LG transport buttons; no player-engine changes required.
         window.addEventListener("keydown",function(event){
             if(!active())return;
@@ -424,6 +466,7 @@ var RadioDeck = (function () {
         current = ch;
         requestSerial++;
         currentTrackKey = "";
+        renderHistory();
         safeText("radio-name",ch.name || "Internet Radio");
         var freq = /\b(\d{2,3}\.\d)\b/.exec(ch.name || "");
         safeText("radio-frequency",freq ? freq[1] : "NET");
