@@ -25,6 +25,9 @@ var railObserver = ('IntersectionObserver' in window)
    screen of the visible area. Called on scroll and after the focus moves, so
    the D-pad (which scrolls by focusing) and the pointer both reach it. */
 var RAIL_NEAR_PX = 900;
+/** Load Rails Near View for VOD category rows.
+ * @returns {*} Function result.
+ */
 function loadRailsNearView() {
     if (railObserver) return;
     var box = elRails.getBoundingClientRect();
@@ -45,6 +48,10 @@ if (!railObserver) {
     });
 }
 
+/** Unload Rail for VOD category rows.
+ * @param {*} rail - Input for unloadRail().
+ * @returns {*} Function result.
+ */
 function unloadRail(rail) {
     if (!rail || rail.dataset.loaded !== '1' || rail.dataset.keep === '1') return;
     var rails = railEls();
@@ -57,6 +64,12 @@ function unloadRail(rail) {
     rail.dataset.loaded = '0';
 }
 
+/** Make Rail for VOD category rows.
+ * @param {*} titleText - Input for makeRail().
+ * @param {*} type - Input for makeRail().
+ * @param {*} catId - Input for makeRail().
+ * @returns {*} Function result.
+ */
 function makeRail(titleText, type, catId) {
     var rail = document.createElement('section');
     rail.className = 'vod-rail';
@@ -75,6 +88,10 @@ function makeRail(titleText, type, catId) {
     return rail;
 }
 
+/** Fill Rail for VOD category rows.
+ * @param {*} rail - Input for fillRail().
+ * @returns {*} Function result.
+ */
 function fillRail(rail) {
     if (rail.dataset.loaded !== '0') return;
     rail.dataset.loaded = '1';
@@ -109,6 +126,9 @@ function fillRail(rail) {
     });
 }
 
+/** Render Rails for VOD category rows.
+ * @returns {void} Updates state or the UI.
+ */
 function renderRails() {
     elRails.innerHTML = '';
     railIndex = 0; cardIndex = 0;
@@ -183,6 +203,10 @@ function renderRails() {
 }
 
 /* ── Category load + section switch ──────────────────────────────── */
+/** Load Type for VOD category rows.
+ * @param {*} type - Input for loadType().
+ * @returns {*} Function result.
+ */
 function loadType(type) {
     activeType = type;
     document.querySelectorAll('.vod-nav-item').forEach(function (t) {
