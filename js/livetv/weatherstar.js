@@ -31,29 +31,56 @@ var WeatherChannel = (function () {
     var soundPaused = false;
     var loadSerial = 0;
 
+    /** Find a WeatherStar control by its DOM ID.
+     * @param {string} id - DOM element or stored object ID.
+     * @returns {HTMLElement|null} Value described above.
+     */
     function $(id) { return document.getElementById(id); }
+    /** Return the separate Nightwave/SomaFM audio element.
+     * @returns {HTMLAudioElement|null} Value described above.
+     */
     function externalPlayer() { return $("weatherstar-external-audio"); }
+    /** Return the user's saved weather location or the default.
+     * @returns {string} Value described above.
+     */
     function getCity() {
         try { return localStorage.getItem("bunkhouse_weather_city") || defaultCity; }
         catch (_) { return defaultCity; }
     }
+    /** Remember the weather location.
+     * @param {string} city - Location name, ZIP code or coordinates.
+     * @returns {void} Updates module state or the UI.
+     */
     function saveCity(city) {
         try { localStorage.setItem("bunkhouse_weather_city", city); } catch (_) {}
     }
+    /** Restore the preferred music source.
+     * @returns {void} Updates module state or the UI.
+     */
     function restoreSound() {
         try {
             var saved = localStorage.getItem("bunkhouse_weather_soundtrack");
             if (sounds[saved]) soundtrack = saved;
         } catch (_) {}
     }
+    /** Persist the selected soundtrack.
+     * @returns {void} Updates module state or the UI.
+     */
     function rememberSound() {
         try { localStorage.setItem("bunkhouse_weather_soundtrack", soundtrack); }
         catch (_) {}
     }
+    /** Write a safe WeatherStar status message.
+     * @param {string} text - Text to display or parse.
+     * @returns {void} Updates module state or the UI.
+     */
     function setMessage(text) {
         var status = $("weatherstar-status");
         if (status) status.textContent = text;
     }
+    /** Update soundtrack controls to reflect current playback.
+     * @returns {void} Updates module state or the UI.
+     */
     function updateControls() {
         var select = $("weatherstar-soundtrack");
         if (select) select.value = soundtrack;
@@ -73,10 +100,18 @@ var WeatherChannel = (function () {
     // Supplying BOTH latLon and latLonQuery skips that fragile extra lookup.
     // The initial city is known and requires no network-based geocoding.
     var defaultCoordinates = {lat: 39.2673, lon: -76.7983};
+    /** Validate latitude and longitude bounds.
+     * @param {Object} p - Latitude/longitude pair to validate.
+     * @returns {boolean} Value described above.
+     */
     function coordsOK(p) {
         return p && isFinite(p.lat) && isFinite(p.lon) &&
             p.lat >= -90 && p.lat <= 90 && p.lon >= -180 && p.lon <= 180;
     }
+    /** Read coordinates cached for the specified location.
+     * @param {string} city - Location name, ZIP code or coordinates.
+     * @returns {Object|null} Value described above.
+     */
     function getCachedCoordinates(city) {
         if (String(city).toLowerCase().trim() === defaultCity.toLowerCase()) {
             return defaultCoordinates;
@@ -87,6 +122,11 @@ var WeatherChannel = (function () {
         } catch (_) {}
         return null;
     }
+    /** Cache the resolved coordinates with the location name.
+     * @param {string} city - Location name, ZIP code or coordinates.
+     * @param {Object} coords - Latitude/longitude pair {lat,lon}.
+     * @returns {void} Updates module state or the UI.
+     */
     function storeCoordinates(city, coords) {
         try {
             localStorage.setItem("bunkhouse_weather_coords", JSON.stringify({
@@ -94,6 +134,10 @@ var WeatherChannel = (function () {
             }));
         } catch (_) {}
     }
+    /** Resolve city, ZIP or explicit coordinates before loading WeatherStar.
+     * @param {string} city - Location name, ZIP code or coordinates.
+     * @returns {Promise<Object>} Completion of the asynchronous operation.
+     */
     function resolveCoordinates(city) {
         var cached = getCachedCoordinates(city);
         if (cached) return Promise.resolve(cached);
@@ -133,6 +177,10 @@ var WeatherChannel = (function () {
             return coords;
         });
     }
+    /** Build a WeatherStar URL containing native coordinate and music settings.
+     * @param {Object} coords - Latitude/longitude pair {lat,lon}.
+     * @returns {string} Value described above.
+     */
     function weatherURL(coords) {
         var base = hosted ? "https://weatherstar.netbymatt.com/"
                           : "../weatherstar/index.html";
@@ -146,6 +194,9 @@ var WeatherChannel = (function () {
             "&kiosk=true&mediaPlaying=" + (isClassic && !soundPaused ? "true" : "false") +
             "&mediaVolume=0.65&viewMode=standard";
     }
+    /** Pause and unload the external vaporwave audio stream.
+     * @returns {void} Updates module state or the UI.
+     */
     function stopExternal() {
         var player = externalPlayer();
         if (!player) return;
@@ -154,6 +205,9 @@ var WeatherChannel = (function () {
         player.removeAttribute("src");
         try { player.load(); } catch (_) {}
     }
+    /** Tune the selected Nightwave/SomaFM stream and show its state.
+     * @returns {void} Updates module state or the UI.
+     */
     function startExternal() {
         if (!active || soundtrack === "classic" || soundPaused) return;
         var player = externalPlayer();
@@ -185,12 +239,18 @@ var WeatherChannel = (function () {
             });
         }
     }
+    /** Locate WeatherStar's native music button when same-origin.
+     * @returns {HTMLElement|null} Value described above.
+     */
     function getNativeButton() {
         var frame = $("weatherstar-frame");
         try { return frame && frame.contentWindow &&
             frame.contentWindow.document.getElementById("ToggleMedia"); }
         catch (_) {return null;}
     }
+    /** Control the original internal WeatherStar music.
+     * @returns {void} Updates module state or the UI.
+     */
     function toggleClassic() {
         var button = getNativeButton();
         if (button) {
@@ -214,6 +274,9 @@ var WeatherChannel = (function () {
             setMessage("Use WeatherStar's own music icon to play the hosted copy.");
         }
     }
+    /** Load the selected WeatherStar page after coordinates resolve.
+     * @returns {void} Updates module state or the UI.
+     */
     function navigate() {
         if (!active) return;
         // Never let previous location resolutions reload a different channel.
@@ -239,6 +302,9 @@ var WeatherChannel = (function () {
                 ". Try a US ZIP code or latitude,longitude.");
         });
     }
+    /** Enter the WeatherStar channel.
+     * @returns {void} Updates module state or the UI.
+     */
     function open() {
         if (active) return;
         var root = $("weatherstar-view");
@@ -251,6 +317,9 @@ var WeatherChannel = (function () {
         if (msg) msg.style.display = "none";
         navigate();
     }
+    /** Unload WeatherStar and stop its external music.
+     * @returns {void} Updates module state or the UI.
+     */
     function close() {
         if (!active) return;
         active = false;
@@ -264,6 +333,9 @@ var WeatherChannel = (function () {
         var video = $("player");
         if (video) video.style.display = "block";
     }
+    /** Return from weather to the TV channel list.
+     * @returns {void} Updates module state or the UI.
+     */
     function backToChannels() {
         if (typeof isFullscreen === "function" && isFullscreen()) {
             toggleFullscreen();return;
@@ -276,6 +348,10 @@ var WeatherChannel = (function () {
         var list = $("channel-list-wrap");
         if (list) {try {list.focus();}catch (_) {}}
     }
+    /** Switch music source without playing two tracks together.
+     * @param {string} next - New soundtrack identifier.
+     * @returns {void} Updates module state or the UI.
+     */
     function changeSound(next) {
         if (!sounds[next] || next === soundtrack) return;
         var wasClassic = soundtrack === "classic";
@@ -295,6 +371,9 @@ var WeatherChannel = (function () {
             startExternal();
         }
     }
+    /** Pause or resume the current music source.
+     * @returns {void} Updates module state or the UI.
+     */
     function toggleSound() {
         if (!active) return;
         if (soundtrack === "classic") {toggleClassic();return;}
@@ -311,12 +390,21 @@ var WeatherChannel = (function () {
         }
         updateControls();
     }
+    /** Advance the soundtrack picker in its fixed order.
+     * @param {number} step - Signed number of modes or tracks to advance.
+     * @returns {void} Updates module state or the UI.
+     */
     function cycleSound(step) {
         var options = ["nightwave", "classic", "soma"];
         var index = options.indexOf(soundtrack);
         changeSound(options[(index + options.length + (step || 1)) % options.length]);
         updateControls();
     }
+    /** Handle LG remote input while the weather channel is active.
+     * @param {KeyboardEvent} e - Remote or keyboard event.
+     * @param {number} key - LG/webOS key code.
+     * @returns {boolean} Value described above.
+     */
     function handleKey(e, key) {
         if (!active) return false;
         var focus = document.activeElement;
@@ -379,6 +467,9 @@ var WeatherChannel = (function () {
         }
         return false;
     }
+    /** Start the chosen audio and register iframe key handling.
+     * @returns {void} Updates module state or the UI.
+     */
     function onFrameLoaded() {
         if (!active) return;
         var frame = $("weatherstar-frame");
@@ -410,6 +501,9 @@ var WeatherChannel = (function () {
             // Hosted cross-origin playback: toolbar stays outside the frame.
         }
     }
+    /** Wire location, soundtrack and exit controls once.
+     * @returns {void} Updates module state or the UI.
+     */
     function setup() {
         var frame = $("weatherstar-frame"), city = $("weatherstar-city");
         if (!frame) return;
