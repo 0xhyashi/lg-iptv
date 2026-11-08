@@ -4,10 +4,10 @@
   "description": "A fast, lightweight IPTV player built for webOS TVs by LG.",
   "main": "index.js",
   "scripts": {
-    "build": "babel js --out-dir dist/js && node tools/build-css.js && node tools/build-weatherstar.js",
+    "build": "babel js --out-dir dist/js && node tools/build-css.js && node tools/build-weatherstar.js && node tools/add-weatherstar-music.js",
     "clean": "rmdir /s /q dist",
     "build:css": "node tools/build-css.js",
-    "build:weatherstar": "node tools/build-weatherstar.js"
+    "build:weatherstar": "node tools/build-weatherstar.js && node tools/add-weatherstar-music.js"
   },
   "repository": {
     "type": "git",
