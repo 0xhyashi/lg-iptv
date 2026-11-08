@@ -27,7 +27,13 @@ jobs:
             ("ALT 92.3 WZRH AAC stream","https://playerservices.streamtheworld.com/api/livestream-redirect/WZRHFMAAC"),
             ("ALT 92.3 WZRH MP3","https://playerservices.streamtheworld.com/api/livestream-redirect/WZRHFM.mp3"),
             ("ALT 92.3 WZRH MP3 generic","https://playerservices.streamtheworld.com/api/livestream-redirect/WZRHFM"),
-            ("ALT 92.3 WZRH legacy AAC","https://playerservices.streamtheworld.com/pls/WZRHFMAAC.pls")
+            ("ALT 92.3 WZRH legacy AAC","https://playerservices.streamtheworld.com/pls/WZRHFMAAC.pls"),
+            ("Magic 101.9 WLMG MP3","https://live.amperwave.net/direct/audacy-wlmgfmmp3-imc"),
+            ("Magic 101.9 WLMG AAC","https://live.amperwave.net/direct/audacy-wlmgfmaac-imc"),
+            ("WFMF 102.5 iHeart direct","https://stream.revma.ihrhls.com/zc1005"),
+            ("WFMF 102.5 iHeart HLS","https://stream.revma.ihrhls.com/zc1005/hls.m3u8"),
+            ("WFMF 102.5 iHeart direct MP3","https://stream.revma.ihrhls.com/zc1005?type=mp3"),
+            ("WFMF 102.5 iHeart low bandwidth","https://stream.revma.ihrhls.com/zc1005?stream=low")
           ]
           def probe(st):
             name,url=st
