@@ -254,6 +254,8 @@ function loadSeries(item) {
             });
             if (seasons.length) selectSeason(seasons[0]);
         }).catch(function () {
+            // The user may have selected another series while this request failed.
+            if (detailItem !== item) return;
             list.innerHTML = '<div class="vod-ep-loading">Could not load episodes.</div>';
         });
 }
