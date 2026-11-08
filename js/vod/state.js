@@ -32,12 +32,44 @@ var cfg = Config.resolve();
     } catch (e) {}
 }());
 
+/** Api Url for VOD shared state.
+ * @param {*} params - Input for apiUrl().
+ * @returns {*} Function result.
+ */
 function apiUrl(params)          { return Config.apiUrl(cfg, params); }
+/** Build Movie Url for VOD shared state.
+ * @param {string} id - Identifier.
+ * @param {*} ext - Input for buildMovieUrl().
+ * @returns {*} Function result.
+ */
 function buildMovieUrl(id, ext)  { return Config.movieUrl(cfg, id, ext); }
+/** Build Episode Url for VOD shared state.
+ * @param {string} id - Identifier.
+ * @param {*} ext - Input for buildEpisodeUrl().
+ * @returns {*} Function result.
+ */
 function buildEpisodeUrl(id, ext){ return Config.episodeUrl(cfg, id, ext); }
+/** Cache Get for VOD shared state.
+ * @param {string} key - Key or identifier.
+ * @returns {*} Function result.
+ */
 function cacheGet(key)           { return Store.cacheGet(key); }
+/** Cache Set for VOD shared state.
+ * @param {string} key - Key or identifier.
+ * @param {*} data - Input for cacheSet().
+ * @returns {*} Function result.
+ */
 function cacheSet(key, data)     { return Store.cacheSet(key, data); }
+/** Fetch JSON for VOD shared state.
+ * @param {string} url - Requested URL.
+ * @returns {*} Function result.
+ */
 function fetchJSON(url)          { return Net.json(url); }
+/** Fetch Cached for VOD shared state.
+ * @param {string} key - Key or identifier.
+ * @param {string} url - Requested URL.
+ * @returns {*} Function result.
+ */
 function fetchCached(key, url)   { return Net.cachedJSON(key, url); }
 
 /* ── Category lists, slimmed before caching ──────────────────────────────
@@ -52,6 +84,10 @@ var VOD_KEEP = ['name', 'title', 'stream_id', 'series_id', 'stream_icon', 'cover
                 'container_extension', 'category_id', 'rating', 'rating_5based', 'year',
                 'releaseDate', 'releasedate', 'genre', 'duration', 'director'];
 
+/** Slim Vod Item for VOD shared state.
+ * @param {*} m - Input for slimVodItem().
+ * @returns {*} Function result.
+ */
 function slimVodItem(m) {
     var out = {};
     if (!m || typeof m !== 'object') return out;
@@ -69,6 +105,11 @@ function slimVodItem(m) {
     return out;
 }
 
+/** Fetch Cached List for VOD shared state.
+ * @param {string} key - Key or identifier.
+ * @param {string} url - Requested URL.
+ * @returns {*} Function result.
+ */
 function fetchCachedList(key, url) {
     var hit = Store.cacheGet(key);
     if (hit) return Promise.resolve(hit);
@@ -79,6 +120,10 @@ function fetchCachedList(key, url) {
     });
 }
 
+/** Esc Html for VOD shared state.
+ * @param {*} s - Input for escHtml().
+ * @returns {*} Function result.
+ */
 function escHtml(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
         .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -111,10 +156,18 @@ var elCategoryGrid = document.getElementById('vod-category-grid');
 
 
 /* ── Status helpers ──────────────────────────────────────────────── */
+/** Show Status for VOD shared state.
+ * @param {string} text - Input for showStatus().
+ * @param {*} spinner - Input for showStatus().
+ * @returns {void} Updates state or the UI.
+ */
 function showStatus(text, spinner) {
     elStatus.style.display = 'flex';
     elStatusTx.textContent = text;
     elStatus.querySelector('.vod-spinner').style.display = spinner ? '' : 'none';
     elRails.style.display = 'none';
 }
+/** Hide Status for VOD shared state.
+ * @returns {void} Updates state or the UI.
+ */
 function hideStatus() { elStatus.style.display = 'none'; elRails.style.display = ''; }
