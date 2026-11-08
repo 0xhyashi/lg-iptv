@@ -31,7 +31,7 @@ Radio stations use a **separate native HTML audio element**, rather than sending
 
 **Source availability and privacy:** The eight direct radio streams were verified from a US GitHub Actions runner in November 2026, including [101.1 WNOE Country](https://github.com/0xhyashi/lg-iptv/actions/runs/42438184834). LG device playback, keyboard ergonomics and station-specific album art still require testing on the physical TV. No root, relay, video screen capture, or sleep timer.
 
-## WeatherStar 4000+ — original retro weather channel (v1.0.41)
+## WeatherStar 4000+ — original retro weather channel (v1.0.42)
 
 **Retro Weather** in the TV categories now contains **WeatherStar 4000+ — Local Forecast**. This is the REAL original [netbymatt/ws4kp](https://github.com/netbymatt/ws4kp) web application running inside our local TV interface, **not** an HLS stream and not a visual recreation. The upstream project's own graphics, fonts, smooth transitions, maps, forecast screens and four bundled WeatherStar-inspired music tracks are all preserved. The original copyrighted Weather Channel songs are **not** bundled by the upstream project.
 
@@ -42,6 +42,19 @@ The standard `npm run build` fetches **pinned ws4kp v8.2.2** (`237c60d242f9d70e0
 The weather player runs WeatherStar's built-in kiosk mode. The Bunkhouse toolbar controls location (default Ellicott City, Maryland; change to any supported US city or ZIP), music, fullscreen, exit and an optional hosted copy. The weather forecast is updated from live National Weather Service data and therefore still needs internet. The page can request music playback, but webOS browser autoplay rules may require a click first.
 
 **Device test caveats:** Static WeatherStar compiled successfully on CI, but it has NOT yet been validated on this physical LG TV. Its browser engine may be too old for the upstream app; additionally `file://` local JavaScript requests can fail even though the page itself loads. If so, **TRY ONLINE COPY** switches the iframe to the original `https://weatherstar.netbymatt.com/` website. That site presently permits framing, but we must still test it on webOS. Press LG Back or **◀ TV** to leave. Opening radio or another TV channel stops WeatherStar audio. This feature does not claim to provide emergency weather alerts.
+
+### WeatherStar soundtrack selection (v1.0.42)
+
+On the WeatherStar channel, use the **SOUNDTRACK** selector in Bunkhouse's toolbar to switch among:
+- **Nightwave Plaza (default)** — 24/7 live vaporwave, streamed directly from `https://radio.plaza.one/mp3` (HTTPS MP3, tested on Nov 7, 2026). Nightwave is an independent ad-free listener-supported station; listening happens on the TV, not via a proxy or our server.
+- **Classic WeatherStar** — the original unmodified WeatherStar player playing our local 17-track, **57-minute-14-second** shuffled WeatherStar music library. Automatically advances and reshuffles; no third-party internet audio service needed.
+- **SomaFM Vaporwaves** — an alternate 24/7 station using the direct personal-listening MP3 `https://ice5.somafm.com/vaporwaves-128-mp3`. SomaFM's station links are intended for **individual personal listening**, not public rebroadcasting. Do not retransmit the combined audio/video channel publicly.
+
+The selected soundtrack is saved locally on the TV for next time. The **PAUSE SOUND / PLAY SOUND** button and LG media Play/Pause keys control external radio. Classic mode uses WeatherStar's own native music player, with a **CLASSIC MUSIC** button for browsers that block autoplay. On each switch between classic and live audio, Bunkhouse recreates the iframe using the upstream app's documented `mediaPlaying=true/false` setting. This guarantees the outgoing source is unloaded before the next plays, with no accidental two-audio overlap. Nightwave ↔ SomaFM changes only the separate audio stream while keeping weather graphics on screen.
+
+**Upstream authenticity:** The original WeatherStar HTML, fonts, graphics, JS code, transitions, and player are unchanged. The 17-track classic playlist already extends the built-in music with 13 credited CC BY 4.0 tracks, without modifying the player source. The live radio modes mute the classic player and run a separate hidden native HTML5 audio element.
+
+**Compatibility:** The stream endpoints returned HTTP 200 and real MP3 bytes in GitHub Actions, and the webOS `.ipk` package has passed CI. Actual LG device audio behavior still requires testing. Old webOS browsers may deny autoplay when the iframe loads; press **PLAY SOUND** if prompted. When the online WeatherStar fallback is selected, its underlying forecast page is cross-origin, so its built-in music button may need to be clicked inside the original page. The weather feed still needs internet access for real forecasts.
 
 ## Privacy
 
@@ -62,7 +75,7 @@ npm.cmd run build
 ares-package.cmd -n .
 ```
 
-This produces `com.oxhyashi.toonamitest_1.0.41_all.ipk`. Install it with webOS Dev Manager or the LG `ares-install` CLI. The app ID is unchanged from earlier privacy-fork test builds, so this can update the installed app.
+This produces `com.oxhyashi.toonamitest_1.0.42_all.ipk`. Install it with webOS Dev Manager or the LG `ares-install` CLI. The app ID is unchanged from earlier privacy-fork test builds, so this can update the installed app.
 
 **Important for developers:** `dist/js/` is generated by `npm run build`. This branch's new channel and radio playback additions live in `js/app.js`, `pages/livetv.html`, and `assets/player.css` and will appear in the packaged app **after running the build**. Do not commit local changes to generated `dist/js/` unless intentionally updating distributions.
 
