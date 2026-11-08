@@ -10,9 +10,15 @@
 
 /* ── Resume / Continue Watching ──────────────────────────────────── */
 var PROGRESS_KEY = 'vod_progress';
+/** load Progress for Continue Watching and My List.
+ * @returns {*} Result, or undefined after updating page state.
+ */
 function loadProgress() {
     try { return JSON.parse(localStorage.getItem(PROGRESS_KEY)) || {}; } catch (e) { return {}; }
 }
+/** continue Watching for Continue Watching and My List.
+ * @returns {*} Result, or undefined after updating page state.
+ */
 function continueWatching() {
     var p = loadProgress(), out = [];
     for (var k in p) {
@@ -28,17 +34,36 @@ function continueWatching() {
 
 /* ── My List (watchlist) ─────────────────────────────────────────── */
 var WATCHLIST_KEY = 'vod_watchlist';
+/** load Watchlist for Continue Watching and My List.
+ * @returns {*} Result, or undefined after updating page state.
+ */
 function loadWatchlist() { try { return JSON.parse(localStorage.getItem(WATCHLIST_KEY)) || []; } catch (e) { return []; } }
+/** save Watchlist for Continue Watching and My List.
+ * @param {*} w - Input for saveWatchlist().
+ * @returns {*} Result, or undefined after updating page state.
+ */
 function saveWatchlist(w) { try { localStorage.setItem(WATCHLIST_KEY, JSON.stringify(w)); } catch (e) {} }
+/** wl Key for Continue Watching and My List.
+ * @param {*} item - Input for wlKey().
+ * @returns {*} Result, or undefined after updating page state.
+ */
 function wlKey(item) {
     var t = item.__type || (item.series_id ? 'series' : 'movie');
     return t + ':' + (t === 'series' ? item.series_id : item.stream_id);
 }
+/** in Watchlist for Continue Watching and My List.
+ * @param {*} item - Input for inWatchlist().
+ * @returns {*} Result, or undefined after updating page state.
+ */
 function inWatchlist(item) {
     var k = wlKey(item), w = loadWatchlist();
     for (var i = 0; i < w.length; i++) if (w[i].key === k) return true;
     return false;
 }
+/** toggle Watchlist for Continue Watching and My List.
+ * @param {*} item - Input for toggleWatchlist().
+ * @returns {*} Result, or undefined after updating page state.
+ */
 function toggleWatchlist(item) {
     var k = wlKey(item), w = loadWatchlist(), idx = -1;
     for (var i = 0; i < w.length; i++) if (w[i].key === k) { idx = i; break; }
