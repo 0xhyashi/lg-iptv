@@ -15,6 +15,18 @@ const cp = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const SKIP = new Set(['assets/hls.min.js', 'assets/qrcode.js']);
+/* These core modules have already had their contracts manually checked.
+ * Reject boilerplate placeholders rather than treating a generic sentence as
+ * useful maintenance documentation. Older legacy modules are checked for
+ * coverage and syntax without requiring a broad risky rewrite.
+ */
+const REVIEWED = new Set([
+    'js/app.js', 'js/core/net.js', 'js/core/store.js',
+    'js/livetv/radio.js', 'js/livetv/weatherstar.js', 'js/livetv/epg.js',
+    'js/vod/nav.js', 'js/vod/rails.js', 'js/vod/search.js',
+    'js/vod/state.js'
+]);
+
 
 /** Collect all first-party JavaScript files under a source directory.
  * @param {string} dir - Directory path relative to the repo.
@@ -67,6 +79,9 @@ for (const file of jsFiles) {
     const absolute = path.join(ROOT, file);
     const code = fs.readFileSync(absolute, 'utf8');
     if (!/^\s*(?:\/\*|\/\/)/.test(code)) errors.push(file + ': missing file overview at the top.');
+    if (REVIEWED.has(file) && /Function result\.|Value described above\.|Input (?:for|to) [\w$]+\(\)\./.test(code)) {
+        errors.push(file + ': replace generic function contract placeholders with accurate descriptions.');
+    }
     const definitions = /^([ \t]*)(?:async\s+)?function\s+([a-z_$][\w$]*)\s*\(([^)\n]*)\)\s*\{/gim;
     for (const match of code.matchAll(definitions)) {
         checkFunction(code, file, match.index, match[2], match[3]);
