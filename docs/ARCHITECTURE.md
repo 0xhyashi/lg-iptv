@@ -47,6 +47,46 @@ A **station change is not a track change**. The radio stream URL is fixed per st
 
 **TV EPG:** `selectChannel` may await an HTTP guide request. After every async continuation, check that the selected channel is still the one the request was for, **including empty/error responses**. The channel list and EPG cache are separate; a stale response can be cached, but must not redraw the selected channel's UI.
 
+## Async ownership rules (audit notes)
+
+A request completing successfully does **not** mean its result still belongs to
+the visible screen. Use the owner's existing guard, not a new global manager:
+
+| Owner | Existing guard | Late callback must not |
+| --- | --- | --- |
+| Video player | `_gen` and `_tok`, checked via `_alive()` | Seek, change audio tracks or replace video after a switch |
+| TV guide | `currentChannel === ch` | Overwrite the selected channel's EPG |
+| Catch-up archive | `epgReqKey`, incremented on channel selection **and Home** | Redraw or focus an archive after navigation |
+| VOD series detail | `detailItem === item` | Display seasons or an error for the previous series |
+| VOD subtitle search/download | `_osSearchId` plus open-menu state | Replace search results or select a subtitle from an old request |
+| Profile connection | `connectSerial` plus `selectedId` | Activate a previous profile after editing/switching |
+| Radio deck | `requestSerial` and current `<audio>` identity | Show old metadata or keep the previous station playing |
+| WeatherStar | `loadSerial` and active iframe state | Navigate the frame or play a stale soundtrack |
+
+Use `Net.json` or `Net.text` for ordinary provider requests. The streaming ICY
+radio probe is the exception: it reads binary bytes directly, with its own
+timeout that settles even if the TV ignores `AbortController.abort()`. Location
+lookups also use `Net` deadlines. Do not add unbounded `fetch()` calls to old
+webOS paths.
+
+The Saturn radio bars are **simulated**, not measured audio. LG webOS TV does
+not expose the native media element's decoded PCM to first-party apps; adding
+a real visualizer requires a separate, explicitly tested stream-analysis
+implementation. The audit deliberately leaves this separate from the one
+native decoder required for reliable playback.
+
+## Testing this branch
+
+On a push, `.github/workflows/source-audit.yml` checks source syntax and
+documentation coverage and runs focused state/timeout regressions. The
+`Verify Bunkhouse Nightwave/Classic/Soma Weather IPK` workflow builds the
+complete app, checks the packaged WeatherStar resources, creates the webOS
+`.ipk`, and uploads the `bunkhouse-webos-test-ipk` artifact. Download
+that artifact from a successful workflow run, extract the `.ipk`, and install
+it on the LG test device. Do not merge this experimental branch into `main`
+until TV playback, remote focus, radio switching, WeatherStar, and VOD are
+confirmed on hardware.
+
 ## Dependencies and code origins
 
 - `js/`, `assets/*.css` and first-party `assets/*.js` other than vendored files are editable source. The app is mostly classic scripts that share globals intentionally. Keep the execution order in `pages/*.html`; not all sources are ES modules.
