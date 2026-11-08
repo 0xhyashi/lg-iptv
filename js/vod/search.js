@@ -19,8 +19,8 @@ var searchTimer = null, searchReqId = 0;
 var searchWorker = null, searchReady = false, searchUseWorker = false;
 var searchIndex = null;        // main-thread fallback index
 
-/** Open Search for VOD catalog search.
- * @returns {*} Function result.
+/** Show the VOD search overlay.
+ * @returns {void} No return value.
  */
 function openSearch() {
     prevZone = zone;
@@ -33,8 +33,8 @@ function openSearch() {
     setTimeout(function () { elSearchIn.focus(); }, 30);
     initSearchEngine();
 }
-/** Close Search for VOD catalog search.
- * @returns {*} Function result.
+/** Hide the VOD search overlay.
+ * @returns {void} No return value.
  */
 function closeSearch() {
     elSearch.hidden = true;
@@ -69,11 +69,11 @@ function initSearchEngine() {
     }
 }
 
-/** Build Index Into for VOD catalog search.
+/** Append searchable movie or series entries to an index.
  * @param {number} idx - Index.
  * @param {*} arr - Input for buildIndexInto().
  * @param {*} type - Input for buildIndexInto().
- * @returns {*} Function result.
+ * @returns {void} No return value.
  */
 function buildIndexInto(idx, arr, type) {
     if (!Array.isArray(arr)) return;
@@ -98,16 +98,16 @@ function initFallbackSearch(movieUrl, seriesUrl) {
     if (searchIndex) return;
     searchIndex = [];
     var pending = 2;
-    /** Done for VOD catalog search.
-     * @returns {*} Function result.
+    /** Mark one of the two VOD search-index requests complete.
+     * @returns {void} No return value.
      */
     function done() { pending--; if (pending === 0) { searchReady = true; if (!elSearch.hidden) runSearch(); } }
     fetchJSON(movieUrl).then(function (d) { buildIndexInto(searchIndex, d, 'movie'); done(); }).catch(done);
     fetchJSON(seriesUrl).then(function (d) { buildIndexInto(searchIndex, d, 'series'); done(); }).catch(done);
 }
-/** Main Thread Search for VOD catalog search.
+/** Find matching local VOD entries without a worker.
  * @param {*} q - Input for mainThreadSearch().
- * @returns {*} Function result.
+ * @returns {Array<Object>} Matching movie and series items, capped at the search limit.
  */
 function mainThreadSearch(q) {
     q = q.toLowerCase();
@@ -122,8 +122,8 @@ function mainThreadSearch(q) {
     return out;
 }
 
-/** Run Search for VOD catalog search.
- * @returns {*} Function result.
+/** Search using the worker or in-memory index.
+ * @returns {void} No return value.
  */
 function runSearch() {
     var q = elSearchIn.value.trim();
