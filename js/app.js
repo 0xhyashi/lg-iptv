@@ -329,6 +329,7 @@ async function selectChannel(ch) {
     document.getElementById("preview-channel-name").textContent = ch.name || "Unknown";
     document.getElementById("pip-channel-name").textContent     = ch.name || "Unknown";
     if (ch._radio) {
+        WeatherChannel.close();
         bunkhouseSetMode("radio");
         bunkhouseHighlightStation();
         startRadio(ch);
@@ -342,6 +343,19 @@ async function selectChannel(ch) {
     stopRadio();
     _bkLastTVChannel = ch;
     if (document.body.classList.contains("radio-mode")) bunkhouseSetMode("tv");
+    if (ch._weatherstar) {
+        // Browser-driven forecast, not a video URL: never pass it to IPTVPlayer.
+        // The third-party artwork, transitions, fonts and music live in their
+        // own pristine packaged iframe, with Bunkhouse handling navigation.
+        player.stop();
+        WeatherChannel.open();
+        setEPG("now", "WeatherStar 4000+ • live forecast", "", "");
+        setEPG("next", "Updates from NOAA / NWS", "", "");
+        document.getElementById("epg-bar-fill").style.width = "0%";
+        showPreviewInfo();
+        return;
+    }
+    WeatherChannel.close();
     const playUrl = ch._source === "m3u" ? m3uBuildLiveURL(ch) : xtreamBuildLiveURL(cfg, ch.stream_id);
     // The key lets the player remember which engine actually worked for THIS
     // channel, so a 4K/HEVC channel that only plays on HLS starts there.
@@ -475,8 +489,17 @@ function channelStep(delta) {
     { stream_id: "radio-wnoe1011-nola", name: "101.1 WNOE Country — New Orleans", category_id: "radio", stream_icon: "", stream_url: "https://stream.revma.ihrhls.com/zc1045", _radio: true, _source: "m3u" }
   ];
 
+  // This is a self-contained web app, not an M3U8 feed. It renders the
+  // ORIGINAL pinned WeatherStar 4000+ 8.2.2 code and bundled music.
+  var weatherChannels = [
+    { stream_id: "local-weatherstar-4000", name: "WeatherStar 4000+ — Local Forecast",
+      category_id: "retro-weather", stream_icon: "", stream_url: "../weatherstar/index.html",
+      _weatherstar: true, _source: "local" }
+  ];
+
   var categories = [
     { category_id: "toonami", category_name: "Toonami Aftermath" },
+    { category_id: "retro-weather", category_name: "Retro Weather" },
     { category_id: "radio", category_name: "Radio Stations" },
     { category_id: "japan", category_name: "Japan TV (IPTV-org)" },
     { category_id: "japan-news", category_name: "Japan — News" },
@@ -512,20 +535,21 @@ function channelStep(delta) {
       seenUrls[verifiedJapanExtras[v].stream_url] = true;
     }
     japanese = japanese.filter(function (ch) { return !seenUrls[ch.stream_url]; });
-    allChannels = toonamiChannels.concat(verifiedJapanExtras, radioChannels, japanese);
+    allChannels = toonamiChannels.concat(weatherChannels, verifiedJapanExtras, radioChannels, japanese);
     updateSidebarActive();
     applyFilters(true);
-    status.textContent = allChannels.length + " channels (4 Toonami + " +
+    status.textContent = allChannels.length + " channels (4 Toonami + 1 WeatherStar + " +
         verifiedJapanExtras.length + " verified extras + 8 radio + " + japanese.length +
         " Japan directory" + (cached ? ", cached" : "") + ")";
     return true;
   }
 
   epgCache = loadEpgDiskCache();
-  allChannels = toonamiChannels.concat(verifiedJapanExtras, radioChannels);
+  allChannels = toonamiChannels.concat(weatherChannels, verifiedJapanExtras, radioChannels);
   status.textContent = allChannels.length + " channels - loading Japan TV directory...";
   _bootUI(categories, "");
   setupBunkhouseNavigation();
+  WeatherChannel.setup();
 
   // Load any previously downloaded Japanese directory immediately, then
   // refresh it from the public iptv-org playlist (without sending credentials).
