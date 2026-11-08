@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../dist/css/livetv.css" />
     <link rel="stylesheet" href="../dist/css/player.css" />
     <link rel="stylesheet" href="../dist/css/radio.css" />
+    <link rel="stylesheet" href="../dist/css/bunkhouse.css" />
     <link rel="stylesheet" href="../dist/css/multiview.css" />
     <!-- Blocking on purpose: detects the video pipeline and sets the UI scale
          before first paint. Must stay in <head> and must stay synchronous. -->
@@ -25,7 +26,7 @@
                             <polyline points="9 22 9 12 15 12 15 22"/>
                         </svg>
                     </button>
-                    <span>Toonami + Japan TV <small>v1.0.39</small></span>
+                    <span>Bunkhouse <small>v1.0.40</small></span>
                     <button id="settings-btn" title="Settings" onclick="location.href='../pages/settings.html'">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="3"/>
@@ -36,8 +37,13 @@
                 <input id="search" type="text" placeholder="Search channels…" autocomplete="off" spellcheck="false" />
                 <div id="status">Connecting…</div>
             </div>
+            <nav id="bunkhouse-switch" aria-label="Media type">
+                <button id="media-tv" class="active" type="button">▣ <span>TV</span></button>
+                <button id="media-radio" type="button">♫ <span>RADIO</span></button>
+            </nav>
             <div id="panel-channels" class="sidebar-panel active">
                 <div id="categories"></div>
+                <div id="radio-stations" style="display:none;"></div>
             </div>
 
         </aside>
@@ -69,130 +75,57 @@
                     <video id="player" autoplay playsinline></video>
                     <!-- Independent native audio player for Icecast/MP3 radio streams. -->
                     <audio id="radio-audio" preload="none"></audio>
-                    <div id="radio-visual" class="mode-headspace" style="display:none;">
-                        <header id="radio-deck-header">
-                            <div class="radio-onair"><i aria-hidden="true"></i> ON AIR <span class="radio-headphone-tag">HEADSPACE RADIO DECK</span></div>
-                            <div id="radio-name">Internet Radio</div>
+                    <div id="radio-visual" class="mode-saturn" style="display:none;">
+                        <header id="bunkhouse-header">
+                            <span class="bk-eq-indicator" aria-hidden="true">▥ ▥ ▥</span>
+                            <span id="bunkhouse-title">BUNKHOUSE RADIO</span>
+                            <span id="bk-live-led">● LIVE</span>
                         </header>
-                        <div id="radio-deck-body">
-                            <div id="radio-stage">
-                                <div class="radio-scene radio-headspace-scene" aria-label="Headspace-inspired animated radio display">
-                                    <svg id="radio-headspace-svg" viewBox="0 0 620 640" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-                                        <defs>
-                                            <radialGradient id="hs-shell" cx=".35" cy=".16" r=".85">
-                                                <stop offset="0" stop-color="#d4ff5b"/><stop offset=".28" stop-color="#87f720"/><stop offset=".62" stop-color="#37c910"/><stop offset="1" stop-color="#145b08"/>
-                                            </radialGradient>
-                                            <linearGradient id="hs-face" x1="0" y1="0" x2="1" y2="1">
-                                                <stop offset="0" stop-color="#85f82d"/><stop offset=".29" stop-color="#48c214"/><stop offset=".62" stop-color="#2e980d"/><stop offset="1" stop-color="#0f4d08"/>
-                                            </linearGradient>
-                                            <radialGradient id="hs-speaker"><stop offset="0" stop-color="#191c1b"/><stop offset=".32" stop-color="#4b5354"/><stop offset=".51" stop-color="#141a1d"/><stop offset=".66" stop-color="#a2aaaa"/><stop offset=".83" stop-color="#50585a"/><stop offset="1" stop-color="#b6bcbc"/></radialGradient>
-                                            <linearGradient id="hs-shine" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".55"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
-                                            <clipPath id="hs-screen-clip"><rect x="158" y="148" width="304" height="177" rx="62"/></clipPath>
-                                            <filter id="hs-shadow"><feGaussianBlur stdDeviation="8"/></filter>
-                                        </defs>
-                                        <ellipse cx="311" cy="605" rx="142" ry="16" fill="#092b07" opacity=".6" filter="url(#hs-shadow)"/>
-                                        <g fill="#29af10" stroke="#83f035" stroke-width="9">
-                                            <path d="M170 231L103 211 85 242 149 299Z"/>
-                                            <path d="M447 226L518 212 535 249 466 304Z"/>
-                                            <path d="M155 323L98 318 87 371 160 388Z"/>
-                                            <path d="M464 322L526 318 540 370 460 390Z"/>
-                                        </g>
-                                        <g>
-                                            <circle cx="104" cy="241" r="53" fill="#3fda10" stroke="#96fc52" stroke-width="7"/>
-                                            <circle cx="104" cy="241" r="43" fill="url(#hs-speaker)" stroke="#b6bfc3" stroke-width="5"/>
-                                            <circle cx="104" cy="241" r="21" fill="#414a4d" stroke="#131817" stroke-width="5"/>
-                                            <circle cx="514" cy="241" r="53" fill="#3fda10" stroke="#96fc52" stroke-width="7"/>
-                                            <circle cx="514" cy="241" r="43" fill="url(#hs-speaker)" stroke="#b6bfc3" stroke-width="5"/>
-                                            <circle cx="514" cy="241" r="21" fill="#414a4d" stroke="#131817" stroke-width="5"/>
-                                            <circle cx="104" cy="348" r="56" fill="#3fda10" stroke="#96fc52" stroke-width="7"/>
-                                            <circle cx="104" cy="348" r="44" fill="url(#hs-speaker)" stroke="#b6bfc3" stroke-width="5"/>
-                                            <circle cx="104" cy="348" r="22" fill="#4e5455" stroke="#131817" stroke-width="5"/>
-                                            <circle cx="514" cy="348" r="56" fill="#3fda10" stroke="#96fc52" stroke-width="7"/>
-                                            <circle cx="514" cy="348" r="44" fill="url(#hs-speaker)" stroke="#b6bfc3" stroke-width="5"/>
-                                            <circle cx="514" cy="348" r="22" fill="#4e5455" stroke="#131817" stroke-width="5"/>
-                                        </g>
-                                        <!-- Lime green player helmet and original, stylised human face -->
-                                        <path d="M164 353C143 295 141 204 148 170C153 102 217 65 310 60C403 58 464 105 473 169C488 249 475 313 459 355L444 447C428 516 395 585 318 613C241 595 192 534 178 459Z" fill="url(#hs-shell)" stroke="#2a8d0e" stroke-width="6"/>
-                                        <path d="M179 354C175 413 189 495 237 545C258 573 288 591 315 602C366 578 417 541 441 475L449 361C411 379 371 393 312 397C249 399 204 386 179 354Z" fill="url(#hs-face)"/>
-                                        <path d="M186 361C212 388 238 399 266 405L234 462 195 447Z" fill="#aaff45" opacity=".34"/>
-                                        <path d="M443 366C406 386 390 393 363 400L396 485 430 468Z" fill="#0b5a0b" opacity=".36"/>
-                                        <!-- forehead tuner -->
-                                        <rect x="159" y="145" width="306" height="184" rx="63" fill="#09160a" stroke="#0a4306" stroke-width="11"/>
-                                        <rect x="167" y="154" width="290" height="165" rx="53" fill="#020907"/>
-                                        <g clip-path="url(#hs-screen-clip)">
-                                            <g stroke="#245b31" stroke-width=".7" opacity=".46">
-                                                <path d="M158 177H462 M158 199H462 M158 221H462 M158 243H462 M158 265H462 M158 287H462"/>
-                                                <path d="M196 148V325 M236 148V325 M276 148V325 M316 148V325 M356 148V325 M396 148V325 M436 148V325"/>
-                                            </g>
-                                            <path id="radio-head-trace" d="M165,221 L455,221" stroke="#99ffa3" stroke-width="2" fill="none" stroke-linejoin="round"/>
-                                        </g>
-                                        <!-- plastic media buttons -->
-                                        <rect x="221" y="101" width="181" height="34" rx="16" fill="#53c91b" stroke="#aafa53" stroke-width="3"/>
-                                        <circle cx="247" cy="118" r="13" fill="#a966df" stroke="#e6c9f4" stroke-width="2"/><path d="M242 111V125M251 111V125" stroke="#222" stroke-width="3"/>
-                                        <circle cx="281" cy="118" r="13" fill="#b27be0" stroke="#e6c9f4" stroke-width="2"/><rect x="276" y="113" width="10" height="10" fill="#24242c"/>
-                                        <circle cx="317" cy="118" r="13" fill="#8dcb68" stroke="#d4fa99" stroke-width="2"/><path d="M313 111L322 118 313 125Z" fill="#0a3e08"/>
-                                        <circle cx="369" cy="118" r="13" fill="#eceb3b" stroke="#fff799" stroke-width="2"/><path d="M366 109V127M360 113L376 123M360 123L376 113" stroke="#334b00" stroke-width="2"/>
-                                        <!-- slider strip -->
-                                        <rect x="191" y="333" width="236" height="14" rx="6" fill="#1f6309"/>
-                                        <rect x="207" y="337" width="182" height="6" rx="3" fill="#ad57cf"/>
-                                        <ellipse cx="354" cy="341" rx="12" ry="7" fill="#eed4fd" stroke="#6a367c"/>
-                                        <!-- face proportions, brows, eyes, nose and lips -->
-                                        <path d="M205 423Q245 398 286 416M333 415Q384 395 424 420" fill="none" stroke="#0e5908" stroke-width="13" stroke-linecap="round" opacity=".83"/>
-                                        <path d="M216 436Q245 446 279 429M344 429Q378 445 409 433" fill="none" stroke="#134e08" stroke-width="7" stroke-linecap="round"/>
-                                        <path d="M225 436Q248 450 275 436M346 436Q377 451 402 436" fill="none" stroke="#c5fc71" stroke-width="3" opacity=".7"/>
-                                        <path d="M311 422C305 453 291 487 294 510C303 518 318 519 332 509" fill="none" stroke="#155508" stroke-width="10" stroke-linecap="round"/>
-                                        <path d="M292 512Q307 523 328 512" fill="none" stroke="#a1ed36" stroke-width="4"/>
-                                        <path d="M266 546Q293 538 313 545Q340 533 361 542Q324 564 294 558Z" fill="#144809" opacity=".92"/>
-                                        <path d="M283 552Q319 560 348 548" fill="none" stroke="#95e52d" stroke-width="3"/>
-                                        <path d="M265 576Q312 586 359 572" fill="none" stroke="#104407" stroke-width="4" opacity=".7"/>
-                                        <path d="M157 175Q171 90 249 76" fill="none" stroke="url(#hs-shine)" stroke-width="11" stroke-linecap="round"/>
-                                    </svg>
-                                    <span class="radio-trace-note">ANIMATED CRT TRACE</span>
+                        <div id="bk-body">
+                            <section id="bk-stage">
+                                <div id="bk-planet-frame">
+                                    <img id="bk-saturn" src="../assets/bunkhouse-saturn.jpg" alt="Blue Saturn with glowing rings — vintage 1990s computer artwork" />
+                                    <span id="bk-planet-caption">SATURN // SPACE RADIO</span>
                                 </div>
-                                <div class="radio-scene radio-scope-scene">
-                                    <div class="radio-scope-panel">
-                                        <div class="radio-scope-top">OSCILLOSCOPE <small>CH 1 / INTERNET RADIO</small></div>
-                                        <canvas id="radio-scope-canvas" width="640" height="350"></canvas>
-                                        <div class="radio-scope-caption">SYNTHETIC WAVEFORM · AUDIO SAMPLES UNAVAILABLE ON WEBOS</div>
-                                    </div>
+                                <div id="bk-station-box">
+                                    <div class="bk-tiny">TUNED TO</div>
+                                    <div id="radio-name">Internet Radio</div>
+                                    <div id="radio-frequency" class="bk-frequency">NET</div>
+                                    <div id="bk-equalizer" aria-label="Decorative simulated equalizer"></div>
+                                    <div class="bk-visual-note">ANIMATED EQ · SIMULATED</div>
                                 </div>
-                                <div class="radio-scene radio-tuner-scene">
-                                    <div class="radio-receiver">
-                                        <div class="radio-receiver-upper"><span>HEADSPACE HI-FI</span><span>STEREO RECEIVER</span></div>
-                                        <div class="radio-receiver-glass">
-                                            <div class="radio-receiver-freq"><span id="radio-frequency">FM</span><small>FM / LIVE</small></div>
-                                            <div class="radio-receiver-led"><span>● TUNED</span> <span>● STEREO</span></div>
-                                            <div class="radio-receiver-scale">88&nbsp;&nbsp;92&nbsp;&nbsp;96&nbsp;&nbsp;100&nbsp;&nbsp;104&nbsp;&nbsp;108</div>
-                                            <div class="radio-receiver-vu"><span id="radio-vu-fill"></span></div>
+                            </section>
+                            <section id="bk-information">
+                                <div id="radio-track-panel" class="bk-panel">
+                                    <div class="bk-section-title">NOW PLAYING</div>
+                                    <div id="bk-current-content">
+                                        <div class="radio-cover-box">
+                                            <div id="radio-cover-placeholder"><span>♫</span><small>ALBUM ART</small></div>
+                                            <img id="radio-cover" alt="Album cover for the current song" style="display:none;" />
                                         </div>
-                                        <div class="radio-receiver-bottom"><span class="radio-knob"></span><span>ANALOG SIGNAL</span><span class="radio-knob"></span></div>
-                                        <small class="radio-receiver-disclaimer">DECORATIVE METER · NOT SAMPLED AUDIO</small>
+                                        <div class="radio-track-meta">
+                                            <div id="radio-track">Waiting for the next song</div>
+                                            <div id="radio-artist">Live broadcast</div>
+                                            <div id="radio-album"></div>
+                                            <div id="radio-metadata-state">Waiting for station metadata…</div>
+                                            <a id="radio-art-source" style="display:none;" target="_blank" rel="noopener noreferrer">See album on Apple Music</a>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <section id="radio-track-panel" aria-live="polite">
-                                <div class="radio-cover-box">
-                                    <div id="radio-cover-placeholder"><span>♫</span><small>ALBUM ART</small></div>
-                                    <img id="radio-cover" alt="Current song album artwork" style="display:none;" />
-                                </div>
-                                <div class="radio-track-meta">
-                                    <div class="radio-now-label">NOW PLAYING</div>
-                                    <div id="radio-track">Waiting for the next song</div>
-                                    <div id="radio-artist">Live broadcast</div>
-                                    <div id="radio-album"></div>
-                                    <div id="radio-metadata-state">Waiting for station metadata…</div>
-                                    <a id="radio-art-source" style="display:none;" target="_blank" rel="noopener noreferrer">Artwork / track on Apple Music</a>
+                                <div id="bk-history" class="bk-panel">
+                                    <div class="bk-section-title">PREVIOUSLY PLAYED</div>
+                                    <ol id="radio-history-list"><li class="bk-no-history">Recent tracks will appear here when station metadata is available.</li></ol>
                                 </div>
                             </section>
                         </div>
-                        <footer id="radio-deck-controls">
-                            <div class="radio-mode-buttons" aria-label="Visualizer style">
-                                <button type="button" data-radio-mode="headspace" class="selected">HEADSPACE</button>
-                                <button type="button" data-radio-mode="scope">SCOPE</button>
-                                <button type="button" data-radio-mode="tuner">TUNER</button>
+                        <footer id="bunkhouse-controls">
+                            <div class="bk-controls-main">
+                                <button id="radio-prev" type="button" title="Previous radio station">◀ STATION</button>
+                                <button id="radio-toggle" type="button">Pause</button>
+                                <button id="radio-next" type="button" title="Next radio station">STATION ▶</button>
+                                <span id="radio-status">Connecting…</span>
                             </div>
-                            <div class="radio-control-right"><span id="radio-status">Connecting…</span><button id="radio-toggle" type="button">Pause</button></div>
-                            <div class="radio-shortcut-note">BLUE: MODE</div>
+                            <div class="bk-controls-note">LIVE STREAM · NO SEEKING</div>
                         </footer>
                     </div>
                     <div id="player-msg">Select a channel</div>
