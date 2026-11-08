@@ -16,7 +16,7 @@ View the [segment-check workflow run](https://github.com/0xhyashi/lg-iptv/action
 
 ## Radio playback
 
-Radio stations use a **separate native HTML audio element**, rather than sending MP3/AAC streaming data through the TV video/HLS engine. The radio preview displays a Play/Pause button and a live status. Switching back to TV closes the radio connection. The three direct streams each returned live audio bytes from a US GitHub runner on November 7, 2026: [radio check](https://github.com/0xhyashi/lg-iptv/actions/runs/42435777009). Actual audio playback on your LG TV must still be tested.
+Radio stations use a **separate native HTML audio element**, rather than sending MP3/AAC streaming data through the TV video/HLS engine. The radio preview displays a Play/Pause button and a live status. The physical LG remote's Play/Pause media keys are also handled while listening to radio. Switching back to TV closes the radio connection. The three direct streams each returned live audio bytes from a US GitHub runner on November 7, 2026: [radio check](https://github.com/0xhyashi/lg-iptv/actions/runs/42435777009). Actual audio playback on your LG TV must still be tested.
 
 ## Privacy
 
