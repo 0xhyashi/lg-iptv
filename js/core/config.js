@@ -21,10 +21,17 @@ window.Config = (function () {
     var KEY_SOURCE   = 'iptv_source_type';
 
     /* ── Profiles ─────────────────────────────────────────────────────────── */
+    /** Make Id for IPTV profiles, server URLs and credentials.
+     * @returns {*} Result of the operation.
+     */
     function makeId() {
         return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     }
 
+    /** Normalise Profile for IPTV profiles, server URLs and credentials.
+     * @param {Object} p - Input record.
+     * @returns {*} Result of the operation.
+     */
     function normaliseProfile(p) {
         if (!p.type) p.type = p.playlist_url ? 'm3u' : 'xtream';
         if (!p.server_urls)  p.server_urls  = [];
@@ -36,6 +43,9 @@ window.Config = (function () {
     /* Reads the profile list, migrating the pre-profiles single-config keys the
        first time it runs. The migration writes the result back, so it happens
        once per device rather than on every read. */
+    /** Profiles for IPTV profiles, server URLs and credentials.
+     * @returns {*} Result of the operation.
+     */
     function profiles() {
         var list = Store.get(KEY_PROFILES, null);
         if (list) {
@@ -66,10 +76,24 @@ window.Config = (function () {
         return list;
     }
 
+    /** Save Profiles for IPTV profiles, server URLs and credentials.
+     * @param {Array} list - Items to process.
+     * @returns {void} Updates the relevant state or UI.
+     */
     function saveProfiles(list) { return Store.set(KEY_PROFILES, list); }
+    /** Active Id for IPTV profiles, server URLs and credentials.
+     * @returns {*} Result of the operation.
+     */
     function activeId()         { return Store.get(KEY_ACTIVE, null); }
+    /** Set Active Id for IPTV profiles, server URLs and credentials.
+     * @param {string} id - Identifier.
+     * @returns {void} Updates the relevant state or UI.
+     */
     function setActiveId(id)    { return Store.set(KEY_ACTIVE, id); }
 
+    /** Active Profile for IPTV profiles, server URLs and credentials.
+     * @returns {*} Result of the operation.
+     */
     function activeProfile() {
         var list = profiles();
         if (!list.length) return null;
@@ -84,6 +108,9 @@ window.Config = (function () {
        previous profile's type, and Live TV then tried to log an M3U playlist
        into Xtream (or the reverse) and reported "no server configured". The
        key is still the answer when there are no profiles at all. */
+    /** Source Type for IPTV profiles, server URLs and credentials.
+     * @returns {*} Result of the operation.
+     */
     function sourceType() {
         var p = activeProfile();
         if (p) return p.type === 'm3u' ? 'm3u' : 'xtream';
@@ -97,6 +124,9 @@ window.Config = (function () {
          null   — nothing configured yet
        `server_url` is the resolved URL that last authenticated successfully,
        falling back to the first candidate. */
+    /** Resolve for IPTV profiles, server URLs and credentials.
+     * @returns {*} Result of the operation.
+     */
     function resolve() {
         var p = activeProfile();
         if (p) {
@@ -142,6 +172,10 @@ window.Config = (function () {
        localStorage keys. Caches and favourites are namespaced with it so two
        profiles never show each other's channels — the old code keyed some
        caches on the full server URL and others on nothing at all. */
+    /** Scope for IPTV profiles, server URLs and credentials.
+     * @param {Object} cfg - Provider credentials and server settings.
+     * @returns {*} Result of the operation.
+     */
     function scope(cfg) {
         cfg = cfg || resolve();
         if (!cfg) return 'none';
@@ -151,6 +185,10 @@ window.Config = (function () {
 
     /* djb2 — a short non-cryptographic hash. Only needs to avoid collisions
        between the handful of profiles one household configures. */
+    /** Hash for IPTV profiles, server URLs and credentials.
+     * @param {*} str - Input to hash().
+     * @returns {boolean} Whether the condition is met.
+     */
     function hash(str) {
         var h = 5381;
         for (var i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
@@ -164,6 +202,10 @@ window.Config = (function () {
        URL with no scheme is RELATIVE, so it resolved against the app's own
        file:// location and every request failed with "could not reach any
        server" for a server that was fine. Providers hand these out as http. */
+    /** Normalise Server Url for IPTV profiles, server URLs and credentials.
+     * @param {*} u - Input to normaliseServerUrl().
+     * @returns {*} Result of the operation.
+     */
     function normaliseServerUrl(u) {
         u = String(u === null || u === undefined ? '' : u).trim();
         if (!u) return '';
@@ -172,19 +214,39 @@ window.Config = (function () {
         return u;
     }
 
+    /** Base for IPTV profiles, server URLs and credentials.
+     * @param {Object} cfg - Provider credentials and server settings.
+     * @returns {*} Result of the operation.
+     */
     function base(cfg) {
         return normaliseServerUrl(cfg && cfg.server_url);
     }
 
+    /** Auth for IPTV profiles, server URLs and credentials.
+     * @param {Object} cfg - Provider credentials and server settings.
+     * @returns {*} Result of the operation.
+     */
     function auth(cfg) {
         return 'username=' + encodeURIComponent(cfg.username) +
                '&password=' + encodeURIComponent(cfg.password);
     }
 
+    /** Api Url for IPTV profiles, server URLs and credentials.
+     * @param {Object} cfg - Provider credentials and server settings.
+     * @param {*} params - Input to apiUrl().
+     * @returns {*} Result of the operation.
+     */
     function apiUrl(cfg, params) {
         return base(cfg) + '/player_api.php?' + auth(cfg) + (params ? '&' + params : '');
     }
 
+    /** Stream Url for IPTV profiles, server URLs and credentials.
+     * @param {Object} cfg - Provider credentials and server settings.
+     * @param {string} kind - Input to streamUrl().
+     * @param {string} id - Identifier.
+     * @param {string} ext - Input to streamUrl().
+     * @returns {*} Result of the operation.
+     */
     function streamUrl(cfg, kind, id, ext) {
         return base(cfg) + '/' + kind + '/' +
                encodeURIComponent(cfg.username) + '/' +
@@ -192,13 +254,35 @@ window.Config = (function () {
                encodeURIComponent(id) + '.' + (ext || 'mp4');
     }
 
+    /** Live Url for IPTV profiles, server URLs and credentials.
+     * @param {Object} cfg - Provider credentials and server settings.
+     * @param {string} id - Identifier.
+     * @returns {*} Result of the operation.
+     */
     function liveUrl(cfg, id)         { return streamUrl(cfg, 'live',   id, 'm3u8'); }
+    /** Movie Url for IPTV profiles, server URLs and credentials.
+     * @param {Object} cfg - Provider credentials and server settings.
+     * @param {string} id - Identifier.
+     * @param {string} ext - Input to movieUrl().
+     * @returns {*} Result of the operation.
+     */
     function movieUrl(cfg, id, ext)   { return streamUrl(cfg, 'movie',  id, ext || 'mp4'); }
+    /** Episode Url for IPTV profiles, server URLs and credentials.
+     * @param {Object} cfg - Provider credentials and server settings.
+     * @param {string} id - Identifier.
+     * @param {string} ext - Input to episodeUrl().
+     * @returns {*} Result of the operation.
+     */
     function episodeUrl(cfg, id, ext) { return streamUrl(cfg, 'series', id, ext || 'mp4'); }
 
     /* Resolve a path the panel returned (a subtitle file, an artwork URL)
        against the IPTV server rather than against the app package. A bare
        "subs/x.srt" fetched relative to the app is a guaranteed 404. */
+    /** Abs Url for IPTV profiles, server URLs and credentials.
+     * @param {Object} cfg - Provider credentials and server settings.
+     * @param {*} u - Input to absUrl().
+     * @returns {*} Result of the operation.
+     */
     function absUrl(cfg, u) {
         u = String(u === null || u === undefined ? '' : u).trim();
         if (!u) return '';
@@ -214,6 +298,10 @@ window.Config = (function () {
     }
 
     /* Use only the explicitly configured URLs. Never silently downgrade HTTPS to HTTP. */
+    /** Candidate Urls for IPTV profiles, server URLs and credentials.
+     * @param {Object} cfg - Provider credentials and server settings.
+     * @returns {boolean} Whether the condition is met.
+     */
     function candidateUrls(cfg) {
         var entered = (cfg.server_urls && cfg.server_urls.length)
             ? cfg.server_urls
