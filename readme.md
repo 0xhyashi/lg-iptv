@@ -18,17 +18,17 @@ View the [segment-check workflow run](https://github.com/0xhyashi/lg-iptv/action
 
 Radio stations use a **separate native HTML audio element**, rather than sending MP3/AAC streaming data through the TV video/HLS engine. The radio preview displays a Play/Pause button and a live status. The physical LG remote's Play/Pause media keys are also handled while listening to radio. Switching back to TV closes the radio connection. All eight direct streams returned live audio bytes in US GitHub Actions checks on November 7, 2026: [initial radio checks](https://github.com/0xhyashi/lg-iptv/actions/runs/42436363923), [ALT 92.3 checks](https://github.com/0xhyashi/lg-iptv/actions/runs/42436745933), and [Magic 101.9 and WFMF 102.5 checks](https://github.com/0xhyashi/lg-iptv/actions/runs/42436819379), and [101.1 WNOE checks](https://github.com/0xhyashi/lg-iptv/actions/runs/42438184834). Actual audio playback on your LG TV must still be tested.
 
-## Headspace radio deck (v1.0.39)
+## Bunkhouse Radio (v1.0.40)
 
-The **Radio Stations** category has a Headspace-inspired green floating face with a CRT-style trace, plus switchable **Oscilloscope** and **Retro Tuner** views. Press the **BLUE** button on your LG remote while listening to radio to cycle styles. The Play/Pause remote keys still work. The screens share the existing native HTML audio element; TV playback remains separate. No extra runtime or root is needed.
+**TV / RADIO shortcut buttons** appear at the top of the sidebar. TV retains its original category browser and channels. RADIO switches immediately to a dedicated full-height listening view, with the eight stations listed directly in the sidebar. On the LG remote in Radio mode: UP/DOWN changes stations; LEFT focuses the TV tab; RIGHT focuses Play/Pause; the standard Play/Pause media buttons still work. The TV tab returns to the last TV channel. The radio player's ◀ STATION / STATION ▶ controls switch **stations**, not tracks.
 
-**Live song data:** The ALT 92.3 feed uses a public Triton XML now-playing endpoint; WFMF 102.5 and WNOE 101.1 use iHeart's CORS-enabled public track history API; Shonan Beach FM uses ICY metadata when accessible or its Airtime live-info feed. All other stations have best-effort ICY parsing. **Not all stations expose song titles to browser-based clients**: metadata can be hidden by CORS restrictions even when audio plays. If access fails, the app keeps playing and displays a clear unavailable state, never a made-up track name.
+**Artwork / layout:** The green Headspace recreation, optional oscilloscope mode and retro receiver mode have been replaced with a single Winamp-era **BUNKHOUSE RADIO** interface. The blue Saturn image is a compressed, bundled copy of the image supplied in the chat (assets/bunkhouse-saturn.jpg), and stays completely static. The lower-left green/yellow/orange equalizer bars are intentionally **simulated** with JavaScript animation while the audio player is playing; they are **not measured from the actual audio waveform**, because webOS does not support the Web Audio media-element source connection needed to access samples reliably.
 
-**Album art:** When the station exposes an artist/title, the app uses first-party station artwork where provided (iHeart), or an Apple iTunes catalog search with a strict artist + song match. Missing/ambiguous results show a placeholder. Only artist/title search text goes to Apple's catalog; the requests don't send your IPTV profile or passwords. A small cache reduces queries. Cover images and the Apple Music link are not self-hosted.
+**Now Playing and previous songs:** The right side shows live title, artist, album, and album artwork when available, with an actual recent-song list. On WFMF 102.5 and WNOE 101.1, the list is populated from iHeart's public track-history feed, so earlier songs can appear immediately. Other stations accumulate previous tracks that the app **actually observed during this session** when their metadata is readable. When a station does not expose accessible browser metadata, no made-up songs appear. ALT 92.3 uses a Triton public now-playing endpoint, Shonan Beach FM uses ICY/Airtime where available, and other stations use best-effort ICY parsing. Some stations block browser metadata requests even though the audio itself plays.
 
-**Visualizer limitation:** The green waveform and VU meter are labelled **synthetic**, not audio-sampled. LG webOS TV's native media element does not support the usual Web Audio API `createMediaElementSource()` pipeline (a known platform limitation). Synthetic animation preserves reliable playback and doesn't falsely claim to react to music. Actual waveform response would require an alternative audio-capture solution, which has not been built or verified.
+**Album art:** First-party station cover art is preferred where present. Otherwise, a strict artist/title search through Apple's iTunes catalog is used and the artwork is cached locally. Only public artist/title are sent to Apple, not any IPTV credentials. If the artwork match is poor or unavailable, the original retro placeholder remains.
 
-The original Microsoft Windows Media Player Headspace skin is not bundled; this is an original SVG and CSS recreation inspired by the user's reference screenshot.
+**Source availability and privacy:** The eight direct radio streams were verified from a US GitHub Actions runner in November 2026, including [101.1 WNOE Country](https://github.com/0xhyashi/lg-iptv/actions/runs/42438184834). LG device playback, keyboard ergonomics and station-specific album art still require testing on the physical TV. No root, relay, video screen capture, or sleep timer.
 
 ## Privacy
 
@@ -49,7 +49,7 @@ npm.cmd run build
 ares-package.cmd -n .
 ```
 
-This produces `com.oxhyashi.toonamitest_1.0.39_all.ipk`. Install it with webOS Dev Manager or the LG `ares-install` CLI. The app ID is unchanged from earlier privacy-fork test builds, so this can update the installed app.
+This produces `com.oxhyashi.toonamitest_1.0.40_all.ipk`. Install it with webOS Dev Manager or the LG `ares-install` CLI. The app ID is unchanged from earlier privacy-fork test builds, so this can update the installed app.
 
 **Important for developers:** `dist/js/` is generated by `npm run build`. This branch's new channel and radio playback additions live in `js/app.js`, `pages/livetv.html`, and `assets/player.css` and will appear in the packaged app **after running the build**. Do not commit local changes to generated `dist/js/` unless intentionally updating distributions.
 
