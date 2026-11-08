@@ -10,3 +10,7 @@ output/
 # Local-only dev cruft (never part of a webOS app)
 .venv/
 .claude/
+
+# Generated pristine WeatherStar distribution (rebuilt from pinned upstream)
+weatherstar/
+weatherstar-build-tmp/
