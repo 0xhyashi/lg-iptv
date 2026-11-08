@@ -1,0 +1,27 @@
+name: Verify installable Bunkhouse WeatherStar IPK
+on:
+  push:
+    branches: [privacy/toonami-single-stream-test]
+    paths: [.github/workflows/ws4kp-package-check.yml]
+  workflow_dispatch:
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build Bunkhouse + pristine WeatherStar (with original MP3 music)
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Create real LG webOS TV package without minification
+        run: |
+          npm install -g @webos-tools/cli --no-audit --no-fund
+          ares-package -n .
+          ls -lh com.oxhyashi.toonamitest_1.0.41_all.ipk
+          test $(stat -c %s com.oxhyashi.toonamitest_1.0.41_all.ipk) -gt 1000000
+          ar t com.oxhyashi.toonamitest_1.0.41_all.ipk
+          echo "IPK_CHECK_OK"
