@@ -1,0 +1,30 @@
+name: Audit first-party source and regression tests
+on:
+  push:
+    branches: [privacy/toonami-single-stream-test]
+    paths:
+      - .github/workflows/source-audit.yml
+      - js/**
+      - assets/*.css
+      - assets/boot.js
+      - assets/weatherstar-compat.js
+      - tools/**
+      - tests/**
+      - docs/**
+  workflow_dispatch:
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify JavaScript syntax, module headers and named function contracts
+        run: node tools/check-source-docs.js
+      - name: Verify channel switching, media isolation and weather location
+        run: |
+          node tests/tv-epg-race.test.js
+          node tests/radio-station-switch.test.js
+          node tests/weatherstar-location.test.js
