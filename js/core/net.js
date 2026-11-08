@@ -62,8 +62,13 @@ window.Net = (function () {
     function timed(url, init, timeout) {
         timeout = timeout || DEFAULT_TIMEOUT;
         var ctrl = new AbortController();
+        // Do not modify an options object that a caller may reuse.
+        var options = {};
         init = init || {};
-        init.signal = ctrl.signal;
+        for (var key in init) {
+            if (Object.prototype.hasOwnProperty.call(init, key)) options[key] = init[key];
+        }
+        options.signal = ctrl.signal;
         return new Promise(function (resolve, reject) {
             var settled = false;
             var tid = setTimeout(function () {
@@ -75,7 +80,7 @@ window.Net = (function () {
                 err.url     = url;
                 reject(err);
             }, timeout);
-            fetch(url, init).then(function (res) {
+            fetch(url, options).then(function (res) {
                 if (settled) return;
                 settled = true;
                 clearTimeout(tid);
@@ -177,7 +182,7 @@ window.Net = (function () {
      */
     function cachedJSON(key, url, ttl, opts) {
         var hit = Store.cacheGet(key, ttl);
-        if (hit) return Promise.resolve(hit);
+        if (hit !== null && hit !== undefined) return Promise.resolve(hit);
         return json(url, opts).then(function (data) {
             Store.cacheSet(key, data);
             return data;
@@ -199,11 +204,15 @@ window.Net = (function () {
         var hit = Store.cacheGet(key, ttl);
         var net = json(url).then(function (data) {
             Store.cacheSet(key, data);
-            var changed = !hit || !hit.length || !data || hit.length !== data.length;
+            var changed = hit === null || hit === undefined || !data ||
+                (hit && data && hit.length !== undefined && data.length !== undefined && hit.length !== data.length);
             if (changed && typeof onFresh === 'function') onFresh(data);
             return data;
         });
-        if (hit) { net['catch'](function () {}); return Promise.resolve(hit); }
+        if (hit !== null && hit !== undefined) {
+            net['catch'](function () {});
+            return Promise.resolve(hit);
+        }
         return net;
     }
 
