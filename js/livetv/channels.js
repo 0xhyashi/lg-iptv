@@ -17,11 +17,11 @@ const CAT_CACHE_KEY     = "iptv_cat_v2";
 const CACHE_TTL_MS      = 4 * 60 * 60 * 1000;
 
 /** Read cached live channel entries.
- * @returns {*} Value described above.
+ * @returns {Array<Object>|null} Cached channels, or null.
  */
 function loadChannelCache() { return Store.cacheGet(CHANNEL_CACHE_KEY, CACHE_TTL_MS); }
 /** Read cached channel categories.
- * @returns {*} Value described above.
+ * @returns {Array<Object>|null} Cached categories, or null.
  */
 function loadCatCache()     { return Store.cacheGet(CAT_CACHE_KEY, CACHE_TTL_MS); }
 
@@ -72,7 +72,7 @@ let VS_ROW_H      = 96;
 const VS_OVERSCAN = 5;
 
 /** Measure one TV channel row for virtual scrolling.
- * @returns {void} No return value.
+ * @returns {number} Measured row height in pixels.
  */
 function measureRowHeight() {
     try {
@@ -232,7 +232,7 @@ function _vsEvictRows(needed) {
 /** Build one selectable TV channel row.
  * @param {Object} ch - Channel entry with stream_id, name and source fields.
  * @param {string} sid - Channel stream ID.
- * @returns {Object} Value described above.
+ * @returns {Object} Row element and associated buttons for the virtual list.
  */
 function _buildRow(ch, sid) {
     const row = document.createElement("div");
