@@ -457,6 +457,22 @@ var WeatherChannel = (function () {
                     setMessage("Radio stream unavailable. Press PAUSE then PLAY SOUND to retry.");
             });
         }
+        // WeatherStar runs in its own iframe JavaScript realm. The local
+        // behavior-only compatibility bootstrap reports script errors and
+        // location/network failures to Bunkhouse. Validate event.source so
+        // other pages cannot impersonate the weather iframe.
+        window.addEventListener("message", function(event) {
+            if (!active || hosted || !frame || event.source !== frame.contentWindow) return;
+            var data = event.data;
+            if (!data || data.bunkhouseWeatherstar !== 1) return;
+            if (data.type === "error") {
+                setMessage("WEATHERSTAR ERROR: " + data.message +
+                    " — try ONLINE COPY if forecasts do not load.");
+            } else if (data.type === "status") {
+                setMessage("WeatherStar location: " + data.message +
+                    " — try ONLINE COPY if unavailable.");
+            }
+        });
         frame.addEventListener("load",onFrameLoaded);
     }
     return {setup:setup,open:open,close:close,
