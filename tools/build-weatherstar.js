@@ -17,10 +17,21 @@ const TARGET = path.join(ROOT, 'weatherstar');
 const REVISION = '237c60d242f9d70e0ee9c1bab87f3119c4b3b729'; // ws4kp 8.2.2
 const REPO = 'https://github.com/netbymatt/ws4kp.git';
 
+/** Run for reproducible WeatherStar source build.
+ * @param {*} command - Input for run().
+ * @param {*} args - Input for run().
+ * @param {number} dir - Direction.
+ * @returns {*} Function result.
+ */
 function run(command, args, dir) {
     console.log('ws4kp:', command, args.slice(0, 3).join(' ') + (args.length > 3 ? ' ...' : ''));
     cp.execFileSync(command, args, { cwd: dir, stdio: 'inherit', windowsHide: true });
 }
+/** Npm for reproducible WeatherStar source build.
+ * @param {*} args - Input for npm().
+ * @param {number} dir - Direction.
+ * @returns {*} Function result.
+ */
 function npm(args, dir) {
     if (process.platform === 'win32') {
         run(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'npm.cmd'].concat(args), dir);
@@ -28,6 +39,9 @@ function npm(args, dir) {
         run('npm', args, dir);
     }
 }
+/** Usable Cache for reproducible WeatherStar source build.
+ * @returns {*} Function result.
+ */
 function usableCache() {
     const required = [
         'index.html', 'playlist.json', 'LICENSE', 'resources/ws.min.js',
