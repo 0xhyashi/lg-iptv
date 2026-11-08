@@ -10,7 +10,6 @@
 var WeatherChannel = (function () {
     "use strict";
     var active = false;
-    var hosted = false;
     var defaultCity = "Ellicott City, Maryland, USA";
     var DEFAULT_SOUND = "nightwave";
     var sounds = {
@@ -30,6 +29,7 @@ var WeatherChannel = (function () {
     var soundtrack = DEFAULT_SOUND;
     var soundPaused = false;
     var loadSerial = 0;
+    var nwsError = ""; // Most recent NWS access failure reported by the local iframe.
 
     /** Find a WeatherStar control by its DOM ID.
      * @param {string} id - DOM element or stored object ID.
@@ -178,8 +178,9 @@ var WeatherChannel = (function () {
      * @returns {string} Requested text value.
      */
     function weatherURL(coords) {
-        var base = hosted ? "https://weatherstar.netbymatt.com/"
-                          : "../weatherstar/index.html";
+        // Always load the packaged copy. The remote site is unreliable in a
+        // file:// iframe on LG TVs and can render an empty black frame.
+        var base = "../weatherstar/index.html";
         var isClassic = soundtrack === "classic";
         var query = "?latLonQuery=" + encodeURIComponent(getCity());
         if (coords && coordsOK(coords)) {
@@ -260,15 +261,11 @@ var WeatherChannel = (function () {
                 "Classic WeatherStar: 17-song shuffled soundtrack.");
             return;
         }
-        if (!hosted) {
-            // The frame may still be loading; make the request explicit.
-            soundPaused = !soundPaused;
-            updateControls();
-            navigate();
-            setMessage("WeatherStar is loading; press PLAY SOUND after it appears if needed.");
-        } else {
-            setMessage("Use WeatherStar's own music icon to play the hosted copy.");
-        }
+        // The frame may still be loading; reload the local player once.
+        soundPaused = !soundPaused;
+        updateControls();
+        navigate();
+        setMessage("WeatherStar is loading; press PLAY SOUND after it appears if needed.");
     }
     /** Load the selected WeatherStar page after coordinates resolve.
      * @returns {void} No return value.
@@ -277,6 +274,7 @@ var WeatherChannel = (function () {
         if (!active) return;
         // Never let previous location resolutions reload a different channel.
         var navigationId = ++loadSerial;
+        nwsError = "";
         stopExternal();
         var frame = $("weatherstar-frame");
         if (!frame) return;
@@ -284,14 +282,13 @@ var WeatherChannel = (function () {
         if (input) input.value = city;
         frame.src = "about:blank";
         var source = $("weatherstar-source");
-        if (source) source.textContent = hosted ? "USE LOCAL COPY" : "TRY ONLINE COPY";
+        if (source) source.textContent = "RETRY FORECAST";
         updateControls();
         setMessage("Finding forecast coordinates for " + city + "…");
         resolveCoordinates(city).then(function(coords) {
             if (!active || navigationId !== loadSerial) return;
             frame.src = weatherURL(coords);
-            setMessage(hosted ? "Loading original hosted WeatherStar…" :
-                "Loading original WeatherStar 4000+ forecast…");
+            setMessage("Loading local WeatherStar 4000+ forecast…");
         }).catch(function(error) {
             if (!active || navigationId !== loadSerial) return;
             setMessage("Cannot find location: " + (error && error.message || "lookup failed") +
@@ -525,7 +522,7 @@ var WeatherChannel = (function () {
         if (fullscreen) fullscreen.addEventListener("click",function(e){e.stopPropagation();toggleFullscreen();});
         var source = $("weatherstar-source");
         if (source) source.addEventListener("click",function(e){
-            e.stopPropagation();hosted=!hosted;navigate();
+            e.stopPropagation();navigate();
         });
         var music = $("weatherstar-music");
         if (music) music.addEventListener("click",function(e){
@@ -552,15 +549,18 @@ var WeatherChannel = (function () {
         // location/network failures to Bunkhouse. Validate event.source so
         // other pages cannot impersonate the weather iframe.
         window.addEventListener("message", function(event) {
-            if (!active || hosted || !frame || event.source !== frame.contentWindow) return;
+            if (!active || !frame || event.source !== frame.contentWindow) return;
             var data = event.data;
             if (!data || data.bunkhouseWeatherstar !== 1) return;
             if (data.type === "error") {
-                setMessage("WEATHERSTAR ERROR: " + data.message +
-                    " — try ONLINE COPY if forecasts do not load.");
+                setMessage("WEATHERSTAR ERROR: " + data.message);
+            } else if (data.type === "nws-error") {
+                nwsError = String(data.message || "request failed");
+                setMessage("NWS lookup: " + nwsError + " — press RETRY FORECAST to try again.");
             } else if (data.type === "status") {
-                setMessage("WeatherStar location: " + data.message +
-                    " — try ONLINE COPY if unavailable.");
+                setMessage(nwsError
+                    ? "NWS lookup: " + nwsError + " — " + data.message
+                    : "WeatherStar: " + data.message);
             }
         });
         frame.addEventListener("load",onFrameLoaded);
