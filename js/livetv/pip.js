@@ -15,7 +15,7 @@
 let _osdTimer = null;
 
 /** Wire the video preview and fullscreen controls.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function setupPip() {
     document.getElementById("pip-fullscreen-btn").addEventListener("click", e => { e.stopPropagation(); toggleFullscreen(); });
@@ -67,12 +67,12 @@ function setupPip() {
 let _fsActive = false;
 
 /** Report whether the CSS fullscreen view is active.
- * @returns {boolean} Value described above.
+ * @returns {boolean} Whether the requested condition is met.
  */
 function isFullscreen() { return _fsActive; }
 
 /** Enter or leave CSS fullscreen without the unreliable native API.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function toggleFullscreen() {
     _fsActive = !_fsActive;
@@ -92,7 +92,7 @@ function toggleFullscreen() {
 // the top of everything.
 
 /** Launch the multi-channel viewer for the current TV channel.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function openMultiview() {
     // Audio-only streams are played by the native radio element, not Multiview.
@@ -136,7 +136,7 @@ function openMultiview() {
 }
 
 /** Render a short-lived on-screen channel/status overlay.
- * @returns {void} Updates module state or the UI.
+ * @returns {void} No return value.
  */
 function showOSD() {
     const osd = document.getElementById("fs-osd");
