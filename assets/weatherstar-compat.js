@@ -34,6 +34,39 @@
         };
     }
 
+    // Some file:// webOS browsers expose location.origin as the literal
+    // string "null". The upstream fetch helper passes that as the base of
+    // new URL(absoluteNetworkURL, window.location.origin), which throws
+    // "Invalid URL" before it can issue ANY network request. Patch only when
+    // the platform actually exhibits that defect; preserve URL semantics
+    // and static helpers (createObjectURL / revokeObjectURL) otherwise.
+    if (W.location && W.location.protocol === 'file:' && W.URL) {
+        var NativeURL = W.URL;
+        var brokenOrigin = false;
+        try { new NativeURL('https://api.weather.gov/', W.location.origin); }
+        catch (_) { brokenOrigin = true; }
+        if (brokenOrigin) {
+            var SafeURL = function (input, base) {
+                if (base === 'null') {
+                    // Absolute URLs don't need a base; relative ones resolve
+                    // against the actual local HTML file, not an invalid origin.
+                    base = W.location.href;
+                }
+                return base === undefined ? new NativeURL(input)
+                    : new NativeURL(input, base);
+            };
+            SafeURL.prototype = NativeURL.prototype;
+            if (NativeURL.createObjectURL) SafeURL.createObjectURL = function (obj) {
+                return NativeURL.createObjectURL(obj);
+            };
+            if (NativeURL.revokeObjectURL) SafeURL.revokeObjectURL = function (url) {
+                return NativeURL.revokeObjectURL(url);
+            };
+            W.URL = SafeURL;
+            send('ready', 'Local-file URL compatibility enabled');
+        }
+    }
+
     // Surface precise startup errors in Bunkhouse instead of requiring
     // a USB developer console on the TV. No city, user data or credentials
     // are sent off-device by these local parent-frame messages.
