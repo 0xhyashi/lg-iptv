@@ -18,6 +18,9 @@
  */
 'use strict';
 
+/** Initialize VOD mode and return immediately when its provider is unavailable.
+ * @returns {void} Runs its startup, polling, or UI side effects.
+ */
 (function boot() {
     /* ── Boot ────────────────────────────────────────────────────────── */
     if (!cfg) { showStatus('No server configured — open Settings first.', false); return; }
