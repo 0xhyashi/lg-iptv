@@ -371,7 +371,10 @@ function _findNowNext(listings) {
  * @param {*} ms - Input for fmtTime().
  * @returns {*} Function result.
  */
-function fmtTime(ms) { return new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
+function fmtTime(ms) {
+    if (!(ms > 0) || !isFinite(ms)) return "";
+    return new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
 /** Format Time Range for programme guide.
  * @param {Event} e - Browser event.
  * @returns {*} Function result.
@@ -387,7 +390,7 @@ function formatTimeRange(e) {
 function calcProgress(e) {
     try {
         const s = epgStart(e), en = epgEnd(e), now = Date.now();
-        if (now < s || now > en) return 0;
+        if (!(en > s) || now < s || now > en) return 0;
         return Math.round(((now - s) / (en - s)) * 100);
     } catch { return 0; }
 }
