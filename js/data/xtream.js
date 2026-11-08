@@ -38,9 +38,8 @@ function xtreamLoadConfig() {
 
 /* Try each candidate URL in turn until one answers. Returns { cfg, data } with
    cfg.server_url set to the URL that worked, or null when none did.
-   Config.candidateUrls() supplies only the explicitly configured servers — some
-   panels present a certificate the TV browser rejects while plain http on the
-   same host is fine. */
+   Config.candidateUrls() supplies only explicitly configured server URLs;
+   never silently replace an HTTPS endpoint with HTTP. */
 /* A panel that REJECTS the credentials still answers HTTP 200, with
    { user_info: { auth: 0 } } — and an expired or banned line answers
    { auth: 1, status: "Expired" }. Both are truthy, so accepting any JSON here
