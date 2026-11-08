@@ -620,7 +620,7 @@
                        and json() have to decode it rather than hand back
                        "[object ArrayBuffer]". */
                     /** Read and decode the XHR response body for the fetch shim.
-                     * @returns {string} Value described above.
+                     * @returns {string} Requested text value.
                      */
                     function bodyText() {
                         if (!wantBuffer || !body || body.byteLength === undefined) return body;
