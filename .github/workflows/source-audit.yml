@@ -33,4 +33,6 @@ jobs:
           node tests/player-audio-race.test.js
           node tests/radio-metadata-timeout.test.js
           node tests/settings-profile-race.test.js
+          node tests/vod-series-race.test.js
+          node tests/vod-subtitle-search-race.test.js
           node tests/weatherstar-location.test.js
