@@ -162,7 +162,7 @@ var elCategoryGrid = document.getElementById('vod-category-grid');
 /** Show Status for VOD shared state.
  * @param {string} text - Input for showStatus().
  * @param {*} spinner - Input for showStatus().
- * @returns {void} Updates state or the UI.
+ * @returns {void} No return value.
  */
 function showStatus(text, spinner) {
     elStatus.style.display = 'flex';
@@ -171,6 +171,6 @@ function showStatus(text, spinner) {
     elRails.style.display = 'none';
 }
 /** Hide Status for VOD shared state.
- * @returns {void} Updates state or the UI.
+ * @returns {void} No return value.
  */
 function hideStatus() { elStatus.style.display = 'none'; elRails.style.display = ''; }
