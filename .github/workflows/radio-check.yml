@@ -18,7 +18,11 @@ jobs:
             ("WTMD 89.7 FM","https://wtmd-ice.streamguys1.com/wtmd.mp3"),
             ("WTMD HD2","https://wtmd-ice.streamguys1.com/hd2.mp3"),
             ("Shonan Beach FM 78.9","https://shonanbeachfm.out.airtime.pro/shonanbeachfm_c"),
-            ("Shonan Beach FM fallback","http://shonanbeachfm.out.airtime.pro:8000/shonanbeachfm_c")
+            ("Shonan Beach FM fallback","http://shonanbeachfm.out.airtime.pro:8000/shonanbeachfm_c"),
+            ("B97 WEZB Amperwave AAC","https://live.amperwave.net/direct/audacy-wezbfmaac-imc"),
+            ("B97 WEZB Amperwave MP3","https://live.amperwave.net/direct/audacy-wezbfmmp3-imc"),
+            ("B97 WEZB legacy stream","https://playerservices.streamtheworld.com/api/livestream-redirect/WEZBFMAAC.aac"),
+            ("B97 WEZB legacy direct","http://2963.live.streamtheworld.com:80/WEZBFMAAC_SC")
           ]
           def probe(st):
             name,url=st
