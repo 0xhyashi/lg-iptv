@@ -762,7 +762,7 @@ window.Subs = (function () {
 
     /** Update Diag for subtitle discovery.
      * @param {*} patch - Input for updateDiag().
-     * @returns {void} Updates state or the UI.
+     * @returns {void} No return value.
      */
     function updateDiag(patch) {
         var rec = Store.get(DIAG_KEY, null);
