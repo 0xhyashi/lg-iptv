@@ -313,7 +313,16 @@ var WeatherChannel = (function () {
             var child = frame.contentWindow;
             if (child && !child.__bunkhouseWeatherKeys) {
                 child.addEventListener("keydown",function(e){
-                    handleKey(e,e.keyCode||e.which);
+                    var key = e.keyCode || e.which;
+                    // Key events originating inside the iframe never bubble to
+                    // the parent; mirror BLUE soundtrack-cycle behavior here.
+                    if (key === 406 || key === 77) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        cycleSound(1);
+                        return;
+                    }
+                    handleKey(e,key);
                 },true);
                 child.__bunkhouseWeatherKeys=true;
             }
