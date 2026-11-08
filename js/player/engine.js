@@ -187,7 +187,7 @@ class IPTVPlayer {
     // Resolved once and cached: a Multiview tile passes its own element, and the
     // main player falls back to the page's single #player-msg.
     /** Msg Target for the active video player.
-     * @returns {HTMLElement|null} Value described above.
+     * @returns {HTMLElement|null} Matching element, or null.
      */
     _msgTarget() {
         if (this._msgEl === null) this._msgEl = document.getElementById("player-msg");
@@ -255,7 +255,7 @@ class IPTVPlayer {
 
     // ── Diagnostics overlay (GREEN) ─────────────────────────────────────────────
     /** Decoded Frames for the active video player.
-     * @returns {number} Value described above.
+     * @returns {number} Calculated numeric value.
      */
     _decodedFrames() {                       // display-only; never drives fallback
         const v = this.video;
@@ -304,7 +304,7 @@ class IPTVPlayer {
      * @param {Array} list - Items to summarize or reorder.
      * @param {Array} rawList - Native media tracks.
      * @param {boolean} apiPresent - Whether the browser exposes the track API.
-     * @returns {string} Value described above.
+     * @returns {string} Requested text value.
      */
     _trackSummary(list, rawList, apiPresent) {
         if (!apiPresent) return "API not available";
@@ -327,7 +327,7 @@ class IPTVPlayer {
     // tracks, but an MKV is handed straight to the platform decoder, which is
     // opaque to JavaScript — so its subtitle streams can never appear here.
     /** Source Desc for the active video player.
-     * @returns {string} Value described above.
+     * @returns {string} Requested text value.
      */
     _sourceDesc() {
         const a = this._attempts && this._attempts[this._attemptIdx];
@@ -397,7 +397,7 @@ class IPTVPlayer {
     /** Check whether a delayed callback belongs to the current generation and tier.
      * @param {number} gen - Playback generation number.
      * @param {number} tok - Tier attempt token.
-     * @returns {boolean} Value described above.
+     * @returns {boolean} Whether the requested condition is met.
      */
     _alive(gen, tok) { return gen === this._gen && tok === this._tok; }
 
@@ -547,7 +547,7 @@ class IPTVPlayer {
     // engine, and labels get a " 1"/" 2" suffix when there are multiple URLs).
     /** Create native/HLS/TS attempts for each candidate stream.
      * @param {Array<string>} urls - Candidate stream URLs.
-     * @returns {Array<Object>} Value described above.
+     * @returns {Array<Object>} Matching channel or data entries.
      */
     _buildAttempts(urls) {
         if (!Array.isArray(urls)) urls = [urls];
@@ -594,7 +594,7 @@ class IPTVPlayer {
     // preserved, so RED still cycles through every tier as before.
     /** Try the previously successful engine first without dropping fallback tiers.
      * @param {Array} list - Items to summarize or reorder.
-     * @returns {Array<Object>} Value described above.
+     * @returns {Array<Object>} Matching channel or data entries.
      */
     _applyEnginePreference(list) {
         // What actually worked here last time beats the global default, which is
@@ -1009,7 +1009,7 @@ class IPTVPlayer {
     //     on the native tier exposes nothing here and the list comes back empty.
     //     Feature-detected rather than assumed; see _hasNativeAudioTracks().
     /** List Audio Tracks for the active video player.
-     * @returns {Array<Object>} Value described above.
+     * @returns {Array<Object>} Matching channel or data entries.
      */
     listAudioTracks() {
         const out = [];
@@ -1041,7 +1041,7 @@ class IPTVPlayer {
     // Index of the currently selected audio track in listAudioTracks() order,
     // or -1 when there's nothing to choose between.
     /** Active Audio Track for the active video player.
-     * @returns {number} Value described above.
+     * @returns {number} Calculated numeric value.
      */
     activeAudioTrack() {
         if (this.hls && this.hls.audioTracks && this.hls.audioTracks.length > 1) {
@@ -1065,7 +1065,7 @@ class IPTVPlayer {
     /** Select one audio track and report if webOS accepts the change.
      * @param {Object} track - Selected track record.
      * @param {Function} done - Completion callback receiving success and explanation.
-     * @returns {boolean} Value described above.
+     * @returns {boolean} Whether the requested condition is met.
      */
     setAudioTrack(track, done) {
         done = done || function () {};
@@ -1114,7 +1114,7 @@ class IPTVPlayer {
     }
 
     /** Audio Switch Hint for the active video player.
-     * @returns {string} Value described above.
+     * @returns {string} Requested text value.
      */
     _audioSwitchHint() {
         // hls.js does the switch in software, so it works where the platform
@@ -1126,7 +1126,7 @@ class IPTVPlayer {
     }
 
     /** Has Native Audio Tracks for the active video player.
-     * @returns {boolean} Value described above.
+     * @returns {boolean} Whether the requested condition is met.
      */
     _hasNativeAudioTracks() {
         const at = this.video.audioTracks;
@@ -1135,7 +1135,7 @@ class IPTVPlayer {
 
     /** Has Tier for the active video player.
      * @param {string} kind - Engine type.
-     * @returns {boolean} Value described above.
+     * @returns {boolean} Whether the requested condition is met.
      */
     _hasTier(kind) {
         return (this._attempts || []).some(function (a) { return a.kind === kind; });
@@ -1144,7 +1144,7 @@ class IPTVPlayer {
     // Why the audio list may be empty — surfaced in the menu so the user isn't
     // left wondering whether the app is broken or the file is single-track.
     /** Audio Unavailable Reason for the active video player.
-     * @returns {string} Value described above.
+     * @returns {string} Requested text value.
      */
     audioUnavailableReason() {
         if (this.hls) return "This stream declares only one audio track.";
@@ -1159,7 +1159,7 @@ class IPTVPlayer {
 
     // ── Subtitles ───────────────────────────────────────────────────────────────
     /** List Subtitles for the active video player.
-     * @returns {Array<Object>} Value described above.
+     * @returns {Array<Object>} Matching channel or data entries.
      */
     listSubtitles() {
         const out = [];
@@ -1236,7 +1236,7 @@ class IPTVPlayer {
        unshifted. A light 1s watcher re-applies the offset to anything it hasn't
        stamped yet; it's idempotent precisely because of the base times above. */
     /** Get Sub Delay for the active video player.
-     * @returns {number} Value described above.
+     * @returns {number} Calculated numeric value.
      */
     getSubDelay() {
         if (typeof this._subDelay === "number") return this._subDelay;
@@ -1248,7 +1248,7 @@ class IPTVPlayer {
 
     /** Clamp and save subtitle synchronization offset.
      * @param {number} seconds - Subtitle delay in seconds.
-     * @returns {number} Value described above.
+     * @returns {number} Calculated numeric value.
      */
     setSubDelay(seconds) {
         if (!isFinite(seconds)) seconds = 0;
@@ -1265,7 +1265,7 @@ class IPTVPlayer {
     }
 
     /** Get Sub Position for the active video player.
-     * @returns {number} Value described above.
+     * @returns {number} Calculated numeric value.
      */
     getSubPosition() {
         if (typeof this._subPos === "number") return this._subPos;
@@ -1279,7 +1279,7 @@ class IPTVPlayer {
     // edge (useful when a stream is letterboxed or the OSD overlaps them).
     /** Move subtitles upward while keeping within valid UI steps.
      * @param {number} step - Relative subtitle position.
-     * @returns {number} Value described above.
+     * @returns {number} Calculated numeric value.
      */
     setSubPosition(step) {
         this._subPos = Math.max(0, Math.min(4, step | 0));
@@ -1323,7 +1323,7 @@ class IPTVPlayer {
     }
 
     /** Active Text Track for the active video player.
-     * @returns {Object|null} Value described above.
+     * @returns {Object|null} Matching object, or null.
      */
     _activeTextTrack() {
         const tt = this.video.textTracks;
@@ -1375,7 +1375,7 @@ class IPTVPlayer {
        playbackRate, so the applied value is read back and returned rather than
        assumed — the menu shows what actually took effect. */
     /** Get Speed for the active video player.
-     * @returns {number} Value described above.
+     * @returns {number} Calculated numeric value.
      */
     getSpeed() {
         var v;
@@ -1385,7 +1385,7 @@ class IPTVPlayer {
 
     /** Set Speed for the active video player.
      * @param {number} rate - Playback rate.
-     * @returns {number} Value described above.
+     * @returns {number} Calculated numeric value.
      */
     setSpeed(rate) {
         if (!isFinite(rate) || rate <= 0) rate = 1;
@@ -1396,7 +1396,7 @@ class IPTVPlayer {
     }
 
     /** Speed Supported for the active video player.
-     * @returns {boolean} Value described above.
+     * @returns {boolean} Whether the requested condition is met.
      */
     speedSupported() {
         try {
@@ -1410,7 +1410,7 @@ class IPTVPlayer {
 
     /* ── Subtitle appearance ─────────────────────────────────────────────── */
     /** Get Sub Style for the active video player.
-     * @returns {string} Value described above.
+     * @returns {string} Requested text value.
      */
     getSubStyle() {
         var s;
@@ -1420,7 +1420,7 @@ class IPTVPlayer {
 
     /** Apply and remember shadow, box or plain subtitle styling.
      * @param {string} style - Subtitle style.
-     * @returns {string} Value described above.
+     * @returns {string} Requested text value.
      */
     applySubStyle(style) {          // 'shadow' | 'box' | 'plain'
         style = style || "shadow";
@@ -1432,7 +1432,7 @@ class IPTVPlayer {
     }
 
     /** Get Sub Colour for the active video player.
-     * @returns {string} Value described above.
+     * @returns {string} Requested text value.
      */
     getSubColour() {
         var c;
@@ -1442,7 +1442,7 @@ class IPTVPlayer {
 
     /** Apply and remember a supported subtitle color.
      * @param {string} colour - Subtitle color.
-     * @returns {string} Value described above.
+     * @returns {string} Requested text value.
      */
     applySubColour(colour) {        // 'white' | 'yellow' | 'cyan'
         colour = colour || "white";
@@ -1454,7 +1454,7 @@ class IPTVPlayer {
     }
 
     /** Get Sub Size for the active video player.
-     * @returns {string} Value described above.
+     * @returns {string} Requested text value.
      */
     getSubSize() {
         if (this._subSize) return this._subSize;
@@ -1605,7 +1605,7 @@ class IPTVPlayer {
        us contains two subtitle tracks — the reason data/subtitles.js now keeps
        the embedded descriptors instead of discarding them. */
     /** Subs Unavailable Reason for the active video player.
-     * @returns {string} Value described above.
+     * @returns {string} Requested text value.
      */
     subsUnavailableReason() {
         if (typeof Subs !== "undefined") {
