@@ -32,6 +32,7 @@ jobs:
           node tests/hamradio.test.js
           node tests/tvguide-layout.test.js
           node tests/weatherstar-display.test.js
+          node tests/weatherstar-polyfills.test.js
           node tests/radio-cover-shape.test.js
           node tests/weatherstar-nws-compat.test.js
           node tests/catchup-navigation-race.test.js
