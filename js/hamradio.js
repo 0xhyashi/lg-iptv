@@ -35,6 +35,8 @@
     var endHz = 0;
     var firstFFT = true;
     var spectrumOK = false;
+    var fftErrors = 0;
+    var connectedBase = null;
     var ctx = null;
     var palette = [];
 
@@ -255,12 +257,18 @@
             if (serial !== generation) return;
             fftRequest = null;
             if (error) {
+                fftErrors++;
                 $('ham-spectrum-status').textContent = 'RF SOURCE UNAVAILABLE: ' + error;
-                if (!spectrumOK) $('ham-empty').textContent =
+                if (fftErrors >= 2) {
+                    $('ham-empty').style.display = 'flex';
+                    $('ham-tune-marker').style.display = 'none';
+                }
+                if (!spectrumOK || fftErrors >= 2) $('ham-empty').textContent =
                     'NO REAL RF DATA — ' + error +
                     '. Try a CORS-enabled receiver or local read-only bridge.';
                 showStatus('Spectrum offline: ' + error);
             } else if (streamLive ? true : drawFFT(response)) {
+                fftErrors = 0;
                 spectrumOK = true;
                 openSpectrumStream(serial);
                 showStatus('Receiver spectrum connected. Voice activity is read separately.');
@@ -393,6 +401,8 @@
             if (serial !== generation) return;
             voiceRequest = null;
             if (error) {
+                activities = [];
+                renderVoices();
                 $('ham-voice-status').textContent = 'Voice API unavailable: ' + error +
                     '. No unrelated website is loaded.';
             } else {
@@ -429,9 +439,17 @@
             return;
         }
         stop();
+        if (connectedBase !== url) {
+            activities = [];
+            selected = null;
+            $('ham-frequency').textContent = 'NO SIGNAL SELECTED';
+            $('ham-mode').textContent = $('ham-band').value + ' · WAITING FOR DATA';
+            renderVoices();
+        }
+        connectedBase = url;
         try {localStorage.setItem(STORE_KEY, url);} catch (_) {}
         $('ham-source').value = url;
-        firstFFT = true;spectrumOK = false;startHz = endHz = 0;
+        firstFFT = true;spectrumOK = false;fftErrors = 0;startHz = endHz = 0;
         ctx = $('ham-waterfall').getContext('2d');
         if (ctx) ctx.clearRect(0, 0, $('ham-waterfall').width, $('ham-waterfall').height);
         $('ham-empty').style.display = 'flex';
