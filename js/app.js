@@ -348,7 +348,7 @@ function bunkhouseHandleKey(e, key) {
     }
     if (key === 37 || key === 39) {
         // Move across TV / RADIO / HAM tabs with the D-pad.
-        var tabs = ["media-tv", "media-radio", "media-ham"];
+        var tabs = ["media-tv", "media-radio", "media-ham", "guide-vod", "guide-catchup"];
         var tabIndex = tabs.indexOf(focus && focus.id);
         e.preventDefault();
         if (key === 37) {
@@ -361,7 +361,7 @@ function bunkhouseHandleKey(e, key) {
         return true;
     }
     if (key === 13) { // ENTER
-        if (focus && /^(media-tv|media-radio|media-ham|radio-toggle|radio-prev|radio-next)$/.test(focus.id)) {
+        if (focus && /^(media-tv|media-radio|media-ham|guide-vod|guide-catchup|radio-toggle|radio-prev|radio-next)$/.test(focus.id)) {
             e.preventDefault();focus.click();return true;
         }
         if (_bkRadioButtons[_bkStationIndex]) {
