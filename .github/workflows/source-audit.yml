@@ -1,7 +1,7 @@
 name: Audit first-party source and regression tests
 on:
   push:
-    branches: [privacy/toonami-single-stream-test]
+    branches: [privacy/toonami-single-stream-test, feature/ham-radio-live-sdr]
     paths:
       - .github/workflows/source-audit.yml
       - js/**
@@ -29,6 +29,7 @@ jobs:
           node tests/tv-epg-race.test.js
           node tests/epg-time.test.js
           node tests/radio-station-switch.test.js
+          node tests/hamradio.test.js
           node tests/radio-cover-shape.test.js
           node tests/weatherstar-nws-compat.test.js
           node tests/catchup-navigation-race.test.js
