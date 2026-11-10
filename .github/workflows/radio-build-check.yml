@@ -9,6 +9,9 @@ on:
       - tests/hamradio.test.js
       - pages/hamradio.html
       - assets/hamradio.css
+      - assets/tvguide.css
+      - tests/tvguide-layout.test.js
+      - tests/weatherstar-display.test.js
       - js/livetv/radio.js
       - tests/radio-station-switch.test.js
       - js/dpad.js
@@ -42,6 +45,7 @@ jobs:
         run: |
           node --check dist/js/app.js
           node tests/radio-station-switch.test.js
+          node tests/tvguide-layout.test.js
           node --check dist/js/livetv/radio.js
           node --check dist/js/livetv/weatherstar.js
           node --check dist/js/dpad.js
@@ -108,7 +112,7 @@ jobs:
           if (rev !== '237c60d242f9d70e0ee9c1bab87f3119c4b3b729') throw new Error('Wrong upstream source revision: '+rev);
           if (fs.readdirSync('weatherstar/fonts').length < 4) throw new Error('Missing original WeatherStar fonts');
           if ((js.match(/stream_id: "radio-/g) || []).length !== 8) throw new Error('Expected eight radio streams');
-          if (info.version !== '1.0.45' || manifest.version !== '1.0.45') throw new Error('Wrong version');
+          if (info.version !== '1.0.46' || manifest.version !== '1.0.45') throw new Error('Wrong version');
           if (info.id !== 'com.oxhyashi.toonamitest') throw new Error('App ID changed unexpectedly');
           if (fs.statSync('assets/bunkhouse-saturn.jpg').size < 1000) throw new Error('Saturn asset missing or empty');
           console.log('Bunkhouse + WeatherStar source build check passed v'+info.version+'; all TV and radio URLs preserved');
