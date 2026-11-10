@@ -392,6 +392,10 @@ function setupBunkhouseNavigation() {
     tv.addEventListener("click",function(){bunkhouseChangeMode("tv");});
     radio.addEventListener("click",function(){bunkhouseChangeMode("radio");});
     if (ham) ham.addEventListener("click",bunkhouseOpenHam);
+    var vod=document.getElementById("guide-vod");
+    var catchup=document.getElementById("guide-catchup");
+    if (vod) vod.addEventListener("click",function(){stopRadio();WeatherChannel.close();player.stop();window.location.href="../pages/vod.html";});
+    if (catchup) catchup.addEventListener("click",function(){stopRadio();WeatherChannel.close();player.stop();window.location.href="../pages/catchup.html";});
     var panel=document.getElementById("radio-stations");
     if (!panel) return;
     panel.innerHTML="";
