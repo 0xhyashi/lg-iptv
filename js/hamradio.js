@@ -27,6 +27,10 @@
     var voiceTimer = null;
     var fftRequest = null;
     var voiceRequest = null;
+    var spectrumStream = null;
+    var streamAttempted = false;
+    var streamLive = false;
+    var encodedBins = null;
     var startHz = 0;
     var endHz = 0;
     var firstFFT = true;
@@ -169,6 +173,76 @@
         return true;
     }
 
+    /** Decode UberSDR's SPEC v1 spectrum packet from a live SSE event.
+     * @param {string} base64 - Base64-encoded SPEC binary frame from receiver.
+     * @returns {Array<number>|null} Real RF bins in dBFS or null if invalid.
+     */
+    function decodeSpectrumFrame(base64) {
+        var bytes;
+        try {
+            var raw = atob(base64);
+            bytes = new Uint8Array(raw.length);
+            for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+        } catch (_) {return null;}
+        if (bytes.length < 23 || bytes[0] !== 83 || bytes[1] !== 80 ||
+            bytes[2] !== 69 || bytes[3] !== 67 || bytes[4] !== 1) return null;
+        var flags = bytes[5];
+        if (flags === 3) {
+            encodedBins = Array.prototype.slice.call(bytes, 22);
+        } else if (flags === 4) {
+            if (!encodedBins || bytes.length < 24) return null;
+            var count = bytes[22] + bytes[23]*256;
+            if (bytes.length < 24 + count*3) return null;
+            for (var j = 0; j < count; j++) {
+                var offset = 24 + 3*j;
+                var index = bytes[offset] + bytes[offset+1]*256;
+                if (index >= encodedBins.length) return null;
+                encodedBins[index] = bytes[offset+2];
+            }
+        } else return null;
+        var results = new Array(encodedBins.length);
+        for (var k = 0; k < encodedBins.length; k++) results[k] = encodedBins[k] - 256;
+        return results;
+    }
+
+    /** Prefer the receiver's real-time spectrum SSE stream over slow polling.
+     * @param {number} serial - Current receiver generation.
+     * @returns {void} Opens a stream if the browser supports EventSource.
+     */
+    function openSpectrumStream(serial) {
+        if (serial !== generation || streamAttempted) return;
+        streamAttempted = true;
+        if (typeof EventSource === 'undefined' || typeof atob !== 'function') return;
+        try {
+            spectrumStream = new EventSource(cleanBase($('ham-source').value) +
+                '/api/noisefloor/spectrum/stream?band=' +
+                encodeURIComponent($('ham-band').value));
+        } catch (_) {spectrumStream = null;return;}
+        spectrumStream.addEventListener('spectrum', function (event) {
+            if (serial !== generation || event.lastEventId !== $('ham-band').value) return;
+            var bins = decodeSpectrumFrame(event.data);
+            if (!bins || !startHz || !endHz) return;
+            if (drawFFT({start_freq:startHz,end_freq:endHz,data:bins})) {
+                streamLive = true;
+                spectrumOK = true;
+                $('ham-spectrum-status').textContent =
+                    'REAL RF · LIVE STREAM · ' + bins.length + ' FFT bins · ' +
+                    new Date().toLocaleTimeString();
+            }
+        });
+        spectrumStream.onerror = function () {
+            if (serial !== generation) return;
+            spectrumStream.close();
+            spectrumStream = null;
+            streamLive = false;
+            $('ham-spectrum-status').textContent =
+                'Realtime spectrum stream unavailable; using measured FFT snapshots.';
+            // Retry normal read-only FFT polling rather than showing animation.
+            if (fftTimer) {clearTimeout(fftTimer);fftTimer = null;}
+            pollFFT(serial);
+        };
+    }
+
     /** Poll the receiver's genuine RF bins; avoid overlapping requests.
      * @param {number} serial - Current receiver configuration generation.
      * @returns {void} Schedules the next sample after completion.
@@ -186,13 +260,14 @@
                     'NO REAL RF DATA — ' + error +
                     '. Try a CORS-enabled receiver or local read-only bridge.';
                 showStatus('Spectrum offline: ' + error);
-            } else if (drawFFT(response)) {
+            } else if (streamLive ? true : drawFFT(response)) {
                 spectrumOK = true;
+                openSpectrumStream(serial);
                 showStatus('Receiver spectrum connected. Voice activity is read separately.');
             } else {
                 $('ham-spectrum-status').textContent = 'No usable FFT bins in receiver response.';
             }
-            fftTimer = setTimeout(function () {pollFFT(serial);}, POLL_FFT_MS);
+            fftTimer = setTimeout(function () {pollFFT(serial);}, streamLive ? 30000 : POLL_FFT_MS);
         });
     }
 
@@ -339,6 +414,8 @@
         fftRequest = null;voiceRequest = null;
         if (oldFFT) try {oldFFT.abort();} catch (_) {}
         if (oldVoice) try {oldVoice.abort();} catch (_) {}
+        if (spectrumStream) {spectrumStream.close();spectrumStream = null;}
+        encodedBins = null;streamLive = false;streamAttempted = false;
     }
 
     /** Begin polling one actual receiver in the selected band.
