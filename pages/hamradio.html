@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ham Radio — Bunkhouse</title>
+    <meta name="theme-color" content="#09121f" />
+    <link rel="stylesheet" href="../dist/css/hamradio.css" />
+    <script src="../assets/boot.js"></script>
+</head>
+<body>
+    <!-- A real remote SDR application supplies the actual RF waterfall and audio.
+         There is intentionally no synthesized spectrum or local audio player. -->
+    <div id="ham-app">
+        <header id="ham-header">
+            <div id="ham-brand">
+                <span class="ham-kicker">BUNKHOUSE / SHORTWAVE</span>
+                <strong>HAM RADIO</strong>
+            </div>
+            <div id="ham-actions">
+                <button type="button" id="ham-receiver" class="ham-selected">LIVE WATERFALL</button>
+                <button type="button" id="ham-scan">FIND VOICES</button>
+                <button type="button" id="ham-reload">RECONNECT</button>
+                <button type="button" id="ham-back">◀ TV / RADIO</button>
+            </div>
+        </header>
+
+        <div id="ham-settings">
+            <label for="ham-source">RECEIVER URL</label>
+            <input id="ham-source" type="url" spellcheck="false" autocomplete="off"
+                value="https://kb5avy.tunnel.ubersdr.org/"
+                aria-label="SDR receiver URL" />
+            <button id="ham-apply" type="button">LOAD RECEIVER</button>
+            <button id="ham-focus" type="button">CONTROL RECEIVER ▶</button>
+        </div>
+
+        <main id="ham-window">
+            <div id="ham-window-label">LIVE RECEIVER / NEW ORLEANS</div>
+            <iframe id="ham-frame" src="about:blank" title="Remote SDR receiver with live waterfall"
+                allow="autoplay; fullscreen" referrerpolicy="no-referrer"></iframe>
+        </main>
+
+        <footer id="ham-footer">
+            <span id="ham-status" role="status" aria-live="polite">Opening live receiver…</span>
+            <span id="ham-help">LIVE WATERFALL = REMOTE RECEIVER · FIND VOICES = PROVIDER'S LIVE SCANNER</span>
+        </footer>
+    </div>
+    <script defer src="../dist/js/hamradio.js"></script>
+</body>
+</html>
