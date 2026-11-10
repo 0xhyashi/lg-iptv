@@ -157,6 +157,12 @@
                         <audio id="weatherstar-external-audio" preload="none"></audio>
                         <iframe id="weatherstar-frame" title="WeatherStar 4000+ original forecast"
                                 src="about:blank" allow="autoplay" referrerpolicy="no-referrer"></iframe>
+                        <div id="weatherstar-diagnostics" role="status" aria-live="polite" style="display:none;">
+                            <strong>WEATHERSTAR 4000+ / STARTING</strong>
+                            <p id="weatherstar-diagnostics-message">Initializing original forecast renderer…</p>
+                            <p class="weatherstar-diagnostics-note">Original forecast graphics are preserved. If the receiver cannot start, the error appears here instead of a black screen.</p>
+                            <button id="weatherstar-diagnostics-retry" type="button">RETRY FORECAST</button>
+                        </div>
                         <div id="weatherstar-status" aria-live="polite">Select WeatherStar 4000+ to load local forecasts.</div>
                     </div>
                     <div id="player-msg">Select a channel</div>
