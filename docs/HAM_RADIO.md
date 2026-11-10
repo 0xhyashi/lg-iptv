@@ -1,8 +1,8 @@
 # HAM RADIO — live SDR integration (experimental)
 
-This page is reached by selecting **HAM** in the Live TV / Radio switch.
+This page is reached by selecting **HAM** in the TV Guide / Radio / HAM switch. The LG app now starts directly in the classic blue TV Guide, not the retired home dashboard. D-pad UP from the first guide row focuses the media tabs; RIGHT twice reaches HAM and OK opens it. VOD and Catch-up remain available under the switch.
 It is implemented as a separate page so a live remote SDR does not share the
-TV, WeatherStar or internet-radio decoder. Version: Bunkhouse 1.0.45.
+TV, WeatherStar or internet-radio decoder. Version: Bunkhouse 1.0.46.
 
 ## What works by design
 
