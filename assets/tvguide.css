@@ -110,3 +110,36 @@ body.guide-mode .tl-epg-block.tl-past .tl-block-title,
 body.guide-mode .tl-epg-block.tl-past .tl-block-time {color:#e5efff;opacity:1;}
 body.guide-mode .tl-col1.tv-focus-visible .tl-epg-block,
 body.guide-mode .tl-col1.tv-focus-visible .tl-epg-block.tl-no-epg {color:#09185d;}
+
+/* Legacy webOS renders percentage-height flex children against the *intrinsic*
+ * preview-bar height. That height may be calculated from the current text /
+ * artwork, making the entire Saturn player shrink and bounce by station.
+ * Anchor all player edges to the screen instead of letting content size them. */
+body.radio-mode #main {position:relative;height:100%;min-height:0;overflow:hidden;padding:0!important;}
+body.radio-mode #preview-bar {
+    display:block!important;position:absolute;top:0;bottom:0;left:0;right:0;
+    width:100%;height:100%;min-width:0;min-height:0;margin:0;padding:0!important;
+    border:0;overflow:hidden;background:transparent;
+}
+body.radio-mode #pip-wrap,
+html.plat-video-plane body.radio-mode #pip-wrap,
+html.pip-compat body.radio-mode #pip-wrap {
+    display:block!important;position:absolute;top:0;bottom:0;left:0;right:0;
+    width:100%;height:100%;min-width:0;min-height:0;max-width:none;max-height:none;
+    margin:0!important;box-sizing:border-box;overflow:hidden;border:3px solid #6977a3;
+    border-radius:0;-webkit-transform:none;transform:none;
+}
+body.radio-mode #radio-visual {position:absolute!important;top:0;bottom:0;left:0;right:0;height:100%;width:100%;min-height:0;overflow:hidden;box-sizing:border-box;}
+body.radio-mode #bunkhouse-header {flex:0 0 9%;height:9%;min-height:0;overflow:hidden;}
+body.radio-mode #bunkhouse-controls {flex:0 0 10%;height:10%;min-height:0;overflow:hidden;}
+body.radio-mode #bk-body {display:flex;flex:0 0 81%;height:81%;min-height:0;min-width:0;overflow:hidden;box-sizing:border-box;}
+body.radio-mode #bk-stage {display:flex;flex:0 0 55%;width:55%;height:100%;min-height:0;overflow:hidden;}
+body.radio-mode #bk-planet-frame {flex:0 0 67%;height:67%;min-height:0;}
+body.radio-mode #bk-station-box {flex:0 0 31%;height:31%;min-height:0;max-height:31%;overflow:hidden;}
+body.radio-mode #bk-information {display:flex;flex:1 1 0;width:45%;height:100%;min-height:0;overflow:hidden;}
+body.radio-mode #radio-track-panel {flex:0 0 42%!important;height:42%;max-height:42%!important;min-height:0;overflow:hidden;}
+body.radio-mode #bk-history {flex:1 1 0;height:0;min-height:0;overflow:hidden;}
+body.radio-mode #bk-current-content {flex:1 1 0;height:0;min-height:0;overflow:hidden;}
+body.radio-mode #radio-visual .radio-track-meta {height:100%;max-height:100%;overflow:hidden;}
+body.radio-mode #radio-visual .radio-cover-box {overflow:hidden;min-height:0;flex-shrink:0;}
+body.radio-mode #radio-visual #radio-cover {max-width:100%;max-height:100%;object-fit:contain;}
