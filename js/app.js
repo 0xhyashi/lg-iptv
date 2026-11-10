@@ -353,9 +353,17 @@ function bunkhouseHandleKey(e, key) {
  */
 function setupBunkhouseNavigation() {
     var tv=document.getElementById("media-tv"),radio=document.getElementById("media-radio");
+    var ham=document.getElementById("media-ham");
     if (!tv || !radio) return;
     tv.addEventListener("click",function(){bunkhouseChangeMode("tv");});
     radio.addEventListener("click",function(){bunkhouseChangeMode("radio");});
+    if (ham) ham.addEventListener("click",function(){
+        // Remote SDR has its own decoder. Release all existing players first.
+        stopRadio();
+        WeatherChannel.close();
+        player.stop();
+        window.location.href="../pages/hamradio.html";
+    });
     var panel=document.getElementById("radio-stations");
     if (!panel) return;
     panel.innerHTML="";
