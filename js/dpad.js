@@ -148,12 +148,12 @@ function onTVKeyDown(e) {
     // Media tabs must accept LG D-pad focus in both TV and radio modes.
     // This runs before the hidden channel grid can consume ENTER or arrows.
     var focusedTab = document.activeElement;
-    var mediaIds = ["media-tv", "media-radio", "media-ham"];
+    var mediaIds = ["media-tv", "media-radio", "media-ham", "guide-vod", "guide-catchup"];
     var mediaIndex = mediaIds.indexOf(focusedTab && focusedTab.id);
     if (mediaIndex !== -1) {
         if (kc === _KEY.LEFT || kc === _KEY.RIGHT) {
             e.preventDefault();
-            document.getElementById(mediaIds[Math.max(0,Math.min(2, mediaIndex + (kc === _KEY.LEFT ? -1 : 1)))]).focus();
+            document.getElementById(mediaIds[Math.max(0,Math.min(mediaIds.length-1, mediaIndex + (kc === _KEY.LEFT ? -1 : 1)))]).focus();
             return;
         }
         if (kc === _KEY.ENTER) { e.preventDefault(); focusedTab.click(); return; }
