@@ -3,65 +3,14 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>IPTV Player</title>
-    <meta name="theme-color" content="#0c0c0e" />
-    <link rel="stylesheet" href="dist/css/base.css" />
-    <link rel="stylesheet" href="dist/css/home.css" />
-    <!-- Blocking on purpose: detects the video pipeline and sets the UI scale
-         before first paint. Must stay in <head> and must stay synchronous. -->
-    <script src="assets/boot.js"></script>
+    <title>Bunkhouse TV Guide</title>
+    <!-- Keep old Home/back references usable while the webOS app's entrypoint
+         now points straight to pages/livetv.html. -->
+    <meta http-equiv="refresh" content="0;url=pages/livetv.html" />
+    <script>window.location.replace("pages/livetv.html");</script>
 </head>
-<body>
-    <div id="home">
-        <div id="home-header">
-            <div id="home-brand">📺 <span>Toonami + Japan TV <small>v1.0.44</small></span></div>
-            <div id="home-date"></div>
-        </div>
-
-        <div id="home-grid">
-            <!-- Live TV — big tile -->
-            <div class="home-tile-main tile-livetv" id="tile-livetv" tabindex="-1">
-                <div class="home-tile-icon">📺</div>
-                <div class="home-tile-label">Live TV</div>
-                <div class="home-tile-sub">Watch live channels</div>
-            </div>
-
-            <!-- VOD — big tile -->
-            <div class="home-tile-main tile-vod" id="tile-vod" tabindex="-1">
-                <div class="home-tile-icon">🎬</div>
-                <div class="home-tile-label">VOD</div>
-                <div class="home-tile-sub">Movies &amp; TV shows</div>
-            </div>
-
-            <!-- Small tiles column -->
-            <div class="home-tile-col">
-                <div class="home-tile-small tile-catchup" id="tile-catchup" tabindex="-1">
-                    <div class="home-tile-icon">⏮</div>
-                    <div class="home-tile-small-text">
-                        <div class="home-tile-label">Catch-up</div>
-                        <div class="home-tile-sub">Watch missed shows</div>
-                    </div>
-                </div>
-
-                <div class="home-tile-small tile-settings" id="tile-settings" tabindex="-1">
-                    <div class="home-tile-icon">⚙</div>
-                    <div class="home-tile-small-text">
-                        <div class="home-tile-label">Settings</div>
-                        <div class="home-tile-sub">Configure your app</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Load order is a dependency chain, not a preference:
-         polyfills → core (Store → Net → Config, Dom) → page script. -->
-    <script src="dist/js/polyfills.js"></script>
-    <script src="dist/js/core/store.js"></script>
-    <script src="dist/js/core/net.js"></script>
-    <script src="dist/js/core/dom.js"></script>
-    <script src="dist/js/core/config.js"></script>
-    <script src="dist/js/home.js"></script>
-    <script defer src="dist/js/prewarm.js"></script>
+<body style="background:#06156d;color:#f7e887;font:bold 20px Arial,sans-serif;text-align:center;padding:15vh 2rem;">
+    <p>Opening Bunkhouse TV Guide…</p>
+    <p><a style="color:#fff" href="pages/livetv.html">Open TV Guide</a></p>
 </body>
 </html>
