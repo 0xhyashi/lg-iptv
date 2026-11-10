@@ -55,6 +55,12 @@ function handle(req, res) {
         target = '/api/noisefloor/fft?band=' + encodeURIComponent(band);
     } else if (url.pathname === '/api/noisefloor/voice-activity/all') {
         target = '/api/noisefloor/voice-activity/all?min_confidence=0.7';
+    } else if (url.pathname === '/api/noisefloor/spectrum/stream') {
+        const band = url.searchParams.get('band');
+        if (!/^(160|80|60|40|30|20|17|15|12|10|6)m$/.test(band || '')) {
+            fail(res,400,'Choose a supported spectrum band.');return;
+        }
+        target = '/api/noisefloor/spectrum/stream?band=' + encodeURIComponent(band);
     } else {
         fail(res,404,'Only RF spectrum and voice activity are exposed.');return;
     }
@@ -69,10 +75,13 @@ function handle(req, res) {
             return;
         }
         res.writeHead(200,{
-            'Content-Type':'application/json',
+            'Content-Type':target.indexOf('/stream?') !== -1
+                ? 'text/event-stream' : 'application/json',
             'Access-Control-Allow-Origin':'*',
-            'Cache-Control':'no-store'
+            'Cache-Control':'no-store',
+            'X-Accel-Buffering':'no'
         });
+        // Do not buffer SSE: forwarding real packets preserves live timing.
         upstream.pipe(res);
     });
     remote.on('timeout', function () {remote.destroy(new Error('Receiver timeout'));});
@@ -85,5 +94,5 @@ function handle(req, res) {
 http.createServer(handle).listen(PORT, '0.0.0.0', function () {
     console.log('Bunkhouse genuine SDR API bridge on port '+PORT);
     console.log('Point HAM RADIO at http://<PC-LAN-IP>:'+PORT);
-    console.log('Upstream: '+UPSTREAM+' (read-only spectrum and voice activity)');
+    console.log('Upstream: '+UPSTREAM+' (real FFT, spectrum SSE, and voice activity)');
 });
