@@ -30,6 +30,7 @@ jobs:
           node tests/epg-time.test.js
           node tests/radio-station-switch.test.js
           node tests/hamradio.test.js
+          node tests/hamradio-sse.test.js
           node tests/tvguide-layout.test.js
           node tests/weatherstar-display.test.js
           node tests/weatherstar-polyfills.test.js
