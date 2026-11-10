@@ -104,6 +104,7 @@ var WeatherChannel = (function () {
      */
     function startWeatherWatchdog() {
         stopWeatherWatchdog();
+        if (typeof setTimeout !== "function") return;
         weatherWatchdog = setTimeout(function () {
             weatherWatchdog = null;
             if (!active || forecastRendered) return;
