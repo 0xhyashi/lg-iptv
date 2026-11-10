@@ -64,15 +64,15 @@
     if (!String.prototype.padStart) {
         String.prototype.padStart = function (length, fill) {
             var str = String(this), pad = fill === undefined ? ' ' : String(fill);
-            if (!pad) return str;
+            if (str.length >= Number(length) || !pad) return str;
             while (str.length < length) str = pad + str;
-            return str.slice(-Math.max(Number(length), 0));
+            return str.slice(-Number(length));
         };
     }
     if (!String.prototype.padEnd) {
         String.prototype.padEnd = function (length, fill) {
             var str = String(this), pad = fill === undefined ? ' ' : String(fill);
-            if (!pad) return str;
+            if (str.length >= Number(length) || !pad) return str;
             while (str.length < length) str += pad;
             return str.slice(0, Number(length));
         };
