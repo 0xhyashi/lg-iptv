@@ -107,14 +107,14 @@ jobs:
         run: |
           npm install -g @webos-tools/cli --no-audit --no-fund
           ares-package -n .
-          ls -lh com.oxhyashi.toonamitest_1.0.45_all.ipk
-          test $(stat -c %s com.oxhyashi.toonamitest_1.0.45_all.ipk) -gt 1000000
-          ar t com.oxhyashi.toonamitest_1.0.45_all.ipk
+          ls -lh com.oxhyashi.toonamitest_1.0.46_all.ipk
+          test $(stat -c %s com.oxhyashi.toonamitest_1.0.46_all.ipk) -gt 1000000
+          ar t com.oxhyashi.toonamitest_1.0.46_all.ipk
           echo "IPK_CHECK_OK"
       - name: Upload testable webOS package
         uses: actions/upload-artifact@v4
         with:
           name: bunkhouse-webos-test-ipk
-          path: com.oxhyashi.toonamitest_1.0.45_all.ipk
+          path: com.oxhyashi.toonamitest_1.0.46_all.ipk
           if-no-files-found: error
           retention-days: 14
