@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Ham Radio — Bunkhouse</title>
-    <meta name="theme-color" content="#09121f" />
+    <title>Bunkhouse / Ham Radio</title>
+    <meta name="theme-color" content="#071228" />
     <link rel="stylesheet" href="../dist/css/hamradio.css" />
     <script src="../assets/boot.js"></script>
 </head>
 <body>
-    <!-- A real remote SDR application supplies the actual RF waterfall and audio.
-         There is intentionally no synthesized spectrum or local audio player. -->
+    <!-- Native browser canvas receives ONLY real numeric SDR spectrum bins.
+         The voice panel reads the same receiver's real voice activity API.
+         No vendor website or fictional waterfall is embedded. -->
     <div id="ham-app">
         <header id="ham-header">
             <div id="ham-brand">
@@ -18,31 +19,55 @@
                 <strong>HAM RADIO</strong>
             </div>
             <div id="ham-actions">
-                <button type="button" id="ham-receiver" class="ham-selected">LIVE WATERFALL</button>
-                <button type="button" id="ham-scan">FIND VOICES</button>
-                <button type="button" id="ham-reload">RECONNECT</button>
-                <button type="button" id="ham-back">◀ TV / RADIO</button>
+                <button id="ham-scan" type="button">FIND VOICE</button>
+                <button id="ham-prev" type="button">◀ PREVIOUS</button>
+                <button id="ham-next" type="button">NEXT VOICE ▶</button>
+                <button id="ham-reload" type="button">RECONNECT</button>
+                <button id="ham-back" type="button">◀ TV GUIDE</button>
             </div>
         </header>
-
         <div id="ham-settings">
-            <label for="ham-source">RECEIVER URL</label>
+            <label for="ham-source">UBERSDR API</label>
             <input id="ham-source" type="url" spellcheck="false" autocomplete="off"
-                value="https://kb5avy.tunnel.ubersdr.org/"
-                aria-label="SDR receiver URL" />
-            <button id="ham-apply" type="button">LOAD RECEIVER</button>
-            <button id="ham-focus" type="button">CONTROL RECEIVER ▶</button>
+                value="https://kb5avy.tunnel.ubersdr.org" />
+            <button id="ham-apply" type="button">CONNECT</button>
+            <label for="ham-band">BAND</label>
+            <select id="ham-band">
+                <option value="80m">80m</option>
+                <option value="40m">40m</option>
+                <option value="20m" selected>20m</option>
+                <option value="17m">17m</option>
+                <option value="15m">15m</option>
+                <option value="10m">10m</option>
+            </select>
         </div>
-
-        <main id="ham-window">
-            <div id="ham-window-label">LIVE RECEIVER / NEW ORLEANS</div>
-            <iframe id="ham-frame" src="about:blank" title="Remote SDR receiver with live waterfall"
-                allow="autoplay; fullscreen" referrerpolicy="no-referrer"></iframe>
+        <main id="ham-content">
+            <section id="ham-spectrum-panel">
+                <div id="ham-spectrum-head">
+                    <div>
+                        <span class="ham-kicker">LIVE RECEIVER SPECTRUM</span>
+                        <strong id="ham-frequency">NO SIGNAL SELECTED</strong>
+                    </div>
+                    <span id="ham-mode">20m · WAITING FOR DATA</span>
+                </div>
+                <div id="ham-waterfall-wrap">
+                    <canvas id="ham-waterfall" width="640" height="350" aria-label="Live RF waterfall fed by receiver spectrum samples"></canvas>
+                    <div id="ham-tune-marker" style="display:none;"></div>
+                    <div id="ham-empty">WAITING FOR ACTUAL RADIO SPECTRUM<br /><small>No visualization is generated without receiver data.</small></div>
+                </div>
+                <div id="ham-ruler"><span id="ham-freq-start">START —</span><span id="ham-freq-end">END —</span></div>
+                <div id="ham-spectrum-status" role="status" aria-live="polite">Connecting to receiver…</div>
+            </section>
+            <aside id="ham-activity-panel">
+                <div class="ham-panel-title">LIVE VOICE ACTIVITY <span id="ham-voice-count">0</span></div>
+                <div id="ham-voice-status">Checking receiver's voice scanner…</div>
+                <div id="ham-voice-list" aria-label="Detected voice transmissions"></div>
+                <div id="ham-listen-note">Detected frequencies are real receiver estimates. Native audio is not connected yet; selecting a voice highlights its actual position on the live waterfall.</div>
+            </aside>
         </main>
-
         <footer id="ham-footer">
-            <span id="ham-status" role="status" aria-live="polite">Opening live receiver…</span>
-            <span id="ham-help">LIVE WATERFALL = REMOTE RECEIVER · FIND VOICES = PROVIDER'S LIVE SCANNER</span>
+            <span id="ham-status">No SDR data received yet.</span>
+            <span>LIVE RF BINS + RECEIVER VOICE DETECTIONS · NO SIMULATED SIGNALS</span>
         </footer>
     </div>
     <script defer src="../dist/js/hamradio.js"></script>
