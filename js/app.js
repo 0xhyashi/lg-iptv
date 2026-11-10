@@ -172,6 +172,25 @@ async function _initAppXtream(setStatus) {
     } catch (err) { setStatus("ERR: " + err.message, true); }
 }
 
+/** Keep the classic cable-guide clock in sync with the TV's local time.
+ * @returns {void} Starts a single one-minute clock update on this page.
+ */
+function setupGuideClock() {
+    var target = document.getElementById("guide-clock");
+    if (!target) return;
+    /** Show the current local date and time in the guide masthead.
+     * @returns {void} Updates the masthead text.
+     */
+    function drawGuideClock() {
+        var now = new Date();
+        var day = now.toLocaleDateString("en-US", {weekday:"short",month:"short",day:"numeric"});
+        var hour = now.toLocaleTimeString("en-US", {hour:"numeric",minute:"2-digit"});
+        target.textContent = day.toUpperCase() + "  " + hour;
+    }
+    drawGuideClock();
+    setInterval(drawGuideClock, 60000);
+}
+
 /** Render categories and start Live TV's supporting services.
  * @param {Array<Object>} categories - Category definitions.
  * @param {string} playlistEpgUrl - Provider's EPG URL.
@@ -354,6 +373,15 @@ function bunkhouseHandleKey(e, key) {
     }
     return false;
 }
+/** Open the separate SDR screen after releasing existing audio/video players.
+ * @returns {void} Navigates to the HAM RADIO page.
+ */
+function bunkhouseOpenHam() {
+    stopRadio();
+    WeatherChannel.close();
+    player.stop();
+    window.location.href = "../pages/hamradio.html";
+}
 /** Create station buttons and wire TV/Radio tabs.
  * @returns {void} No return value.
  */
@@ -363,13 +391,7 @@ function setupBunkhouseNavigation() {
     if (!tv || !radio) return;
     tv.addEventListener("click",function(){bunkhouseChangeMode("tv");});
     radio.addEventListener("click",function(){bunkhouseChangeMode("radio");});
-    if (ham) ham.addEventListener("click",function(){
-        // Remote SDR has its own decoder. Release all existing players first.
-        stopRadio();
-        WeatherChannel.close();
-        player.stop();
-        window.location.href="../pages/hamradio.html";
-    });
+    if (ham) ham.addEventListener("click",bunkhouseOpenHam);
     var panel=document.getElementById("radio-stations");
     if (!panel) return;
     panel.innerHTML="";
