@@ -28,5 +28,15 @@ for(const selector of [
 ]) assert(css.includes(selector),'Missing style '+selector);
 assert(css.includes('flex:1 1 0'), 'Radio right pane must flex to all free space');
 assert(css.includes('height:100%'), 'Radio right pane must fill available height');
+assert(css.includes('body.guide-mode .tl-block-title') &&
+       css.includes('color: #f5f8ff'),
+       'Guide program subtitle must be high contrast instead of inherited gray');
+assert(css.includes('body.radio-mode #preview-bar {') &&
+       css.includes('position:absolute;top:0;bottom:0;left:0;right:0'),
+       'Radio player must anchor to all four viewport edges, not text height');
+assert(css.includes('body.radio-mode #bk-station-box {flex:0 0 31%'),
+       'Station title text must not change Saturn panel size');
+assert(css.includes('body.radio-mode #radio-track-panel {flex:0 0 42%!important'),
+       'Metadata length must not resize the now-playing panel');
 assert(!/Math\.random\(|placeholder show/i.test(css),'No invented guide data');
 console.log('TV_GUIDE_LAYOUT_OK direct boot, remote HAM access, real EPG styling, full radio pane.');
