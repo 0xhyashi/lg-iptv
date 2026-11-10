@@ -1,63 +1,64 @@
-# HAM RADIO — live SDR integration (experimental)
+# HAM RADIO — native, real-data SDR receiver (Bunkhouse 1.0.47)
 
-This page is reached by selecting **HAM** in the TV Guide / Radio / HAM switch. The LG app now starts directly in the classic blue TV Guide, not the retired home dashboard. D-pad UP from the first guide row focuses the media tabs; RIGHT twice reaches HAM and OK opens it. VOD and Catch-up remain available under the switch.
-It is implemented as a separate page so a live remote SDR does not share the
-TV, WeatherStar or internet-radio decoder. Version: Bunkhouse 1.0.46.
+## What this screen actually does
 
-## What works by design
+The HAM page now uses **no remote websites/iframes**. It uses the following
+read-only public APIs from a single UberSDR receiver:
 
-- **LIVE WATERFALL** embeds the actual KB5AVY UberSDR receiver in New Orleans:
-  https://kb5avy.tunnel.ubersdr.org/
-- **FIND VOICES** embeds https://spinthedial.live/, an externally hosted
-  live amateur-radio voice activity finder.
-- **RECONNECT** clears the current iframe before connecting again.
-- The receiver URL field allows other HTTP(S) WebSDRs including bracketed IPv6
-  addresses (e.g. `http://[2001:db8::1]:8073/`). The selected URL is saved
-  in the app's local storage. No custom proxy, credentials or WebSocket relay
-  is provided.
-- Leaving the page or changing providers navigates the *same* iframe to
-  `about:blank`. This is essential to avoid overlapping radio audio.
+- `GET /api/noisefloor/fft?band=20m`: real RF FFT values used to paint each
+  successive waterfall row in the TV's native 2D canvas.
+- `GET /api/noisefloor/spectrum/stream?band=20m`: real spectrum SSE messages
+  (SPEC v1 uint8 full and delta frames). Preferred when supported, with
+  periodic FFT sampling as a truthful fallback.
+- `GET /api/noisefloor/voice-activity/all?min_confidence=0.7`: real receiver
+  voice-activity estimates. Arrow buttons choose an estimate, move the
+  frequency marker, and change band.
 
-**There are zero fake waterfall pixels in our app.** All rendering, reception,
-demodulation and provider-side voice detection are done by the remote websites.
+**The waterfall is entirely real**, even when only slower FFT snapshots are
+available. No rows are drawn until actual RF bins arrive. Empty/offline state
+displays an explicit diagnostic instead of an animation. A detected voice is
+an estimated speech-shaped signal, not a verified intelligible conversation.
 
-## Crucial integration limit
+**Audio playback is not implemented in this version.** The public FFT and
+voice-detection APIs provide frequency data, not decoded audio. The receiver's
+actual audio requires a /connection session, a dedicated authenticated audio
+WebSocket, plus a webOS-compatible Opus or PCM decoder. The native screen does
+not claim to play or tune sound. It does select the band and indicated
+frequency on the genuine RF display. No broken SpinTheDial provider is opened.
 
-The receiver iframe and voice-discovery iframe are different sites and run
-under the browser's same-origin policy. Bunkhouse **cannot** read scanner
-results from one and issue a tune command to the other. The voice tab uses the
-provider's native interactive scanner, not a Bunkhouse-controlled "next voice"
-button. There is **no confirmed native auto-tuning integration** in this
-release, and switching tabs does not transfer frequencies.
+## Connection/CORS restrictions
 
-The source sites may also forbid embedding with X-Frame-Options/CSP; an iframe
-`load` event is not proof of successful rendering. Old webOS may lack the
-Web Audio, codec, TLS or WebSocket support that the source needs. We explicitly
-show a diagnostic hint rather than claiming reception or showing fake data.
+Default receiver: `https://kb5avy.tunnel.ubersdr.org`.
+The receiver operator controls the CORS headers. A packaged `file://` webOS
+app cannot bypass these security restrictions and direct HTTP API calls may
+fail. If they fail, the app shows **Network/CORS blocked**.
 
-## LG TV test plan
+Optional LAN bridge (read-only, no credentials, no synthetic data) on a
+computer on the same network:
 
-1. Install a package built from `feature/ham-radio-live-sdr`, not `main`.
-2. Open Live TV and select **HAM**. Verify it opens the separate screen and
-   eventually displays KB5AVY's *real* waterfall (not a Bunkhouse animation).
-3. Start a transmission on the provider interface and verify audio plays.
-   This may need Magic Remote/pointer interaction to satisfy autoplay.
-4. Select **FIND VOICES** and verify the provider's actual voice discovery site
-   loads. Confirm the previous receiver audio stops. Try its own tuning UI.
-5. Select **LIVE WATERFALL** and verify scanner audio stops.
-6. Try an alternate receiver URL and an IPv6 URL; ensure invalid schemes are
-   rejected. Test `RECONNECT`.
-7. Leave with **TV / RADIO**, switch WTMD, TV and WeatherStar; no SDR audio
-   should continue.
-8. If any iframe is blank, check TV's web inspector for frame-ancestor / XFO,
-   Web Audio, secure WebSocket or codec errors. We cannot bypass provider
-   embedding restrictions in a local web app.
+```powershell
+node tools/ham-api-bridge.js
+```
 
-## Future native scanner
+Find your computer's LAN IPv4 address using `ipconfig`, then enter
+`http://YOUR-PC-LAN-IP:8787` in the HAM screen's **UBERSDR API** field.
+The PC must be on while using the bridge, and Windows Firewall must allow
+incoming TCP port 8787 on the private LAN. This helper forwards only the three
+UberSDR endpoints above to the fixed New Orleans receiver. It is optional,
+not a native app dependency, and is never started automatically.
 
-For the couch-friendly one-button experience originally requested, we need a
-documented provider API that gives (a) validated live voice detections with
-frequency and mode, (b) a real spectrum feed, and (c) a supported audio tuner
-protocol compatible with the target LG webOS browser. Then the Bunkhouse client
-can consume the same receiver's data and implement Next Voice without violating
-cross-origin isolation. Do not infer a voice call from FFT signal strength alone.
+## TV test procedure
+
+1. Build and install 1.0.47 from `feature/ham-radio-live-sdr`.
+2. Open HAM: verify you see Bunkhouse's **native waterfall**, without vendor
+   welcome popups or any embedded website.
+3. When RF data is available, confirm colored lines are updated from network
+   frames and the frequency endpoints in MHz are nonempty.
+4. Choose **FIND VOICE** or next/previous; activity detection and any frequency
+   markers must come from the same receiver, never random FFT peaks.
+5. If offline, note the diagnostic and try the optional read-only LAN bridge.
+   CORS and public receiver uptime must be verified on the actual LG TV.
+6. Switch bands, reconnect, return to TV and radio; ensure requests stop.
+7. Check the now fixed-size Saturn right panel for WTMD and all other radio
+   streams, including stations with long titles/album names.
+8. Check TV Guide EPG subtitle contrast on dark blue and yellow focus rows.
