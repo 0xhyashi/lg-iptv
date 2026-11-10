@@ -91,3 +91,22 @@ body.radio-mode #radio-cover-placeholder,body.radio-mode #radio-cover {object-fi
 #guide-utilities {display:flex;flex:0 0 auto;gap:0;padding:0;background:#15296d;border-bottom:2px solid #587bb5;}
 #guide-utilities button {flex:1 1 50%;min-width:0;padding:.48rem .2rem;border:1px solid #7693cf;border-radius:0;background:#13256f;color:#e7f1ff;font:bold .72rem Arial,sans-serif;cursor:pointer;}
 #guide-utilities button:focus,#guide-utilities button:hover {background:#ffe16b;color:#091b63;outline:2px solid #fff;outline-offset:-2px;}
+
+/* Readability: EPG subtitles used to inherit faint gray from livetv.css.
+ * These selectors cover no-EPG placeholders, progress notes, and every
+ * secondary line below the channel name without changing focus contrast. */
+body.guide-mode .tl-name-epg-wrap .tl-epg-strip,
+body.guide-mode .tl-epg-strip .tl-loading,
+body.guide-mode .tl-epg-strip .tl-no-epg,
+body.guide-mode .tl-epg-block.tl-loading,
+body.guide-mode .tl-epg-block.tl-no-epg,
+body.guide-mode .tl-block-time,
+body.guide-mode .tl-block-title {
+    color: #f5f8ff;
+    opacity: 1;
+}
+body.guide-mode .tl-epg-block.tl-past {opacity:1;background:#12296f;border-color:#7187c9;}
+body.guide-mode .tl-epg-block.tl-past .tl-block-title,
+body.guide-mode .tl-epg-block.tl-past .tl-block-time {color:#e5efff;opacity:1;}
+body.guide-mode .tl-col1.tv-focus-visible .tl-epg-block,
+body.guide-mode .tl-col1.tv-focus-visible .tl-epg-block.tl-no-epg {color:#09185d;}
