@@ -7,6 +7,86 @@
 (function () {
     'use strict';
     var W = window;
+
+    /* The upstream v8.2.2 bundle uses these newer built-ins even when Babel
+     * removes its modern syntax. The parent page's polyfills only cover the
+     * older Bunkhouse app; these are scoped to WeatherStar's iframe realm. */
+    if (W.Promise && !W.Promise.allSettled) {
+        W.Promise.allSettled = function (items) {
+            return W.Promise.all(Array.prototype.map.call(items, function (item) {
+                return W.Promise.resolve(item).then(
+                    function (value) {return {status:'fulfilled',value:value};},
+                    function (reason) {return {status:'rejected',reason:reason};}
+                );
+            }));
+        };
+    }
+    if (!Object.hasOwn) {
+        Object.hasOwn = function (obj, key) {
+            return Object.prototype.hasOwnProperty.call(Object(obj), key);
+        };
+    }
+    if (!Object.fromEntries) {
+        Object.fromEntries = function (entries) {
+            var object = {};
+            var list = Array.from(entries);
+            for (var i = 0; i < list.length; i++) {
+                object[list[i][0]] = list[i][1];
+            }
+            return object;
+        };
+    }
+    if (!Array.prototype.flat) {
+        Array.prototype.flat = function (depth) {
+            var limit = depth === undefined ? 1 : Number(depth);
+            var out = [];
+            /** Append an array's nested values up to the requested depth.
+             * @param {Array} values - Source values to flatten.
+             * @param {number} remaining - Maximum remaining nested depth.
+             * @returns {void} Appends to out.
+             */
+            function append(values, remaining) {
+                for (var i = 0; i < values.length; i++) {
+                    if (!(i in values)) continue;
+                    if (Array.isArray(values[i]) && remaining > 0) append(values[i], remaining - 1);
+                    else out.push(values[i]);
+                }
+            }
+            append(this, limit);
+            return out;
+        };
+    }
+    if (!Array.prototype.flatMap) {
+        Array.prototype.flatMap = function (callback, thisArg) {
+            return Array.prototype.map.call(this, callback, thisArg).flat();
+        };
+    }
+    if (!String.prototype.padStart) {
+        String.prototype.padStart = function (length, fill) {
+            var str = String(this), pad = fill === undefined ? ' ' : String(fill);
+            if (!pad) return str;
+            while (str.length < length) str = pad + str;
+            return str.slice(-Math.max(Number(length), 0));
+        };
+    }
+    if (!String.prototype.padEnd) {
+        String.prototype.padEnd = function (length, fill) {
+            var str = String(this), pad = fill === undefined ? ' ' : String(fill);
+            if (!pad) return str;
+            while (str.length < length) str += pad;
+            return str.slice(0, Number(length));
+        };
+    }
+    if (!String.prototype.replaceAll) {
+        String.prototype.replaceAll = function (search, replacement) {
+            var str = String(this);
+            if (search instanceof RegExp) {
+                if (!search.global) throw new TypeError('replaceAll requires a global regular expression');
+                return str.replace(search, replacement);
+            }
+            return str.split(String(search)).join(String(replacement));
+        };
+    }
     /** Send for WeatherStar iframe compatibility and local diagnostics.
      * @param {*} type - Input for send().
      * @param {*} message - Input for send().
