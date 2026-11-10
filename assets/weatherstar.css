@@ -70,3 +70,20 @@ body.livetv-fs #weatherstar-toolbar input {font-size: .86rem;}
     #weatherstar-soundtrack-label {display:none;}
     #weatherstar-status {font-size: .55rem;}
 }
+
+/* During startup a readable retro diagnostic covers the iframe instead of
+ * leaving an undiagnosed black rectangle. It disappears only after the real
+ * upstream forecast reports a displayed non-loading screen. */
+#weatherstar-view {position:absolute;}
+#weatherstar-diagnostics {
+    position:absolute;top:46px;left:0;right:0;bottom:20px;z-index:3;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;box-sizing:border-box;padding:2.5rem;
+    background:#06156f;color:#fff7bc;border:3px solid #d8c469;
+    font-family:'Courier New',monospace;
+}
+#weatherstar-diagnostics strong {display:block;max-width:90%;font-size:1.65rem;letter-spacing:.07em;color:#ffeb87;margin-bottom:1.4rem;}
+#weatherstar-diagnostics-message {font-size:1rem;max-width:90%;line-height:1.5;color:#e5f0ff;}
+.weatherstar-diagnostics-note {font-size:.75rem;color:#b6cbed;margin-top:1rem;max-width:75%;line-height:1.5;}
+#weatherstar-diagnostics-retry {display:block;font:bold 1rem 'Courier New',monospace;border:2px outset #f0d46a;padding:.8rem 1.2rem;margin-top:1.5rem;background:#ffdb58;color:#031553;cursor:pointer;}
+#weatherstar-diagnostics-retry:focus {outline:3px solid #fff;outline-offset:3px;}
