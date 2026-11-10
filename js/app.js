@@ -325,18 +325,22 @@ function bunkhouseHandleKey(e, key) {
         bunkhouseStationStep(key === 38 ? -1 : 1);
         return true;
     }
-    if (key === 37) { // LEFT selects the media navigation
+    if (key === 37 || key === 39) {
+        // Move across TV / RADIO / HAM tabs with the D-pad.
+        var tabs = ["media-tv", "media-radio", "media-ham"];
+        var tabIndex = tabs.indexOf(focus && focus.id);
         e.preventDefault();
-        document.getElementById("media-tv").focus();
-        return true;
-    }
-    if (key === 39) { // RIGHT focuses pause / resume control
-        e.preventDefault();
-        document.getElementById("radio-toggle").focus();
+        if (key === 37) {
+            document.getElementById(tabs[Math.max(0, tabIndex - 1)]).focus();
+        } else if (tabIndex >= 0 && tabIndex < tabs.length - 1) {
+            document.getElementById(tabs[tabIndex + 1]).focus();
+        } else {
+            document.getElementById("radio-toggle").focus();
+        }
         return true;
     }
     if (key === 13) { // ENTER
-        if (focus && /^(media-tv|media-radio|radio-toggle|radio-prev|radio-next)$/.test(focus.id)) {
+        if (focus && /^(media-tv|media-radio|media-ham|radio-toggle|radio-prev|radio-next)$/.test(focus.id)) {
             e.preventDefault();focus.click();return true;
         }
         if (_bkRadioButtons[_bkStationIndex]) {
