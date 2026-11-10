@@ -1,7 +1,7 @@
 {
   "id": "com.oxhyashi.toonamitest",
   "title": "Bunkhouse TV Guide + Radio + HAM + Weather",
-  "version": "1.0.46",
+  "version": "1.0.47",
   "appDescription": "Bunkhouse TV, Radio, live HAM SDR and WeatherStar 4000+ with Nightwave Plaza live vaporwave audio, original 17-song music and SomaFM alternatives.",
   "iconUri": "https://raw.githubusercontent.com/0xhyashi/lg-iptv/privacy/toonami-single-stream-test/icon.png",
   "sourceUrl": "https://github.com/0xhyashi/lg-iptv",
