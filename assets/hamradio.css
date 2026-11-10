@@ -1,0 +1,37 @@
+/* hamradio.css — dedicated receiver shell for Bunkhouse HAM RADIO.
+ * The live waterfall is rendered inside the receiver's original web app,
+ * never painted or simulated by this stylesheet. Old webOS CSS only.
+ */
+html,body {margin:0;width:100%;height:100%;overflow:hidden;background:#080d18;color:#e2edfa;font-family:'Courier New',monospace;}
+* {box-sizing:border-box;}
+button,input {font-family:'Courier New',monospace;}
+button {cursor:pointer;border:2px ridge #7d91b2;color:#e4f4fd;background:linear-gradient(#324463,#16213a);border-radius:3px;font-size:15px;font-weight:bold;padding:12px 15px;white-space:nowrap;}
+button:focus,input:focus {outline:3px solid #aeff75;outline-offset:2px;}
+button.ham-selected {color:#a9ff7c;border-color:#9bcc73;background:linear-gradient(#254635,#11251f);}
+#ham-app {width:100%;height:100%;display:flex;flex-direction:column;min-height:0;}
+#ham-header {display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:91px;padding:12px 22px;border-bottom:3px ridge #6a7899;background:linear-gradient(#263851,#0c1225);}
+#ham-brand {display:flex;flex-direction:column;gap:3px;min-width:215px;}
+.ham-kicker {color:#7babc9;font-size:11px;letter-spacing:2px;}
+#ham-brand strong {font:bold italic 30px Arial,sans-serif;letter-spacing:3px;color:#d6ffe8;text-shadow:2px 2px #34545d;}
+#ham-actions {display:flex;gap:9px;align-items:center;}
+#ham-settings {display:flex;align-items:center;gap:11px;padding:10px 22px;background:#111b2c;border-bottom:1px solid #47627f;min-height:65px;}
+#ham-settings label {font-size:12px;font-weight:bold;letter-spacing:1px;color:#92b0d1;white-space:nowrap;}
+#ham-source {background:#070f17;color:#a8eec4;flex:1;min-width:0;font-size:15px;border:1px solid #66819d;border-radius:2px;padding:12px;}
+#ham-settings button {padding:10px 14px;font-size:13px;}
+#ham-window {position:relative;min-width:0;min-height:0;flex:1;overflow:hidden;background:#010409;border:3px ridge #607d9c;}
+#ham-window-label {position:absolute;top:0;left:0;right:0;z-index:1;pointer-events:none;padding:7px 12px;background:rgba(7,18,29,.83);color:#b3fada;font-size:13px;letter-spacing:1px;text-shadow:1px 1px #000;}
+#ham-frame {display:block;position:absolute;left:0;top:0;width:100%;height:100%;border:0;background:#020711;}
+#ham-footer {display:flex;justify-content:space-between;align-items:center;gap:20px;min-height:48px;padding:9px 19px;border-top:2px ridge #5d7995;background:#111827;font-size:12px;color:#a0bcd1;}
+#ham-status {color:#b3edb6;max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#ham-help {color:#8ea6c0;text-align:right;font-size:11px;}
+body.ham-scanning #ham-settings {display:none;}
+body.ham-scanning #ham-window-label {color:#e4dd98;}
+@media(max-width:1360px) {
+ #ham-header {padding:9px 12px;gap:10px;min-height:70px;}
+ #ham-brand {min-width:165px;}
+ #ham-brand strong {font-size:23px;}
+ button {font-size:12px;padding:10px;}
+ #ham-settings {padding:8px 12px;}
+ #ham-help {display:none;}
+ #ham-status {max-width:100%;}
+}
