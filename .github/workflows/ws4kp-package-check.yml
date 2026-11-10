@@ -74,6 +74,7 @@ jobs:
         run: |
           node tests/weatherstar-location.test.js
           node tests/weatherstar-display.test.js
+          node tests/weatherstar-polyfills.test.js
           node tests/tvguide-layout.test.js
           node - <<'NODE'
           const fs=require('fs');
