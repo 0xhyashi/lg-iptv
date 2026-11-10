@@ -10,6 +10,8 @@ on:
       - assets/**
       - assets/weatherstar-compat.js
       - tools/patch-weatherstar-compat.js
+      - tools/transpile-weatherstar.js
+      - assets/tvguide.css
       - tests/weatherstar-location.test.js
       - pages/livetv.html
       - pages/hamradio.html
@@ -71,6 +73,8 @@ jobs:
       - name: Prove location search bypass and old LG browser compatibility
         run: |
           node tests/weatherstar-location.test.js
+          node tests/weatherstar-display.test.js
+          node tests/tvguide-layout.test.js
           node - <<'NODE'
           const fs=require('fs');
           const html=fs.readFileSync('weatherstar/index.html','utf8');
@@ -96,7 +100,7 @@ jobs:
             if (!js.includes(str) && !markup.includes(str)) throw Error('Missing soundtrack: '+str);
           }
           const meta=JSON.parse(fs.readFileSync('appinfo.json','utf8'));
-          if(meta.version!=='1.0.45') throw Error('Incorrect app version');
+          if(meta.version!=='1.0.46') throw Error('Incorrect app version');
           console.log('WEATHER_SOUNDTRACK_UI_CHECK_OK: Nightwave default, Classic, SomaFM');
           NODE
       - name: Create real LG webOS TV package without minification
