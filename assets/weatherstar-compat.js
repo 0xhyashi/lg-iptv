@@ -130,8 +130,15 @@
     }, false);
 
     var lastStatus = '';
+    var rendered = false;
     W.addEventListener('DOMContentLoaded', function () {
         setInterval(function () {
+            // A real forecast display, not the upstream loading/progress card.
+            // This signal lets the parent remove its no-black-screen overlay.
+            if (!rendered && document.querySelector('.weather-display.show:not(#progress-html)')) {
+                rendered = true;
+                send('display', 'Original forecast graphics are visible');
+            }
             var el = document.querySelector('.location-status');
             var status = el && el.textContent && el.textContent.trim();
             if (!status || status === lastStatus) return;
