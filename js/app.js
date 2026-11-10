@@ -183,6 +183,7 @@ function _bootUI(categories, playlistEpgUrl) {
     setupPip();
     setupRadioUI();
     setupTimelineNav();
+    setupGuideClock();
 
     activeCategory = Favourites.isEmpty() ? "all" : "favs";
     activeFavGroup = "all";
@@ -251,6 +252,7 @@ function bunkhouseRadioChannels() {
 function bunkhouseSetMode(mode) {
     var radio = mode === "radio";
     document.body.classList.toggle("radio-mode", radio);
+    document.body.classList.toggle("guide-mode", !radio);
     var tv = document.getElementById("media-tv"), r = document.getElementById("media-radio");
     if (tv) tv.classList.toggle("active", !radio);
     if (r) r.classList.toggle("active", radio);
