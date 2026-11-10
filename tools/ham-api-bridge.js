@@ -46,7 +46,9 @@ function handle(req, res) {
     }
 
     let target;
-    const url = new URL(req.url, 'http://localhost');
+    let url;
+    try { url = new URL(req.url, 'http://localhost'); }
+    catch (_) { fail(res,400,'Malformed API request.');return; }
     if (url.pathname === '/api/noisefloor/fft') {
         const band = url.searchParams.get('band');
         if (!/^(160|80|60|40|30|20|17|15|12|10|6)m$/.test(band || '')) {
@@ -84,6 +86,8 @@ function handle(req, res) {
         // Do not buffer SSE: forwarding real packets preserves live timing.
         upstream.pipe(res);
     });
+    // Closing the TV's EventSource must also release the remote SSE socket.
+    res.on('close', function () {remote.destroy();});
     remote.on('timeout', function () {remote.destroy(new Error('Receiver timeout'));});
     remote.on('error', function (error) {
         if (!res.headersSent) fail(res,502,'Remote receiver failed: '+error.message);
