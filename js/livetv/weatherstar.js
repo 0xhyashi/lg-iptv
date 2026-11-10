@@ -423,7 +423,7 @@ var WeatherChannel = (function () {
             if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
             var ids = ["weatherstar-city","weatherstar-location-go",
                 "weatherstar-soundtrack","weatherstar-music","weatherstar-retry",
-                "weatherstar-fullscreen","weatherstar-exit"];
+                "weatherstar-fullscreen","weatherstar-ham","weatherstar-exit"];
             var idx = ids.indexOf(fid);
             var newIdx = idx === -1 ? 2 : (idx + ids.length + (key === 37 ? -1 : 1)) % ids.length;
             var target = $(ids[newIdx]);
@@ -436,7 +436,7 @@ var WeatherChannel = (function () {
                 if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
                 cycleSound(1);return true;
             }
-            if (/^weatherstar-(?:music|retry|fullscreen|exit|location-go)$/.test(fid)) {
+            if (/^weatherstar-(?:music|retry|fullscreen|ham|exit|location-go)$/.test(fid)) {
                 e.preventDefault();
                 if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
                 focus.click();return true;
@@ -520,6 +520,11 @@ var WeatherChannel = (function () {
         if (exit) exit.addEventListener("click",function(e){e.stopPropagation();backToChannels();});
         var fullscreen = $("weatherstar-fullscreen");
         if (fullscreen) fullscreen.addEventListener("click",function(e){e.stopPropagation();toggleFullscreen();});
+        var ham = $("weatherstar-ham");
+        if (ham) ham.addEventListener("click",function(e){
+            e.stopPropagation();
+            if (typeof bunkhouseOpenHam === "function") bunkhouseOpenHam();
+        });
         var source = $("weatherstar-retry");
         if (source) source.addEventListener("click",function(e){
             e.stopPropagation();navigate();
