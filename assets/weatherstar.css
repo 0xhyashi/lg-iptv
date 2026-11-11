@@ -47,6 +47,8 @@
 #weatherstar-toolbar select:focus,
 #weatherstar-toolbar input:focus {outline: 2px solid #ffda57; outline-offset: 1px;}
 #weatherstar-toolbar #weatherstar-exit {background: #733d29; border-color: #b77e62;}
+#weatherstar-toolbar #weatherstar-performance[aria-pressed="true"] {background:#204d3c;border-color:#80c5a2;color:#e1fff2;}
+#weatherstar-toolbar #weatherstar-performance[aria-pressed="false"] {background:#574225;border-color:#caa26d;color:#fff2c8;}
 #weatherstar-frame {
     box-sizing: border-box; width: 100%; height: 100%; flex: 1 1 auto;
     min-height: 0; background: #010612; border: 0;
