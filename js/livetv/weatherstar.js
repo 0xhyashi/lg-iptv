@@ -32,7 +32,37 @@ var WeatherChannel = (function () {
     var nwsError = ""; // Most recent NWS access failure reported by the local iframe.
     var weatherWatchdog = null;
     var forecastRendered = false;
+    var lightMode = true; // Default: no memory-intensive radar frame generation on LG.
 
+    /** Read the saved performance preference; normal forecast is lighter by default.
+     * @returns {boolean} True when heavy radar screens should stay disabled.
+     */
+    function restoreLightMode() {
+        try { return localStorage.getItem("bunkhouse_weather_performance") !== "full"; }
+        catch (_) { return true; }
+    }
+    /** Update the performance toggle's visible current setting.
+     * @returns {void} Reflect the actual weather profile.
+     */
+    function updatePerformanceButton() {
+        var button = $("weatherstar-performance");
+        if (!button) return;
+        button.textContent = lightMode ? "LITE MODE: ON" : "LITE MODE: OFF";
+        button.title = lightMode
+            ? "Show radar maps too (uses more TV memory and CPU)"
+            : "Disable heavy radar maps to reduce load on the TV";
+        button.setAttribute("aria-pressed", lightMode ? "true" : "false");
+    }
+    /** Switch between real standard forecast and radar-heavy presentation.
+     * @returns {void} Reloads WeatherStar only after an explicit user change.
+     */
+    function togglePerformance() {
+        lightMode = !lightMode;
+        try { localStorage.setItem("bunkhouse_weather_performance", lightMode ? "lite" : "full"); }
+        catch (_) {}
+        updatePerformanceButton();
+        if (active) navigate();
+    }
     /** Find a WeatherStar control by its DOM ID.
      * @param {string} id - DOM element or stored object ID.
      * @returns {HTMLElement|null} Matching element, or null.
@@ -222,9 +252,18 @@ var WeatherChannel = (function () {
             // Bypasses upstream ArcGIS findLocation() and loads NWS directly.
             query += "&latLon=" + encodeURIComponent(JSON.stringify(coords));
         }
+        // WS4KP creates several radar canvases and computes future radar
+        // frames on the CPU. A small LG TV may freeze even though forecasts
+        // are working. Disable those exact optional screens in Lite mode.
+        // Both true and false MUST be explicit: WS4KP persists checkbox
+        // choices in the iframe's localStorage, so omitting "=true" would
+        // leave radar disabled after switching back to Full mode.
+        var maps = "&radar=" + (lightMode ? "false" : "true") +
+            "&future-radar=" + (lightMode ? "false" : "true");
         return base + query +
             "&kiosk=true&mediaPlaying=" + (isClassic && !soundPaused ? "true" : "false") +
-            "&mediaVolume=0.65&viewMode=standard";
+            "&mediaVolume=0.65&viewMode=standard" + maps +
+            (lightMode ? "&scanLines=false" : "");
     }
     /** Pause and unload the external vaporwave audio stream.
      * @returns {void} No return value.
@@ -465,7 +504,7 @@ var WeatherChannel = (function () {
             e.preventDefault();
             if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
             var ids = ["weatherstar-city","weatherstar-location-go",
-                "weatherstar-soundtrack","weatherstar-music","weatherstar-retry",
+                "weatherstar-soundtrack","weatherstar-music","weatherstar-retry","weatherstar-performance",
                 "weatherstar-fullscreen","weatherstar-ham","weatherstar-exit"];
             var idx = ids.indexOf(fid);
             var newIdx = idx === -1 ? 2 : (idx + ids.length + (key === 37 ? -1 : 1)) % ids.length;
@@ -544,6 +583,8 @@ var WeatherChannel = (function () {
         var frame = $("weatherstar-frame"), city = $("weatherstar-city");
         if (!frame) return;
         restoreSound();
+        lightMode = restoreLightMode();
+        updatePerformanceButton();
         soundPaused = false;
         if (city) city.value = getCity();
         updateControls();
@@ -567,6 +608,10 @@ var WeatherChannel = (function () {
         if (ham) ham.addEventListener("click",function(e){
             e.stopPropagation();
             if (typeof bunkhouseOpenHam === "function") bunkhouseOpenHam();
+        });
+        var perfButton = $("weatherstar-performance");
+        if (perfButton) perfButton.addEventListener("click",function(e){
+            e.stopPropagation();togglePerformance();
         });
         var source = $("weatherstar-retry");
         if (source) source.addEventListener("click",function(e){
