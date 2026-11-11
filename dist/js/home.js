@@ -1,5 +1,8 @@
 "use strict";
 
+/* home.js — start page tile navigation with the LG remote.
+ * Chooses Live TV, VOD, Catch-up or Settings without loading media.
+ */
 // ── Homepage navigation ───────────────────────────────────────────────────────
 //
 // Tile order for D-pad: [livetv, vod, catchup, settings]
@@ -31,6 +34,11 @@ var COL_FIRST = {
   2: "tile-catchup"
 };
 var _focusedTile = "tile-livetv";
+
+/** Set Focus for home navigation.
+ * @param {string} id - Identifier.
+ * @returns {*} Function result.
+ */
 function _setFocus(id) {
   var _document$getElementB2;
   TILES.forEach(function (t) {
@@ -40,9 +48,19 @@ function _setFocus(id) {
   _focusedTile = id;
   (_document$getElementB2 = document.getElementById(id)) === null || _document$getElementB2 === void 0 || _document$getElementB2.classList.add("tv-focus-visible");
 }
+
+/** Navigate for home navigation.
+ * @param {string} id - Identifier.
+ * @returns {*} Function result.
+ */
 function _navigate(id) {
   window.location.href = PAGES[id];
 }
+
+/** Handle Key for home navigation.
+ * @param {Event} e - Browser event.
+ * @returns {*} Function result.
+ */
 function _handleKey(e) {
   var kc = Dom.keyCode(e);
   if (kc === 461) {
@@ -83,6 +101,10 @@ function _handleKey(e) {
     return;
   }
 }
+
+/** Update Date for home navigation.
+ * @returns {*} Function result.
+ */
 function _updateDate() {
   var el = document.getElementById("home-date");
   if (!el) return;

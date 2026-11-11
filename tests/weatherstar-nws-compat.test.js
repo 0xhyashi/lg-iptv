@@ -42,5 +42,13 @@ vm.runInContext(src, context);
     await frame.fetch('https://api.weather.gov/points/403',options);
     assert(messages.some(m=>m.type==='nws-error' && m.message.includes('HTTP 403')),
         'The parent must receive an actionable NWS HTTP status');
+    frame.location.protocol='file:';frame.Promise=Promise;
+    frame.BunkhouseWeatherData={'data/stations.json':{station:'original'}};
+    const count=requests.length;
+    const local=await frame.fetch('data/stations.json?_=123');
+    assert.strictEqual((await local.json()).station,'original');
+    assert.strictEqual(requests.length,count,'Packaged lookup must not use file fetch');
+    await frame.fetch('https://api.weather.gov/points/test');
+    assert.strictEqual(requests.length,count+1,'Live weather remains a network request');
     console.log('WEATHERSTAR_NWS_COMPAT_OK browser headers sanitized; NWS failures reported.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

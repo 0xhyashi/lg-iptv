@@ -23,6 +23,9 @@ var searchWorker = null,
   searchUseWorker = false;
 var searchIndex = null; // main-thread fallback index
 
+/** Show the VOD search overlay.
+ * @returns {void} No return value.
+ */
 function openSearch() {
   prevZone = zone;
   elSearch.hidden = false;
@@ -37,12 +40,19 @@ function openSearch() {
   }, 30);
   initSearchEngine();
 }
+/** Hide the VOD search overlay.
+ * @returns {void} No return value.
+ */
 function closeSearch() {
   elSearch.hidden = true;
   elSearchIn.blur();
   focusZone('rails');
   paintRailFocus();
 }
+
+/** Init Search Engine for VOD catalog search.
+ * @returns {void} No return value.
+ */
 function initSearchEngine() {
   if (searchWorker || searchIndex) return; // already initialised
   var movieUrl = apiUrl('action=get_vod_streams');
@@ -75,6 +85,13 @@ function initSearchEngine() {
     initFallbackSearch(movieUrl, seriesUrl);
   }
 }
+
+/** Append searchable movie or series entries to an index.
+ * @param {number} idx - Index.
+ * @param {Array<Object>} arr - Movie or series records to index.
+ * @param {string} type - Record kind, movie or series.
+ * @returns {void} No return value.
+ */
 function buildIndexInto(idx, arr, type) {
   if (!Array.isArray(arr)) return;
   for (var i = 0; i < arr.length; i++) {
@@ -95,10 +112,18 @@ function buildIndexInto(idx, arr, type) {
     });
   }
 }
+/** Init Fallback Search for VOD catalog search.
+ * @param {string} movieUrl - URL for movie catalog records.
+ * @param {string} seriesUrl - URL for series catalog records.
+ * @returns {void} No return value.
+ */
 function initFallbackSearch(movieUrl, seriesUrl) {
   if (searchIndex) return;
   searchIndex = [];
   var pending = 2;
+  /** Mark one of the two VOD search-index requests complete.
+   * @returns {void} No return value.
+   */
   function done() {
     pending--;
     if (pending === 0) {
@@ -115,6 +140,10 @@ function initFallbackSearch(movieUrl, seriesUrl) {
     done();
   }).catch(done);
 }
+/** Find matching local VOD entries without a worker.
+ * @param {string} q - Search query, case-insensitive.
+ * @returns {Array<Object>} Matching movie and series items, capped at the search limit.
+ */
 function mainThreadSearch(q) {
   q = q.toLowerCase();
   var out = [];
@@ -136,6 +165,10 @@ function mainThreadSearch(q) {
   }
   return out;
 }
+
+/** Search using the worker or in-memory index.
+ * @returns {void} No return value.
+ */
 function runSearch() {
   var q = elSearchIn.value.trim();
   var hint = document.getElementById('vod-search-hint');
@@ -160,6 +193,13 @@ function runSearch() {
     hint.textContent = 'Preparing search…';
   }
 }
+
+/** Render Search Results for VOD catalog search.
+ * @param {Array<Object>} items - Matching catalog entries.
+ * @param {string} q - Normalized query to highlight.
+ * @param {boolean} ready - Whether search indexing is complete.
+ * @returns {void} No return value.
+ */
 function renderSearchResults(items, q, ready) {
   var hint = document.getElementById('vod-search-hint');
   elSearchGrid.innerHTML = '';

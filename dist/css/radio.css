@@ -1,0 +1,54 @@
+/* Generated from assets/radio.css by tools/build-css.js — edit the source, not this file. */
+#radio-visual {
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 2;
+}
+.radio-cover-box {
+    position: relative;
+    overflow: hidden;
+}
+#radio-cover {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+#radio-cover-placeholder {
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+#radio-cover-placeholder span {
+    font-size: 2.4rem;
+}
+#radio-cover-placeholder small {
+    font-size: .55rem;
+    letter-spacing: .14em;
+    font-weight: bold;
+}
+body.livetv-fs #radio-track {
+    font-size: 2.1rem;
+}
+body.livetv-fs #radio-artist {
+    font-size: 1.45rem;
+}
+body.livetv-fs #radio-name {
+    font-size: 1.2rem;
+}
+body.livetv-fs #radio-metadata-state {
+    font-size: .9rem;
+}
+body.livetv-fs #radio-status {
+    font-size: 1rem;
+}

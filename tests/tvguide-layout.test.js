@@ -40,3 +40,5 @@ assert(css.includes('body.radio-mode #radio-track-panel {flex:0 0 42%!important'
        'Metadata length must not resize the now-playing panel');
 assert(!/Math\.random\(|placeholder show/i.test(css),'No invented guide data');
 console.log('TV_GUIDE_LAYOUT_OK direct boot, remote HAM access, real EPG styling, full radio pane.');
+
+assert(!fs.readFileSync("assets/player.css","utf8").split("#radio-visual {")[1].split("}")[0].includes("align-items: center"),"Legacy player must not shrink Saturn children to metadata width");

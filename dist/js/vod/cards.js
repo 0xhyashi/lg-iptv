@@ -23,6 +23,12 @@ var imgObserver = 'IntersectionObserver' in window ? new IntersectionObserver(fu
 }, {
   rootMargin: '300px'
 }) : null;
+
+/** Lazy Img for VOD poster cards.
+ * @param {*} img - Input to lazyImg().
+ * @param {*} src - Input to lazyImg().
+ * @returns {*} Result of the operation.
+ */
 function lazyImg(img, src) {
   if (!src) return;
   if (imgObserver) {
@@ -36,20 +42,42 @@ function lazyImg(img, src) {
 /* ── Card factory ────────────────────────────────────────────────── */
 /* backdrop_path is an ARRAY of URLs on most panels' series entries; used as
    an image source directly it became "url1,url2" and never loaded. */
+/** Poster Of for VOD poster cards.
+ * @param {*} m - Input to posterOf().
+ * @returns {*} Result of the operation.
+ */
 function posterOf(m) {
   var p = m.stream_icon || m.cover || m.cover_big || m.icon || m.backdrop_path || '';
   if (Array.isArray(p)) p = p[0] || '';
   return String(p);
 }
+/** Title Of for VOD poster cards.
+ * @param {*} m - Input to titleOf().
+ * @returns {*} Result of the operation.
+ */
 function titleOf(m) {
   return m.name || m.title || 'Untitled';
 }
+/** Year Of for VOD poster cards.
+ * @param {*} m - Input to yearOf().
+ * @returns {*} Result of the operation.
+ */
 function yearOf(m) {
   return String(m.year || m.releaseDate || m.releasedate || '').slice(0, 4);
 }
+/** Rating Of for VOD poster cards.
+ * @param {*} m - Input to ratingOf().
+ * @returns {*} Result of the operation.
+ */
 function ratingOf(m) {
   return parseFloat(m.rating || m.rating_5based || 0) || 0;
 }
+
+/** Make Card for VOD poster cards.
+ * @param {Object} item - VOD item.
+ * @param {string} kind - Input to makeCard().
+ * @returns {*} Result of the operation.
+ */
 function makeCard(item, kind) {
   var card = document.createElement('div');
   card.className = 'vod-card';
@@ -98,6 +126,13 @@ function makeCard(item, kind) {
    card flow rather than a link in the heading: the D-pad is already walking
    right along the row, so the way out of the row should be the next thing
    to the right — not something that needs a different key to reach. */
+/** Make More Card for VOD poster cards.
+ * @param {*} title - Input to makeMoreCard().
+ * @param {string} type - Input to makeMoreCard().
+ * @param {*} catId - Input to makeMoreCard().
+ * @param {*} total - Input to makeMoreCard().
+ * @returns {*} Result of the operation.
+ */
 function makeMoreCard(title, type, catId, total) {
   var card = document.createElement('div');
   card.className = 'vod-card vod-card-more';

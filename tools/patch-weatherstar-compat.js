@@ -28,3 +28,13 @@ if (!fs.existsSync(path.join(root,'js','polyfills.js')) ||
     throw Error('WeatherStar browser compatibility scripts are missing');
 }
 console.log('ws4kp: older-webOS fetch/timeout compatibility bootstrap installed before original JS');
+
+// Embed the pinned upstream lookup tables so file:// never fetches local JSON.
+var lookup = {};
+['regionalcities','stations','travelcities'].forEach(function (name) {
+    lookup['data/' + name + '.json'] = JSON.parse(fs.readFileSync(path.join(root,'weatherstar','data',name+'.json'),'utf8'));
+});
+fs.writeFileSync(path.join(root,'weatherstar','bunkhouse-data.js'), 'window.BunkhouseWeatherData='+JSON.stringify(lookup)+';\n');
+var dataScript = '<script src="bunkhouse-data.js"></script>';
+html = fs.readFileSync(dest,'utf8');
+if (html.indexOf(dataScript) === -1) fs.writeFileSync(dest, html.replace('<head>', '<head>'+dataScript));

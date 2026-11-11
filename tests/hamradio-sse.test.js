@@ -62,7 +62,7 @@ const sandbox={
 };
 vm.createContext(sandbox);vm.runInContext(src,sandbox);
 assert.strictEqual(requests.length,2);
-requests[0].respond({start_freq:14000000,end_freq:14350000,data:[-100,-80,-55]});
+requests[0].respond({start_freq:0,end_freq:30000000,data:[-100,-80,-55]});
 assert(SSE.current,'Real-time EventSource should start after FFT establishes band bounds');
 assert(SSE.current.url.includes('/api/noisefloor/spectrum/stream?band=20m'));
 const full=Buffer.alloc(26);full.write('SPEC',0);full[4]=1;full[5]=3;

@@ -1,7 +1,8 @@
 "use strict";
 
-/* core/store.js — every localStorage read and write in the app goes through
- * here. Exposes window.Store.
+/* core/store.js — the shared, quota-aware storage and cache service.
+ * Exposes window.Store. Some legacy UI modules still use localStorage
+ * directly; new shared storage operations should use this service.
  *
  * Two reasons this exists rather than calling localStorage directly:
  *   • On webOS, localStorage throws rather than returning null in a handful of
@@ -29,7 +30,7 @@ window.Store = function () {
      silently — the channel list stopped caching (Live TV fetched it from
      scratch on every launch), and the play handover, resume positions and
      profile edits started being dropped too.
-      Now a write that hits the quota evicts cache entries and retries. Caches
+       Now a write that hits the quota evicts cache entries and retries. Caches
      go in order of how cheap they are to rebuild — guide data first, the
      live channel list last — and oldest first within each family. User data
      (profiles, favourites, progress) is never a candidate. */
@@ -42,6 +43,11 @@ window.Store = function () {
   /* Longer than any TTL in the app (XMLTV, at 24h, is the longest), so an
      entry older than this is dead weight whatever it is. */
   var STALE_MS = 26 * 60 * 60 * 1000;
+
+  /** Identify which evictable cache family owns a storage key.
+   * @param {string} key - Stored key or key-code.
+   * @returns {number} Cache family index, or -1 for non-cache/user data.
+   */
   function familyOf(key) {
     for (var f = 0; f < CACHE_FAMILIES.length; f++) {
       for (var p = 0; p < CACHE_FAMILIES[f].length; p++) {
@@ -53,6 +59,10 @@ window.Store = function () {
 
   /* Every cache entry starts {"ts":<ms>, … — JSON.stringify keeps key order —
      so the age is read off the front without parsing a multi-megabyte value. */
+  /** Read the timestamp prefix of a cached entry without parsing its full data.
+   * @param {string} key - Stored key or key-code.
+   * @returns {number} Entry timestamp in milliseconds, or zero.
+   */
   function entryTs(key) {
     try {
       var m = /^\{"ts":(\d+)/.exec(String(localStorage.getItem(key) || '').slice(0, 32));
@@ -66,6 +76,10 @@ window.Store = function () {
      rebuild than itself (plus anything stale) — otherwise one oversized guide
      that could never fit would wipe the channel list on its way to failing.
      User data may displace any cache. */
+  /** List eligible caches in safe, oldest-first eviction order.
+   * @param {string} except - Storage key currently being written; never evict it.
+   * @returns {Array<Object>} Candidate keys, ordered cheapest and stalest first.
+   */
   function evictionOrder(except) {
     var all = keys(),
       list = [];
@@ -93,6 +107,12 @@ window.Store = function () {
     });
     return list;
   }
+
+  /** Write a string to localStorage, evicting cache data if the quota is full.
+   * @param {string} key - Stored key or key-code.
+   * @param {string} str - Serialized value to store.
+   * @returns {boolean} True if the write succeeded.
+   */
   function write(key, str) {
     try {
       localStorage.setItem(key, str);
@@ -112,6 +132,9 @@ window.Store = function () {
   /* Drops cache entries past any TTL. Run once per launch from the homepage
      (prewarm.js), so space is reclaimed before anything needs it rather than
      only when a write has already failed. */
+  /** Discard old cached entries that are past all known TTLs.
+   * @returns {number} Number of expired entries removed.
+   */
   function sweep() {
     var stale = Date.now() - STALE_MS,
       n = 0,
@@ -127,6 +150,9 @@ window.Store = function () {
   }
 
   /* Every cache the app keeps, for Settings → "Clear cache". */
+  /** Remove all evictable cache entries without deleting user settings.
+   * @returns {number} Number of cache entries removed.
+   */
   function clearCaches() {
     var all = keys(),
       n = 0;
@@ -140,6 +166,11 @@ window.Store = function () {
   }
 
   /* ── Bare strings ─────────────────────────────────────────────────────── */
+  /** Read a plain string without JSON parsing.
+   * @param {string} key - Stored key or key-code.
+   * @param {string} fallback - String to return if the key is missing or unreadable.
+   * @returns {string} Stored string or the provided fallback.
+   */
   function getRaw(key, fallback) {
     try {
       var v = localStorage.getItem(key);
@@ -148,11 +179,21 @@ window.Store = function () {
       return fallback || '';
     }
   }
+  /** Write a plain string without JSON serialization.
+   * @param {string} key - Stored key or key-code.
+   * @param {string} value - Plain string value to store.
+   * @returns {boolean} True if the write succeeded.
+   */
   function setRaw(key, value) {
     return write(key, String(value));
   }
 
   /* ── JSON values ──────────────────────────────────────────────────────── */
+  /** Read a JSON-serialized value, returning the fallback if unavailable.
+   * @param {string} key - Stored key or key-code.
+   * @param {*} fallback - Default value if the key is absent or invalid JSON.
+   * @returns {*} Parsed value, or the provided fallback.
+   */
   function get(key, fallback) {
     try {
       var v = localStorage.getItem(key);
@@ -161,6 +202,11 @@ window.Store = function () {
       return fallback;
     }
   }
+  /** Store a JSON-serialized value.
+   * @param {string} key - Stored key or key-code.
+   * @param {*} value - Value to encode as JSON.
+   * @returns {boolean} True if serialization and storage succeeded.
+   */
   function set(key, value) {
     var str;
     try {
@@ -170,11 +216,19 @@ window.Store = function () {
     }
     return write(key, str);
   }
+  /** Remove one storage key; ignore platforms that forbid storage.
+   * @param {string} key - Stored key or key-code.
+   * @returns {void} No return value.
+   */
   function remove(key) {
     try {
       localStorage.removeItem(key);
     } catch (e) {}
   }
+  /** Remove each key supplied by the caller.
+   * @param {Array<string>} keys - Storage keys to remove.
+   * @returns {void} No return value.
+   */
   function removeAll(keys) {
     for (var i = 0; i < keys.length; i++) remove(keys[i]);
   }
@@ -186,6 +240,11 @@ window.Store = function () {
      for hours, EPG for half an hour. */
   var DEFAULT_TTL = 5 * 60 * 60 * 1000; // 5h
 
+  /** Read unexpired cached data and remove it if stale.
+   * @param {string} key - Stored key or key-code.
+   * @param {number} ttl - Maximum cached age in milliseconds.
+   * @returns {*} Cached data, or null if missing or expired.
+   */
   function cacheGet(key, ttl) {
     var entry = get(key, null);
     if (!entry || typeof entry.ts !== 'number') return null;
@@ -195,6 +254,11 @@ window.Store = function () {
     }
     return entry.data;
   }
+  /** Store data with a timestamp and quota-aware eviction.
+   * @param {string} key - Stored key or key-code.
+   * @param {Object} data - Input data.
+   * @returns {boolean} True if the cache was saved.
+   */
   function cacheSet(key, data) {
     return set(key, {
       ts: Date.now(),
@@ -203,12 +267,19 @@ window.Store = function () {
   }
   /* Age of a cache entry in ms, or -1 when there isn't one. Used by the
      diagnostics panel, which wants to report staleness without evicting. */
+  /** Calculate how long ago a cache entry was written.
+   * @param {string} key - Stored key or key-code.
+   * @returns {number} Age in milliseconds, or -1 if absent.
+   */
   function cacheAge(key) {
     var entry = get(key, null);
     return entry && typeof entry.ts === 'number' ? Date.now() - entry.ts : -1;
   }
 
   /* ── Housekeeping ─────────────────────────────────────────────────────── */
+  /** Read all accessible localStorage key names.
+   * @returns {Array<string>} Storage key names.
+   */
   function keys() {
     var out = [];
     try {
@@ -220,6 +291,9 @@ window.Store = function () {
   /* Approximate bytes used. Reported in Settings → Diagnostics: when a TV
      starts dropping caches it is almost always because this is near the
      platform's ~5 MB ceiling. */
+  /** Estimate localStorage usage using stored string lengths.
+   * @returns {number} Approximate character count, not UTF-8 bytes.
+   */
   function bytesUsed() {
     var total = 0,
       all = keys();
@@ -232,6 +306,10 @@ window.Store = function () {
   /* Drop every key matching a prefix — used when switching profiles, where
      leaving another server's channel and VOD caches behind shows one
      account's content under another's credentials. */
+  /** Remove storage entries whose keys begin with the prefix.
+   * @param {string} prefix - Key prefix identifying entries to remove.
+   * @returns {number} Number of removed keys.
+   */
   function removeByPrefix(prefix) {
     var all = keys(),
       n = 0;

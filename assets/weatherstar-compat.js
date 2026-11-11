@@ -161,6 +161,14 @@
         var originalFetch = W.fetch;
         W.fetch = function (url, options) {
             var address = String(url || '');
+            var localKey = address.split('?')[0].replace(/^\.\//, '');
+            if (W.location.protocol === 'file:' && W.BunkhouseWeatherData &&
+                Object.prototype.hasOwnProperty.call(W.BunkhouseWeatherData, localKey)) {
+                var body = JSON.stringify(W.BunkhouseWeatherData[localKey]);
+                return W.Promise.resolve({ok:true,status:200,
+                    json:function(){return W.Promise.resolve(JSON.parse(body));},
+                    text:function(){return W.Promise.resolve(body);}});
+            }
             if (address.indexOf('https://api.weather.gov/') !== 0) {
                 return originalFetch.call(W, url, options);
             }

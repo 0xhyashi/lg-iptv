@@ -21,6 +21,8 @@
     var POLL_FFT_MS = 2800;
     var POLL_VOICE_MS = 6500;
     var selected = null;
+    var listening = false;
+    var scanning = false;
     var activities = [];
     var generation = 0;
     var fftTimer = null;
@@ -126,7 +128,7 @@
      */
     function positionMarker() {
         var marker = $('ham-tune-marker');
-        if (!selected || !startHz || !endHz ||
+        if (!selected || !(endHz > startHz) ||
             selected.freq < startHz || selected.freq > endHz) {
             marker.style.display = 'none';
             return;
@@ -165,6 +167,18 @@
             var level = Math.max(0, Math.min(63, Math.floor((db + 124) * 63 / 77)));
             ctx.fillStyle = palette[level];
             ctx.fillRect(x, 0, 1, 3);
+        }
+        var scope = $('ham-scope'), trace = scope && scope.getContext('2d');
+        if (trace && trace.beginPath) {
+            trace.clearRect(0, 0, scope.width, scope.height);
+            trace.beginPath();trace.strokeStyle = '#a2ffca';
+            for (var sx = 0; sx < scope.width; sx++) {
+                var sample = Number(packet.data[Math.min(packet.data.length - 1,
+                    Math.floor(sx * packet.data.length / scope.width))]);
+                var sy = scope.height * (1 - Math.max(0, Math.min(1, (sample + 124) / 77)));
+                if (sx === 0) trace.moveTo(sx, sy);else trace.lineTo(sx, sy);
+            }
+            trace.stroke();
         }
         $('ham-freq-start').textContent = (begin / 1000000).toFixed(3) + ' MHz';
         $('ham-freq-end').textContent = (end / 1000000).toFixed(3) + ' MHz';
@@ -223,7 +237,7 @@
         spectrumStream.addEventListener('spectrum', function (event) {
             if (serial !== generation || event.lastEventId !== $('ham-band').value) return;
             var bins = decodeSpectrumFrame(event.data);
-            if (!bins || !startHz || !endHz) return;
+            if (!bins || !(endHz > startHz)) return;
             if (drawFFT({start_freq:startHz,end_freq:endHz,data:bins})) {
                 streamLive = true;
                 spectrumOK = true;
@@ -367,8 +381,8 @@
         }
         positionMarker();
         renderVoices();
-        showStatus('Selected ' + $('ham-frequency').textContent +
-            '. Live tuner AUDIO not yet integrated; showing actual RF location.');
+        if (listening && window.BunkhouseHamAudio) window.BunkhouseHamAudio.tune(voice.freq, voice.mode);
+        showStatus('Selected ' + $('ham-frequency').textContent + '. Press LISTEN for receiver audio.');
     }
 
     /** Cycle real voice candidates; when none are reported, request a refresh.
@@ -440,6 +454,7 @@
         }
         stop();
         if (connectedBase !== url) {
+            stopAudio();
             activities = [];
             selected = null;
             $('ham-frequency').textContent = 'NO SIGNAL SELECTED';
@@ -464,6 +479,7 @@
      * @returns {void} Navigates back to Live TV.
      */
     function goBack() {
+        stopAudio();
         stop();
         window.location.href = '../pages/livetv.html';
     }
@@ -491,12 +507,36 @@
             return;
         }
         if (key !== 37 && key !== 39) return;
-        var nav = [$('ham-scan'),$('ham-prev'),$('ham-next'),$('ham-reload'),
+        var nav = [$('ham-scan'),$('ham-listen'),$('ham-stop'),$('ham-prev'),$('ham-next'),$('ham-reload'),
             $('ham-back'),$('ham-source'),$('ham-apply'),$('ham-band')];
         var idx = nav.indexOf(focus);
         e.preventDefault();
         if (idx < 0) idx = 0;
         nav[(idx + (key === 37 ? -1 : 1) + nav.length) % nav.length].focus();
+    }
+
+    /** Unlock audio on a user gesture and tune the selected receiver voice.
+     * @returns {void} Starts the sole HAM audio owner.
+     */
+    function listen() {
+        if (!selected) stepVoice(1);
+        if (!selected || !window.BunkhouseHamAudio) {
+            $('ham-audio-state').textContent = 'Select a detected voice before listening.';
+            return;
+        }
+        listening = true;
+        window.BunkhouseHamAudio.start(connectedBase, selected.freq, selected.mode, function (state) {
+            $('ham-audio-state').textContent = state;
+        });
+    }
+
+    /** Release receiver sound on STOP, receiver changes and navigation.
+     * @returns {void} Stops playback and updates its status.
+     */
+    function stopAudio() {
+        listening = false;
+        if (window.BunkhouseHamAudio) window.BunkhouseHamAudio.stop();
+        $('ham-audio-state').textContent = 'AUDIO OFF';
     }
 
     /** Install event handlers and start real SDR polling.
@@ -513,12 +553,18 @@
         $('ham-band').addEventListener('change', restart);
         $('ham-apply').addEventListener('click', restart);
         $('ham-reload').addEventListener('click', restart);
-        $('ham-scan').addEventListener('click', function () {stepVoice(1);});
+        $('ham-scan').addEventListener('click', function () {
+            scanning = !scanning;
+            $('ham-scan').textContent = scanning ? 'STOP SCAN' : 'FIND VOICE';
+            if (scanning) stepVoice(1);
+        });
         $('ham-prev').addEventListener('click', function () {stepVoice(-1);});
         $('ham-next').addEventListener('click', function () {stepVoice(1);});
         $('ham-back').addEventListener('click', goBack);
+        $('ham-listen').addEventListener('click', listen);
+        $('ham-stop').addEventListener('click', stopAudio);
         window.addEventListener('keydown', handleKey, true);
-        window.addEventListener('pagehide', stop);
+        window.addEventListener('pagehide', function () {stopAudio();stop();});
         $('ham-scan').focus();
         restart();
     }

@@ -31,6 +31,11 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
       self._value = undefined;
       self._handlers = [];
       var done = false;
+      /** Finish one Promise with a fulfilled or rejected result.
+       * @param {number} state - Promise settlement state.
+       * @param {*} value - Promise result.
+       * @returns {void} Updates the shim's internal state.
+       */
       function settle(state, value) {
         if (self._state) return;
         self._state = state;
@@ -39,6 +44,10 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
         self._handlers = [];
         for (var i = 0; i < hs.length; i++) handle(self, hs[i]);
       }
+      /** Resolve a Promise or adopt an input thenable.
+       * @param {*} value - Promise result.
+       * @returns {void} Updates the shim's internal state.
+       */
       function resolve(value) {
         if (done) return;
         done = true;
@@ -75,6 +84,10 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
         }
         settle(1, value);
       }
+      /** Reject an unsettled Promise.
+       * @param {*} reason - Rejection reason.
+       * @returns {void} Updates the shim's internal state.
+       */
       function reject(reason) {
         if (done) return;
         done = true;
@@ -162,6 +175,10 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
      Only what this app uses: get/set/has/delete/clear/forEach/size, keys(),
      values(), entries(). Linear lookup — the largest map here is the Live
      TV row cache, capped at a few hundred entries. */
+  /** Wrap an array as a minimal ES iterator.
+   * @param {Array} arr - Values to iterate.
+   * @returns {Object} Value described above.
+   */
   function makeIter(arr) {
     var i = 0;
     var it = {
@@ -282,6 +299,11 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
      just categories that never hide and favourites that never match — so it
      is tested, not assumed. */
   (function () {
+    /** Adapt an old Map or Set constructor to accept iterables.
+     * @param {string} name - Constructor name (Map or Set).
+     * @param {Function} add - Callback that inserts each iterable item.
+     * @returns {void} Updates the shim's internal state.
+     */
     function wrap(name, add) {
       var Native = G[name];
       var ok = false;
@@ -334,6 +356,10 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
   (function () {
     var kinds = ['Int8Array', 'Uint8Array', 'Uint8ClampedArray', 'Int16Array', 'Uint16Array', 'Int32Array', 'Uint32Array', 'Float32Array', 'Float64Array'];
     var generic = ['indexOf', 'lastIndexOf', 'join', 'forEach', 'every', 'some', 'reduce', 'reduceRight', 'reverse', 'find', 'findIndex', 'includes', 'fill'];
+    /** Expose an Array method on an older typed array prototype.
+     * @param {string} name - Constructor name (Map or Set).
+     * @returns {Function} Value described above.
+     */
     function borrow(name) {
       var fn = Array.prototype[name];
       return function () {
@@ -548,14 +574,14 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
      Every D-pad screen in this app moves its focus ring with
      `el.scrollIntoView({ block: 'nearest' })` — seventeen call sites across
      the channel list, the VOD rails, catch-up, settings and the player menu.
-      Old Blink does not understand the dictionary. It does NOT throw, which is
+       Old Blink does not understand the dictionary. It does NOT throw, which is
      what makes this worth polyfilling rather than try/catching: the argument
      is coerced to a boolean, `{}` is truthy, and every one of those calls
      silently becomes `scrollIntoView(true)` — "align to the TOP". So on the
      TVs this app targets, each press of the D-pad yanked the focused row to
      the top of its container instead of nudging it just into view, which
      reads as the list jumping around under you.
-      Installed only where the dictionary is unsupported, and it defers to the
+       Installed only where the dictionary is unsupported, and it defers to the
      native method for the boolean/no-arg forms, so modern engines are
      untouched. `scrollBehavior` in the style object is the detection: CSSOM
      View smooth scrolling shipped alongside the dictionary form. */
@@ -732,6 +758,9 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
           /* In arraybuffer mode `body` is an ArrayBuffer, so text()
              and json() have to decode it rather than hand back
              "[object ArrayBuffer]". */
+          /** Read and decode the XHR response body for the fetch shim.
+           * @returns {string} Requested text value.
+           */
           function bodyText() {
             if (!wantBuffer || !body || body.byteLength === undefined) return body;
             var bytes = new Uint8Array(body),

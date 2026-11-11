@@ -33,6 +33,11 @@ window.OpenSubtitles = function () {
   var KEY_TOKEN_TS = 'os_token_ts';
   var TOKEN_TTL = 20 * 60 * 60 * 1000; // tokens last ~24h; refresh early
 
+  /** Get for OpenSubtitles lookups.
+   * @param {string} key - Saved key or lookup ID.
+   * @param {*} fallback - Input for get().
+   * @returns {*} Value produced by the operation.
+   */
   function get(key, fallback) {
     try {
       return localStorage.getItem(key) || fallback || '';
@@ -40,20 +45,40 @@ window.OpenSubtitles = function () {
       return fallback || '';
     }
   }
+  /** Set for OpenSubtitles lookups.
+   * @param {string} key - Saved key or lookup ID.
+   * @param {*} val - Value.
+   * @returns {void} Updates module or UI state.
+   */
   function set(key, val) {
     try {
       localStorage.setItem(key, val);
     } catch (e) {}
   }
+
+  /** Api Key for OpenSubtitles lookups.
+   * @returns {*} Value produced by the operation.
+   */
   function apiKey() {
     return get(KEY_API_KEY);
   }
+  /** Language for OpenSubtitles lookups.
+   * @returns {*} Value produced by the operation.
+   */
   function language() {
     return get(KEY_LANG, 'en') || 'en';
   }
+  /** Configured for OpenSubtitles lookups.
+   * @returns {*} Value produced by the operation.
+   */
   function configured() {
     return !!apiKey();
   }
+
+  /** Headers for OpenSubtitles lookups.
+   * @param {*} extra - Input for headers().
+   * @returns {*} Value produced by the operation.
+   */
   function headers(extra) {
     var h = {
       'Api-Key': apiKey(),
@@ -65,6 +90,11 @@ window.OpenSubtitles = function () {
 
   /* Turns an HTTP failure into something a user can act on, rather than
      "HTTP 401" which tells them nothing about which field is wrong. */
+  /** Describe Error for OpenSubtitles lookups.
+   * @param {*} status - Input for describeError().
+   * @param {*} body - Input for describeError().
+   * @returns {*} Value produced by the operation.
+   */
   function describeError(status, body) {
     if (status === 401 || status === 403) return 'OpenSubtitles rejected the API key. Check it in Settings → Subtitles.';
     if (status === 406) return 'Download quota reached for today. Add your OpenSubtitles login in Settings → Subtitles to raise it.';
@@ -73,6 +103,12 @@ window.OpenSubtitles = function () {
     if (body && body.message) return String(body.message);
     return 'OpenSubtitles request failed (HTTP ' + status + ').';
   }
+
+  /** Request for OpenSubtitles lookups.
+   * @param {*} path - Input for request().
+   * @param {Object} opts - Options.
+   * @returns {*} Value produced by the operation.
+   */
   function request(path, opts) {
     opts = opts || {};
     if (!configured()) return Promise.reject(new Error('No OpenSubtitles API key set. Add one in Settings → Subtitles.'));
@@ -93,12 +129,19 @@ window.OpenSubtitles = function () {
   }
 
   /* ── Optional login (raises the download quota) ─────────────────────────── */
+  /** Cached Token for OpenSubtitles lookups.
+   * @returns {*} Value produced by the operation.
+   */
   function cachedToken() {
     var t = get(KEY_TOKEN),
       ts = parseInt(get(KEY_TOKEN_TS, '0'), 10) || 0;
     if (t && Date.now() - ts < TOKEN_TTL) return t;
     return '';
   }
+
+  /** Login for OpenSubtitles lookups.
+   * @returns {*} Value produced by the operation.
+   */
   function login() {
     var user = get(KEY_USER),
       pass = get(KEY_PASS);
@@ -137,6 +180,10 @@ window.OpenSubtitles = function () {
      single year-like token at the very start is the TITLE, not a release year.
      When there are several, the last one is the release year — "1917 2019
      BluRay" is the 2019 release of the film 1917. */
+  /** Extract Year for OpenSubtitles lookups.
+   * @param {string} s - Input text.
+   * @returns {*} Value produced by the operation.
+   */
   function extractYear(s) {
     s = String(s == null ? '' : s);
     var all = s.match(/\b(?:19|20)\d{2}\b/g);
@@ -144,6 +191,11 @@ window.OpenSubtitles = function () {
     if (all.length === 1 && s.indexOf(all[0]) === 0) return '';
     return all[all.length - 1];
   }
+
+  /** Clean Title for OpenSubtitles lookups.
+   * @param {*} raw - Input for cleanTitle().
+   * @returns {*} Value produced by the operation.
+   */
   function cleanTitle(raw) {
     var s = String(raw == null ? '' : raw);
 
@@ -182,8 +234,17 @@ window.OpenSubtitles = function () {
   /* `q` accepts { title, year, imdbId, tmdbId, season, episode, language }.
      IDs match far more reliably than a title string, so they're preferred when
      the panel supplied them; the title is the fallback. */
+  /** Build Query for OpenSubtitles lookups.
+   * @param {*} q - Input for buildQuery().
+   * @returns {*} Value produced by the operation.
+   */
   function buildQuery(q) {
     var parts = [];
+    /** Add for OpenSubtitles lookups.
+     * @param {*} k - Input for add().
+     * @param {*} v - Input for add().
+     * @returns {*} Value produced by the operation.
+     */
     function add(k, v) {
       if (v === undefined || v === null || v === '') return;
       parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(v));
@@ -208,6 +269,11 @@ window.OpenSubtitles = function () {
     add('order_direction', 'desc');
     return parts.join('&');
   }
+
+  /** Search Once for OpenSubtitles lookups.
+   * @param {*} q - Input for searchOnce().
+   * @returns {*} Value produced by the operation.
+   */
   function searchOnce(q) {
     return request('/subtitles?' + buildQuery(q || {}), {
       headers: headers()
@@ -244,6 +310,10 @@ window.OpenSubtitles = function () {
   /* Try the most precise identifier first and fall back progressively, so a
      panel that supplies no IDs and a messy title still lands on something.
      Stops at the first strategy that returns anything. */
+  /** Search for OpenSubtitles lookups.
+   * @param {*} q - Input for search().
+   * @returns {*} Value produced by the operation.
+   */
   function search(q) {
     q = q || {};
     var raw = q.title || '';
@@ -273,6 +343,10 @@ window.OpenSubtitles = function () {
       episode: q.episode,
       language: q.language
     };
+    /** Attempt for OpenSubtitles lookups.
+     * @param {*} i - Input for attempt().
+     * @returns {*} Value produced by the operation.
+     */
     function attempt(i) {
       if (i >= plans.length) return Promise.resolve([]);
       var p = {},
@@ -296,6 +370,10 @@ window.OpenSubtitles = function () {
   /* Returns a direct link to the subtitle file. Downloads count against a
      daily quota, so this is only called for the one the user picked, never
      eagerly for search results. */
+  /** Download for OpenSubtitles lookups.
+   * @param {*} fileId - Input for download().
+   * @returns {*} Value produced by the operation.
+   */
   function download(fileId) {
     return login().then(function (token) {
       var h = headers(token ? {

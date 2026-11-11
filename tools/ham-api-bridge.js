@@ -51,7 +51,7 @@ function handle(req, res) {
     catch (_) { fail(res,400,'Malformed API request.');return; }
     if (url.pathname === '/api/noisefloor/fft') {
         const band = url.searchParams.get('band');
-        if (!/^(160|80|60|40|30|20|17|15|12|10|6)m$/.test(band || '')) {
+        if (!/^(wideband|(?:160|80|60|40|30|20|17|15|12|10|6)m)$/.test(band || '')) {
             fail(res,400,'Choose a supported amateur radio band.');return;
         }
         target = '/api/noisefloor/fft?band=' + encodeURIComponent(band);
@@ -59,7 +59,7 @@ function handle(req, res) {
         target = '/api/noisefloor/voice-activity/all?min_confidence=0.7';
     } else if (url.pathname === '/api/noisefloor/spectrum/stream') {
         const band = url.searchParams.get('band');
-        if (!/^(160|80|60|40|30|20|17|15|12|10|6)m$/.test(band || '')) {
+        if (!/^(wideband|(?:160|80|60|40|30|20|17|15|12|10|6)m)$/.test(band || '')) {
             fail(res,400,'Choose a supported spectrum band.');return;
         }
         target = '/api/noisefloor/spectrum/stream?band=' + encodeURIComponent(band);

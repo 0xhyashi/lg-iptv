@@ -52,7 +52,9 @@ const document={activeElement:null,getElementById:element,createElement:function
     const e=element('created-'+Object.keys(elements).length);
     e.tagName=tag.toUpperCase();return e;
 }};
-const window={location:{href:''},addEventListener:(type,cb)=>{listeners[type]=cb;}};
+const audioCalls=[];
+const audio={start:(...args)=>audioCalls.push(['start',...args]), tune:(...args)=>audioCalls.push(['tune',...args]),stop:()=>audioCalls.push(['stop'])};
+const window={BunkhouseHamAudio:audio,location:{href:''},addEventListener:(type,cb)=>{listeners[type]=cb;}};
 const localStorage={getItem:key=>stored[key]||null,setItem:(key,val)=>{stored[key]=val;}};
 function XHR() {
     this.status=0;this.responseText='';
@@ -89,9 +91,19 @@ element('ham-scan').click();
 assert.strictEqual(element('ham-frequency').textContent,'14.2250 MHz');
 assert.strictEqual(element('ham-tune-marker').style.display,'block');
 assert(element('ham-tune-marker').style.left.startsWith('64.'),'Marker reflects real 14.225 MHz');
-assert(element('ham-status').textContent.includes('AUDIO not yet integrated'),
+assert(element('ham-status').textContent.includes('Press LISTEN'),
     'Never claim that voice selection is already audible');
 
+element('ham-voice-list').children[0].focus();
+listeners.keydown({keyCode:38,preventDefault:function(){}});
+assert.strictEqual(document.activeElement,element('ham-scan'));
+element('ham-listen').click();
+assert.strictEqual(audioCalls[audioCalls.length-1][0],'start');
+assert.strictEqual(audioCalls[audioCalls.length-1][2],14225000);
+element('ham-next').click();
+assert.strictEqual(audioCalls[audioCalls.length-1][0],'tune');
+element('ham-stop').click();
+assert.strictEqual(audioCalls[audioCalls.length-1][0],'stop');
 element('ham-source').value='javascript:alert(1)';
 const count=requests.length;
 element('ham-apply').click();

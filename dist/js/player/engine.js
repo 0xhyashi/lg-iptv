@@ -49,6 +49,10 @@ var PLAYBACK_LOG_KEY = "iptv_playback_log";
 /* Freezes and recoveries, newest first, for Settings → Diagnostics. The GREEN
    overlay shows the current stream's history, but only while it is open — this
    is what lets a "it froze earlier" report be checked after the fact. */
+/** logPlaybackEvent for the player's diagnostics.
+ * @param {string} text - Diagnostic message.
+ * @returns {void} Logs a message.
+ */
 function _logPlaybackEvent(text) {
   if (typeof Store === "undefined") return;
   var log = Store.get(PLAYBACK_LOG_KEY, []);
@@ -63,6 +67,9 @@ function _logPlaybackEvent(text) {
 /* Where the loaded subtitles came from, or why there are none — the companion
    to the episode line, and the answer to "why are there no subtitles" that used
    to require guessing. */
+/** subsDiag for the player's diagnostics.
+ * @returns {string} A short diagnostic summary.
+ */
 function _subsDiag() {
   if (typeof PlayerSubs === "undefined") return "module not loaded";
   var line = PlayerSubs.describe();
@@ -80,6 +87,9 @@ function _subsDiag() {
    button's state. There is no console on a TV, so "the button isn't there" is
    otherwise unanswerable: this says whether a season was found, where in it we
    are, and therefore whether a next episode exists at all. */
+/** episodeDiag for the player's diagnostics.
+ * @returns {string} A short diagnostic summary.
+ */
 function _episodeDiag() {
   if (typeof Episodes === "undefined") return "module not loaded";
   return Episodes.describe ? Episodes.describe() : Episodes.hasNext() ? "next = " + Episodes.nextLabel() : "no next episode";
@@ -95,6 +105,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
        lightBuffer  smaller HLS buffers — four streams at the default 24s of
                  buffered video is far more memory than a TV will give us
      Called with no arguments it behaves exactly as it always has.          */
+  /** Initialize this player with one video element and its independent fallback state.
+   * @param {Object} opts - Player options, including video and message elements.
+   * @returns {void} Updates decoder state or the video UI.
+   */
   function IPTVPlayer(opts) {
     _classCallCheck(this, IPTVPlayer);
     opts = opts || {};
@@ -130,6 +144,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
      preview stream running would hold one of the TV's limited decode
      pipelines for a video that is no longer on screen, and the last tile of
      the grid would fail for no visible reason. */
+  /** Invalidate playback requests and release the video decoder without destroying the player.
+   * @returns {void} Updates decoder state or the video UI.
+   */
   return _createClass(IPTVPlayer, [{
     key: "stop",
     value: function stop() {
@@ -144,6 +161,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
     /* Frees the decoder and every listener. Multiview tears down up to four of
        these when it closes; leaving one attached keeps a hardware decode
        pipeline reserved, and the main player then can't start. */
+    /** Destroy playback and remove all owned event handlers.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "destroy",
     value: function destroy() {
@@ -174,6 +194,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
     // the grid is open this player is stopped and off screen, and RED would
     // otherwise cycle the engine of a stream nobody is watching (then start it
     // playing again, stealing a decoder from the grid).
+    /** Setup Keys for the active video player.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_setupKeys",
     value: function _setupKeys() {
@@ -197,12 +220,19 @@ var IPTVPlayer = /*#__PURE__*/function () {
     // ── UI messages ─────────────────────────────────────────────────────────────
     // Resolved once and cached: a Multiview tile passes its own element, and the
     // main player falls back to the page's single #player-msg.
+    /** Msg Target for the active video player.
+     * @returns {HTMLElement|null} Matching element, or null.
+     */
   }, {
     key: "_msgTarget",
     value: function _msgTarget() {
       if (this._msgEl === null) this._msgEl = document.getElementById("player-msg");
       return this._msgEl;
     }
+    /** Msg for the active video player.
+     * @param {string} text - Message to display.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_msg",
     value: function _msg(text) {
@@ -212,12 +242,18 @@ var IPTVPlayer = /*#__PURE__*/function () {
         el.style.display = "flex";
       }
     }
+    /** Hide Msg for the active video player.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_hideMsg",
     value: function _hideMsg() {
       var el = this._msgTarget();
       if (el) el.style.display = "none";
     }
+    /** Show Error for the active video player.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_showError",
     value: function _showError() {
@@ -239,6 +275,11 @@ var IPTVPlayer = /*#__PURE__*/function () {
       if (typeof this.onError === "function") this.onError(hint);
     }
     // Brief centred toast (engine name when cycling).
+    /** Flash for the active video player.
+     * @param {string} text - Message to display.
+     * @param {number} ms - Message duration in milliseconds.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_flash",
     value: function _flash(text, ms) {
@@ -259,6 +300,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
     }
 
     // ── Diagnostics overlay (GREEN) ─────────────────────────────────────────────
+    /** Decoded Frames for the active video player.
+     * @returns {number} Calculated numeric value.
+     */
   }, {
     key: "_decodedFrames",
     value: function _decodedFrames() {
@@ -273,6 +317,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
       if (typeof v.webkitDecodedFrameCount === "number") return v.webkitDecodedFrameCount;
       return -1;
     }
+    /** Toggle Diag for the active video player.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_toggleDiag",
     value: function _toggleDiag() {
@@ -305,6 +352,12 @@ var IPTVPlayer = /*#__PURE__*/function () {
     // work around), whereas "0 shown / 2 raw" would mean the tracks are there
     // and this app is discarding them (our bug). Collapsing those two into one
     // "none exposed" made an unfixable case look identical to a fixable one.
+    /** Track Summary for the active video player.
+     * @param {Array} list - Items to summarize or reorder.
+     * @param {Array} rawList - Native media tracks.
+     * @param {boolean} apiPresent - Whether the browser exposes the track API.
+     * @returns {string} Requested text value.
+     */
   }, {
     key: "_trackSummary",
     value: function _trackSummary(list, rawList, apiPresent) {
@@ -327,6 +380,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
     // for embedded tracks: Blink demuxes MP4/HLS itself and can surface in-band
     // tracks, but an MKV is handed straight to the platform decoder, which is
     // opaque to JavaScript — so its subtitle streams can never appear here.
+    /** Source Desc for the active video player.
+     * @returns {string} Requested text value.
+     */
   }, {
     key: "_sourceDesc",
     value: function _sourceDesc() {
@@ -336,6 +392,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
       var ext = m ? "." + m[1].toLowerCase() : "?";
       return ext + "  via " + (a && a.kind || "?");
     }
+
+    /** Update Diag for the active video player.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_updateDiag",
     value: function _updateDiag() {
@@ -348,6 +408,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
     }
 
     // ── Engine plumbing ─────────────────────────────────────────────────────────
+    /** Destroy Hls for the active video player.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "destroyHls",
     value: function destroyHls() {
@@ -358,6 +421,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
         this.hls = null;
       }
     }
+    /** Clear Watchdog for the active video player.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_clearWatchdog",
     value: function _clearWatchdog() {
@@ -366,6 +432,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
         this._watchdog = null;
       }
     }
+    /** Release native video and HLS without retaining decoder state.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_resetVideo",
     value: function _resetVideo() {
@@ -381,6 +450,11 @@ var IPTVPlayer = /*#__PURE__*/function () {
         this.video.load();
       } catch (_) {}
     }
+    /** Check whether a delayed callback belongs to the current generation and tier.
+     * @param {number} gen - Playback generation number.
+     * @param {number} tok - Tier attempt token.
+     * @returns {boolean} Whether the requested condition is met.
+     */
   }, {
     key: "_alive",
     value: function _alive(gen, tok) {
@@ -394,6 +468,11 @@ var IPTVPlayer = /*#__PURE__*/function () {
        life of the page, and the old 'playing' handlers kept firing on every
        later stall-and-resume. Tracked so a new attempt can drop the previous
        attempt's leftovers too. */
+    /** Attach an explicitly cleaned-up one-shot listener for old webOS browsers.
+     * @param {string} type - DOM event name.
+     * @param {Function} fn - Event handler.
+     * @returns {Function} Value described above.
+     */
   }, {
     key: "_once",
     value: function _once(type, fn) {
@@ -406,6 +485,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
       (this._attemptListeners || (this._attemptListeners = [])).push([type, _wrapped]);
       return _wrapped;
     }
+    /** Drop Attempt Listeners for the active video player.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_dropAttemptListeners",
     value: function _dropAttemptListeners() {
@@ -427,6 +509,11 @@ var IPTVPlayer = /*#__PURE__*/function () {
            allowed, so start muted and give the sound back on the next button
            press, rather than sitting on "Loading…" over a stream that would
            play fine. */
+    /** Call native video play and handle autoplay restrictions.
+     * @param {number} gen - Playback generation number.
+     * @param {number} tok - Tier attempt token.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_play",
     value: function _play(gen, tok) {
@@ -456,6 +543,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
 
     /* The first button press after an autoplay refusal counts as the user
        gesture the browser wanted, so the sound goes back on inside it. */
+    /** Arm Unmute for the active video player.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_armUnmute",
     value: function _armUnmute() {
@@ -482,6 +572,11 @@ var IPTVPlayer = /*#__PURE__*/function () {
     // `opts.key` identifies the content (channel / movie / episode) so the engine
     // that works for it can be remembered across sessions. Optional — without it
     // playback behaves exactly as before, just without the learning.
+    /** Open one or more source URLs through the tiered playback strategy.
+     * @param {string|Array<string>} url - One or more media URLs.
+     * @param {Object} opts - Player options, including video and message elements.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "play",
     value: function play(url, opts) {
@@ -527,6 +622,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
     // is how it's played and `label` is for humans, so neither is safe to match
     // the saved preference against (both "Native" and "Native TS" run the native
     // engine, and labels get a " 1"/" 2" suffix when there are multiple URLs).
+    /** Create native/HLS/TS attempts for each candidate stream.
+     * @param {Array<string>} urls - Candidate stream URLs.
+     * @returns {Array<Object>} Matching channel or data entries.
+     */
   }, {
     key: "_buildAttempts",
     value: function _buildAttempts(urls) {
@@ -563,7 +662,7 @@ var IPTVPlayer = /*#__PURE__*/function () {
              demuxer for it. Most Xtream panels expose the same item as HLS
              via an extension swap; when they do, hls.js demuxes in
              software and CAN list those tracks.
-              Added after native, never before it: native is hardware
+               Added after native, never before it: native is hardware
              accelerated and handles HEVC/HDR, so it stays the default and
              this is what RED now switches to when you want track control.
              If the panel doesn't offer it the attempt simply fails and
@@ -589,6 +688,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
     // that happens to fail on one stream still falls back through the remaining
     // tiers instead of dead-ending on the error banner. Order is otherwise
     // preserved, so RED still cycles through every tier as before.
+    /** Try the previously successful engine first without dropping fallback tiers.
+     * @param {Array} list - Items to summarize or reorder.
+     * @returns {Array<Object>} Matching channel or data entries.
+     */
   }, {
     key: "_applyEnginePreference",
     value: function _applyEnginePreference(list) {
@@ -607,6 +710,11 @@ var IPTVPlayer = /*#__PURE__*/function () {
       });
       return preferred.concat(rest);
     }
+
+    /** Start one engine attempt only if its generation is current.
+     * @param {number} gen - Playback generation number.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_runAttempt",
     value: function _runAttempt(gen) {
@@ -633,6 +741,11 @@ var IPTVPlayer = /*#__PURE__*/function () {
     // engine instead of cascading through the tiers to the error banner. Live
     // streams simply rejoin at the live edge. A stream that dies again within
     // 5s of recovering falls through to the normal tier advance.
+    /** Advance after a genuine playback failure instead of preempting playing video.
+     * @param {number} gen - Playback generation number.
+     * @param {string} reason - Failure or transition reason.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_next",
     value: function _next(gen, reason) {
@@ -670,6 +783,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
     }
 
     // RED: manually switch to the next engine and stay there.
+    /** Cycle Engine for the active video player.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "cycleEngine",
     value: function cycleEngine() {
@@ -697,6 +813,11 @@ var IPTVPlayer = /*#__PURE__*/function () {
     }
 
     // Stall watchdog — fires only if NOTHING loads (no data, no error). Auto only.
+    /** Start the initial no-data watchdog.
+     * @param {number} gen - Playback generation number.
+     * @param {number} tok - Tier attempt token.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_arm",
     value: function _arm(gen, tok) {
@@ -716,6 +837,11 @@ var IPTVPlayer = /*#__PURE__*/function () {
        re-armed with a longer allowance instead. If the picture turns out to be
        moving after all, that counts as playing; otherwise the next tier is
        tried exactly as for any other failure. */
+    /** Track partial loading that has not reached playing.
+     * @param {number} gen - Playback generation number.
+     * @param {number} tok - Tier attempt token.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_armStarted",
     value: function _armStarted(gen, tok) {
@@ -742,6 +868,11 @@ var IPTVPlayer = /*#__PURE__*/function () {
        can fire before the first frame, or not at all after a quick start), and
        a stream that is plainly running must not be left under the "Loading…"
        veil waiting for an event that already passed. */
+    /** Check whether media actually begins playing.
+     * @param {number} gen - Playback generation number.
+     * @param {number} tok - Tier attempt token.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_watchStart",
     value: function _watchStart(gen, tok) {
@@ -784,6 +915,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
     // this content so the next play starts there instead of re-walking the
     // tiers. Recorded on 'playing' rather than on load, because loading proves
     // nothing on webOS — plenty of streams load and then fail to decode.
+    /** Remember when playback started and arm live-stall recovery.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_onPlaying",
     value: function _onPlaying() {
@@ -805,6 +939,11 @@ var IPTVPlayer = /*#__PURE__*/function () {
        never updates would otherwise read as frozen from the first second and
        be restarted every eight. VOD and catch-up are left alone: a pause in
        buffering there is the network, and restarting would lose the position. */
+    /** Watch for a live stream that genuinely stops advancing.
+     * @param {number} gen - Playback generation number.
+     * @param {number} tok - Tier attempt token.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_startStallWatch",
     value: function _startStallWatch(gen, tok) {
@@ -853,6 +992,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
         }
       }, 1000);
     }
+
+    /** Stop Stall Watch for the active video player.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_stopStallWatch",
     value: function _stopStallWatch() {
@@ -868,6 +1011,11 @@ var IPTVPlayer = /*#__PURE__*/function () {
        Anything else (HLS.js frozen too, the TS tier, a second freeze, manual
        mode) restarts the same engine at the live edge: exactly what changing
        channel and back was doing by hand, without the trip. */
+    /** Recover frozen live playback while retaining manual engine choice.
+     * @param {number} gen - Playback generation number.
+     * @param {number} stalledMs - Duration of the playback stall.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_recoverStall",
     value: function _recoverStall(gen, stalledMs) {
@@ -901,6 +1049,13 @@ var IPTVPlayer = /*#__PURE__*/function () {
         if (gen === self._gen && tok === self._tok) self._runAttempt(gen);
       }, 500);
     }
+
+    /** Try native playback on the platform video decoder.
+     * @param {number} gen - Playback generation number.
+     * @param {number} tok - Tier attempt token.
+     * @param {string|Array<string>} url - One or more media URLs.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_playNative",
     value: function _playNative(gen, tok, url) {
@@ -920,6 +1075,13 @@ var IPTVPlayer = /*#__PURE__*/function () {
       this._play(gen, tok);
       this._arm(gen, tok);
     }
+
+    /** Try the HLS.js fallback engine.
+     * @param {number} gen - Playback generation number.
+     * @param {number} tok - Tier attempt token.
+     * @param {string|Array<string>} url - One or more media URLs.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_playHls",
     value: function _playHls(gen, tok, url) {
@@ -930,6 +1092,13 @@ var IPTVPlayer = /*#__PURE__*/function () {
         if (typeof Hls !== "undefined" && Hls.isSupported()) self._attachHls(gen, tok, url);else self._next(gen, "HLS.js unsupported on this browser");
       });
     }
+
+    /** Attach a ready HLS instance to the current stream.
+     * @param {number} gen - Playback generation number.
+     * @param {number} tok - Tier attempt token.
+     * @param {string|Array<string>} url - One or more media URLs.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_attachHls",
     value: function _attachHls(gen, tok, url) {
@@ -1013,6 +1182,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
     //     by upstream Blink, so on most webOS builds a multi-audio MP4/MKV played
     //     on the native tier exposes nothing here and the list comes back empty.
     //     Feature-detected rather than assumed; see _hasNativeAudioTracks().
+    /** List Audio Tracks for the active video player.
+     * @returns {Array<Object>} Matching channel or data entries.
+     */
   }, {
     key: "listAudioTracks",
     value: function listAudioTracks() {
@@ -1046,6 +1218,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
 
     // Index of the currently selected audio track in listAudioTracks() order,
     // or -1 when there's nothing to choose between.
+    /** Active Audio Track for the active video player.
+     * @returns {number} Calculated numeric value.
+     */
   }, {
     key: "activeAudioTrack",
     value: function activeAudioTrack() {
@@ -1064,8 +1239,13 @@ var IPTVPlayer = /*#__PURE__*/function () {
        it silently does nothing on some streams — a long-standing complaint on
        their own forum that has no official fix. So: apply it, then CHECK, and
        report the truth to the caller instead of assuming success.
-        `done(ok, note)` is called once the result is known (asynchronously for
+         `done(ok, note)` is called once the result is known (asynchronously for
        the native path, since the pipeline needs a moment to react). */
+    /** Select one audio track and report if webOS accepts the change.
+     * @param {Object} track - Selected track record.
+     * @param {Function} done - Completion callback receiving success and explanation.
+     * @returns {boolean} Whether the requested condition is met.
+     */
   }, {
     key: "setAudioTrack",
     value: function setAudioTrack(track, done) {
@@ -1098,8 +1278,12 @@ var IPTVPlayer = /*#__PURE__*/function () {
         done(false, "This TV refused the audio track change.");
         return false;
       }
-      var self = this;
+      var self = this,
+        gen = this._gen,
+        tok = this._tok;
       setTimeout(function () {
+        // Channel and engine changes invalidate an in-flight native switch.
+        if (!self._alive(gen, tok)) return;
         var applied = false;
         try {
           applied = !!(at[track.id] && at[track.id].enabled);
@@ -1116,6 +1300,7 @@ var IPTVPlayer = /*#__PURE__*/function () {
             var t = self.video.currentTime;
             self.video.currentTime = Math.max(0, t - 0.25);
             setTimeout(function () {
+              if (!self._alive(gen, tok)) return;
               var ok = false;
               try {
                 ok = !!(at[track.id] && at[track.id].enabled);
@@ -1131,6 +1316,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
       }, 400);
       return true;
     }
+
+    /** Audio Switch Hint for the active video player.
+     * @returns {string} Requested text value.
+     */
   }, {
     key: "_audioSwitchHint",
     value: function _audioSwitchHint() {
@@ -1141,12 +1330,21 @@ var IPTVPlayer = /*#__PURE__*/function () {
       });
       return hasHlsTier ? "This TV ignored the audio track change. Press RED to switch to the HLS player, which changes tracks in software." : "This TV ignored the audio track change for this file.";
     }
+
+    /** Has Native Audio Tracks for the active video player.
+     * @returns {boolean} Whether the requested condition is met.
+     */
   }, {
     key: "_hasNativeAudioTracks",
     value: function _hasNativeAudioTracks() {
       var at = this.video.audioTracks;
       return !!(at && typeof at.length === "number");
     }
+
+    /** Has Tier for the active video player.
+     * @param {string} kind - Engine type.
+     * @returns {boolean} Whether the requested condition is met.
+     */
   }, {
     key: "_hasTier",
     value: function _hasTier(kind) {
@@ -1157,6 +1355,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
 
     // Why the audio list may be empty — surfaced in the menu so the user isn't
     // left wondering whether the app is broken or the file is single-track.
+    /** Audio Unavailable Reason for the active video player.
+     * @returns {string} Requested text value.
+     */
   }, {
     key: "audioUnavailableReason",
     value: function audioUnavailableReason() {
@@ -1168,6 +1369,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
     }
 
     // ── Subtitles ───────────────────────────────────────────────────────────────
+    /** List Subtitles for the active video player.
+     * @returns {Array<Object>} Matching channel or data entries.
+     */
   }, {
     key: "listSubtitles",
     value: function listSubtitles() {
@@ -1216,6 +1420,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
       }
       return out;
     }
+    /** Activate exactly one subtitle renderer or turn all subtitles off.
+     * @param {Object} track - Selected track record.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "setSubtitle",
     value: function setSubtitle(track) {
@@ -1256,9 +1464,12 @@ var IPTVPlayer = /*#__PURE__*/function () {
        ORIGINAL times are stashed on first touch (_baseStart/_baseEnd) and every
        adjustment is computed from those, so repeated nudges can't accumulate
        rounding drift the way successive relative shifts would.
-        hls.js feeds cues in as segments load, so newly-arrived cues would be
+         hls.js feeds cues in as segments load, so newly-arrived cues would be
        unshifted. A light 1s watcher re-applies the offset to anything it hasn't
        stamped yet; it's idempotent precisely because of the base times above. */
+    /** Get Sub Delay for the active video player.
+     * @returns {number} Calculated numeric value.
+     */
   }, {
     key: "getSubDelay",
     value: function getSubDelay() {
@@ -1272,6 +1483,11 @@ var IPTVPlayer = /*#__PURE__*/function () {
       this._subDelay = isFinite(v) ? v : 0;
       return this._subDelay;
     }
+
+    /** Clamp and save subtitle synchronization offset.
+     * @param {number} seconds - Subtitle delay in seconds.
+     * @returns {number} Calculated numeric value.
+     */
   }, {
     key: "setSubDelay",
     value: function setSubDelay(seconds) {
@@ -1289,6 +1505,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
       this._startCueWatch();
       return seconds;
     }
+
+    /** Get Sub Position for the active video player.
+     * @returns {number} Calculated numeric value.
+     */
   }, {
     key: "getSubPosition",
     value: function getSubPosition() {
@@ -1305,6 +1525,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
 
     // 0 = the engine's default placement; higher lifts subtitles off the bottom
     // edge (useful when a stream is letterboxed or the OSD overlaps them).
+    /** Move subtitles upward while keeping within valid UI steps.
+     * @param {number} step - Relative subtitle position.
+     * @returns {number} Calculated numeric value.
+     */
   }, {
     key: "setSubPosition",
     value: function setSubPosition(step) {
@@ -1323,10 +1547,13 @@ var IPTVPlayer = /*#__PURE__*/function () {
        each new track into 'hidden' briefly: a disabled track has null cues, and
        'hidden' makes the engine parse them without displaying anything. Then
        hand it back to whatever mode it was in.
-        Note this can only surface tracks the platform actually exposes. webOS's
+         Note this can only surface tracks the platform actually exposes. webOS's
        in-band handling is limited (frequently only the first embedded track of
        an MKV is readable at all), so an empty list here is often the platform,
        not the app — which is what the external-subtitle path is for. */
+    /** Watch Text Tracks for the active video player.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_watchTextTracks",
     value: function _watchTextTracks() {
@@ -1347,6 +1574,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
         if (typeof self.onTracksChanged === "function") self.onTracksChanged();
       });
     }
+
+    /** Active Text Track for the active video player.
+     * @returns {Object|null} Matching object, or null.
+     */
   }, {
     key: "_activeTextTrack",
     value: function _activeTextTrack() {
@@ -1355,6 +1586,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
       for (var i = 0; i < tt.length; i++) if (tt[i].mode === "showing") return tt[i];
       return null;
     }
+
+    /** Apply Cue Adjustments for the active video player.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_applyCueAdjustments",
     value: function _applyCueAdjustments() {
@@ -1396,6 +1631,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
         if (pos > 0) c._lineTouched = true;
       }
     }
+
+    /** Start Cue Watch for the active video player.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_startCueWatch",
     value: function _startCueWatch() {
@@ -1410,6 +1649,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
        Some webOS builds pin the platform pipeline to 1x and silently ignore
        playbackRate, so the applied value is read back and returned rather than
        assumed — the menu shows what actually took effect. */
+    /** Get Speed for the active video player.
+     * @returns {number} Calculated numeric value.
+     */
   }, {
     key: "getSpeed",
     value: function getSpeed() {
@@ -1421,6 +1663,11 @@ var IPTVPlayer = /*#__PURE__*/function () {
       }
       return isFinite(v) && v > 0 ? v : 1;
     }
+
+    /** Set Speed for the active video player.
+     * @param {number} rate - Playback rate.
+     * @returns {number} Calculated numeric value.
+     */
   }, {
     key: "setSpeed",
     value: function setSpeed(rate) {
@@ -1434,6 +1681,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
       } catch (_) {}
       return applied;
     }
+
+    /** Speed Supported for the active video player.
+     * @returns {boolean} Whether the requested condition is met.
+     */
   }, {
     key: "speedSupported",
     value: function speedSupported() {
@@ -1449,6 +1700,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
     }
 
     /* ── Subtitle appearance ─────────────────────────────────────────────── */
+    /** Get Sub Style for the active video player.
+     * @returns {string} Requested text value.
+     */
   }, {
     key: "getSubStyle",
     value: function getSubStyle() {
@@ -1460,6 +1714,11 @@ var IPTVPlayer = /*#__PURE__*/function () {
       }
       return s;
     }
+
+    /** Apply and remember shadow, box or plain subtitle styling.
+     * @param {string} style - Subtitle style.
+     * @returns {string} Requested text value.
+     */
   }, {
     key: "applySubStyle",
     value: function applySubStyle(style) {
@@ -1473,6 +1732,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
       } catch (_) {}
       return style;
     }
+
+    /** Get Sub Colour for the active video player.
+     * @returns {string} Requested text value.
+     */
   }, {
     key: "getSubColour",
     value: function getSubColour() {
@@ -1484,6 +1747,11 @@ var IPTVPlayer = /*#__PURE__*/function () {
       }
       return c;
     }
+
+    /** Apply and remember a supported subtitle color.
+     * @param {string} colour - Subtitle color.
+     * @returns {string} Requested text value.
+     */
   }, {
     key: "applySubColour",
     value: function applySubColour(colour) {
@@ -1497,6 +1765,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
       } catch (_) {}
       return colour;
     }
+
+    /** Get Sub Size for the active video player.
+     * @returns {string} Requested text value.
+     */
   }, {
     key: "getSubSize",
     value: function getSubSize() {
@@ -1507,6 +1779,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
         return "md";
       }
     }
+    /** Apply and remember a supported subtitle size.
+     * @param {string} size - Subtitle size.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "applySubSize",
     value: function applySubSize(size) {
@@ -1524,6 +1800,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
     // Each is fetched once, converted to VTT and kept as a blob so it survives
     // _resetVideo() wiping the <track> elements — otherwise pressing RED to
     // switch engines silently destroyed every external subtitle for good.
+    /** Fetch, convert and attach external subtitle files to the current title.
+     * @param {Array} list - Items to summarize or reorder.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "addExternalSubs",
     value: function addExternalSubs(list) {
@@ -1601,6 +1881,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
     /* Mirror the outcome into Settings → Diagnostics. Without this the panel
        can report two subtitle files, both can 404, and the menu's "couldn't be
        downloaded" is the only trace — gone the moment playback ends. */
+    /** Report Sub Counts for the active video player.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_reportSubCounts",
     value: function _reportSubCounts() {
@@ -1614,12 +1897,22 @@ var IPTVPlayer = /*#__PURE__*/function () {
     /* Set by player-vod.js from the panel's `subtitles` payload: the tracks the
        provider says are muxed into this video. Kept so subsUnavailableReason()
        can name them instead of claiming there are none. */
+    /** Set Embedded Sub Info for the active video player.
+     * @param {number} embedded - Detected embedded track count.
+     * @param {boolean} unknown - Whether additional embedded tracks might exist.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "setEmbeddedSubInfo",
     value: function setEmbeddedSubInfo(embedded, unknown) {
       this._embeddedSubs = embedded || [];
       this._unknownSubs = unknown || 0;
     }
+
+    /** Append Track for the active video player.
+     * @param {Object} t - Subtitle track.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_appendTrack",
     value: function _appendTrack(t) {
@@ -1632,6 +1925,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
     }
 
     // Called on every attempt: re-adds external subs the video reset removed.
+    /** Restore external tracks after the video element is reset.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_reattachExternalSubs",
     value: function _reattachExternalSubs() {
@@ -1647,6 +1943,9 @@ var IPTVPlayer = /*#__PURE__*/function () {
        "No subtitles found for this title" for a file the provider had just told
        us contains two subtitle tracks — the reason data/subtitles.js now keeps
        the embedded descriptors instead of discarding them. */
+    /** Subs Unavailable Reason for the active video player.
+     * @returns {string} Requested text value.
+     */
   }, {
     key: "subsUnavailableReason",
     value: function subsUnavailableReason() {
@@ -1667,6 +1966,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
       }
       return "No subtitles found for this title.";
     }
+
+    /** Try Lowest Quality for the active video player.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "tryLowestQuality",
     value: function tryLowestQuality() {
@@ -1686,6 +1989,10 @@ var IPTVPlayer = /*#__PURE__*/function () {
        it loads on first use. One load for the whole page: the in-flight state
        used to live on each player, so Multiview's four tiles could each append
        their own copy of the script at the same moment. */
+    /** Load HLS.js once and call queued listeners when available.
+     * @param {Function} callback - Callback invoked when HLS.js has loaded.
+     * @returns {void} Updates decoder state or the video UI.
+     */
   }, {
     key: "_loadHls",
     value: function _loadHls(callback) {

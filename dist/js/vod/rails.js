@@ -25,6 +25,9 @@ var railObserver = 'IntersectionObserver' in window ? new IntersectionObserver(f
    screen of the visible area. Called on scroll and after the focus moves, so
    the D-pad (which scrolls by focusing) and the pointer both reach it. */
 var RAIL_NEAR_PX = 900;
+/** Load VOD rails close to the visible scroll area.
+ * @returns {void} No return value.
+ */
 function loadRailsNearView() {
   if (railObserver) return;
   var box = elRails.getBoundingClientRect();
@@ -45,6 +48,11 @@ if (!railObserver) {
     _railScrollTimer = setTimeout(loadRailsNearView, 150);
   });
 }
+
+/** Release the rendered cards of a distant VOD rail.
+ * @param {HTMLElement} rail - Rail to release.
+ * @returns {void} No return value.
+ */
 function unloadRail(rail) {
   if (!rail || rail.dataset.loaded !== '1' || rail.dataset.keep === '1') return;
   var rails = railEls();
@@ -58,6 +66,13 @@ function unloadRail(rail) {
   }
   rail.dataset.loaded = '0';
 }
+
+/** Create a VOD category rail and its DOM structure.
+ * @param {string} titleText - Visible category title.
+ * @param {string} type - VOD type, movie or series.
+ * @param {string|number} catId - Provider category ID.
+ * @returns {HTMLElement} New rail element.
+ */
 function makeRail(titleText, type, catId) {
   var rail = document.createElement('section');
   rail.className = 'vod-rail';
@@ -73,6 +88,11 @@ function makeRail(titleText, type, catId) {
   rail.appendChild(track);
   return rail;
 }
+
+/** Load and render cards for a VOD rail.
+ * @param {HTMLElement} rail - Unloaded rail to populate.
+ * @returns {void} No return value.
+ */
 function fillRail(rail) {
   if (rail.dataset.loaded !== '0') return;
   rail.dataset.loaded = '1';
@@ -112,6 +132,10 @@ function fillRail(rail) {
     rail.parentNode && rail.parentNode.removeChild(rail);
   });
 }
+
+/** Render Rails for VOD category rows.
+ * @returns {void} No return value.
+ */
 function renderRails() {
   elRails.innerHTML = '';
   railIndex = 0;
@@ -187,6 +211,10 @@ function renderRails() {
 }
 
 /* ── Category load + section switch ──────────────────────────────── */
+/** Choose Movies or Series and load its categories.
+ * @param {string} type - VOD type, movie or series.
+ * @returns {void} No return value.
+ */
 function loadType(type) {
   activeType = type;
   document.querySelectorAll('.vod-nav-item').forEach(function (t) {

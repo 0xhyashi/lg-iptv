@@ -13,6 +13,12 @@
 
   var index = []; // [{ id, type, name, lc, icon }]
   var ready = false;
+
+  /** Xhr JSON for worker-based VOD indexing.
+   * @param {string} url - Requested URL.
+   * @param {Function} cb - Callback.
+   * @returns {*} Result of the operation.
+   */
   function xhrJSON(url, cb) {
     try {
       var x = new XMLHttpRequest();
@@ -36,6 +42,12 @@
       cb(e);
     }
   }
+
+  /** Add All for worker-based VOD indexing.
+   * @param {*} arr - Input to addAll().
+   * @param {string} type - Input to addAll().
+   * @returns {*} Result of the operation.
+   */
   function addAll(arr, type) {
     if (!arr || !arr.length) return;
     for (var i = 0; i < arr.length; i++) {
@@ -57,8 +69,17 @@
       });
     }
   }
+
+  /** Load for worker-based VOD indexing.
+   * @param {*} movieUrl - Input to load().
+   * @param {*} seriesUrl - Input to load().
+   * @returns {*} Result of the operation.
+   */
   function load(movieUrl, seriesUrl) {
     var pending = 2;
+    /** Done for worker-based VOD indexing.
+     * @returns {*} Result of the operation.
+     */
     function done() {
       pending--;
       if (pending === 0) {
@@ -78,6 +99,13 @@
       done();
     });
   }
+
+  /** Search for worker-based VOD indexing.
+   * @param {*} q - Input to search().
+   * @param {*} limit - Input to search().
+   * @param {*} reqId - Input to search().
+   * @returns {*} Result of the operation.
+   */
   function search(q, limit, reqId) {
     q = (q || '').toLowerCase();
     var out = [],

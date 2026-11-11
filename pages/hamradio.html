@@ -20,6 +20,8 @@
             </div>
             <div id="ham-actions">
                 <button id="ham-scan" type="button">FIND VOICE</button>
+                <button id="ham-listen" type="button">▶ LISTEN</button>
+                <button id="ham-stop" type="button">■ STOP AUDIO</button>
                 <button id="ham-prev" type="button">◀ PREVIOUS</button>
                 <button id="ham-next" type="button">NEXT VOICE ▶</button>
                 <button id="ham-reload" type="button">RECONNECT</button>
@@ -33,9 +35,10 @@
             <button id="ham-apply" type="button">CONNECT</button>
             <label for="ham-band">BAND</label>
             <select id="ham-band">
+                <option value="wideband" selected>HF 0–30 MHz</option>
                 <option value="80m">80m</option>
                 <option value="40m">40m</option>
-                <option value="20m" selected>20m</option>
+                <option value="20m">20m</option>
                 <option value="17m">17m</option>
                 <option value="15m">15m</option>
                 <option value="10m">10m</option>
@@ -50,6 +53,7 @@
                     </div>
                     <span id="ham-mode">20m · WAITING FOR DATA</span>
                 </div>
+                <div id="ham-scope-wrap"><canvas id="ham-scope" width="640" height="100" aria-label="Latest real RF signal strengths"></canvas></div>
                 <div id="ham-waterfall-wrap">
                     <canvas id="ham-waterfall" width="640" height="350" aria-label="Live RF waterfall fed by receiver spectrum samples"></canvas>
                     <div id="ham-tune-marker" style="display:none;"></div>
@@ -62,7 +66,9 @@
                 <div class="ham-panel-title">LIVE VOICE ACTIVITY <span id="ham-voice-count">0</span></div>
                 <div id="ham-voice-status">Checking receiver's voice scanner…</div>
                 <div id="ham-voice-list" aria-label="Detected voice transmissions"></div>
-                <div id="ham-listen-note">Detected frequencies are real receiver estimates. Native audio is not connected yet; selecting a voice highlights its actual position on the live waterfall.</div>
+                <canvas id="ham-audio-meter" width="320" height="64" aria-label="Actual decoded receiver audio waveform" style="width:100%;height:64px;flex-shrink:0"></canvas>
+                <div id="ham-audio-state" role="status" aria-live="polite">AUDIO OFF · Choose a detected voice and press LISTEN.</div>
+                <div id="ham-listen-note">Voice estimates may linger after a transmission has ended. Choose a detected voice to tune the REAL receiver and listen; silence may mean the caller stopped transmitting.</div>
             </aside>
         </main>
         <footer id="ham-footer">
@@ -70,6 +76,7 @@
             <span>LIVE RF BINS + RECEIVER VOICE DETECTIONS · NO SIMULATED SIGNALS</span>
         </footer>
     </div>
+    <script defer src="../dist/js/ham-audio.js"></script>
     <script defer src="../dist/js/hamradio.js"></script>
 </body>
 </html>
