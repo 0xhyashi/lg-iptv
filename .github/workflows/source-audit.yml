@@ -1,7 +1,7 @@
 name: Audit first-party source and regression tests
 on:
   push:
-    branches: [privacy/toonami-single-stream-test, feature/ham-radio-live-sdr]
+    branches: [privacy/toonami-single-stream-test, feature/ham-radio-live-sdr, perf/weatherstar-lite]
     paths:
       - .github/workflows/source-audit.yml
       - js/**
@@ -33,6 +33,7 @@ jobs:
           node tests/hamradio-sse.test.js
           node tests/tvguide-layout.test.js
           node tests/weatherstar-display.test.js
+          node tests/weatherstar-lite.test.js
           node tests/weatherstar-polyfills.test.js
           node tests/radio-cover-shape.test.js
           node tests/weatherstar-nws-compat.test.js
