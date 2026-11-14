@@ -25,6 +25,10 @@
   var osd = document.getElementById('osd');
 
   /* ── Params ──────────────────────────────────────────────────────────── */
+  /** Param for VOD playback and remote controls.
+   * @param {string} name - Name.
+   * @returns {*} Value produced by the operation.
+   */
   function param(name) {
     var m = window.location.search.match(new RegExp('[?&]' + name + '=([^&]*)'));
     if (!m) return '';
@@ -37,6 +41,10 @@
       return m[1];
     }
   }
+  /** Ls Get for VOD playback and remote controls.
+   * @param {string} key - Saved key or lookup ID.
+   * @returns {*} Value produced by the operation.
+   */
   function lsGet(key) {
     try {
       return localStorage.getItem(key) || '';
@@ -52,14 +60,14 @@
      itself — subtitles, resume position, the season for Next episode — through
      localStorage. The player has to be sure that handover is for THIS
      navigation and not left over from the last thing that played.
-      That used to be decided by comparing the stored url against the one in the
+       That used to be decided by comparing the stored url against the one in the
      query string. It was too strict: the two strings travel different routes
      (one stored verbatim, the other encoded into a query and decoded back), and
      any difference at all — an encoding subtlety, a launcher that rewrites the
      address, a write that silently failed leaving the previous entry in place —
      threw away the whole handover. The symptom was a player with no subtitles,
      no resume and no next-episode button, and no indication why.
-      So the pairing is now explicit: playItem stamps a one-shot token into both
+       So the pairing is now explicit: playItem stamps a one-shot token into both
      the metadata and the url. Matching tokens means the metadata belongs to
      this navigation, whatever the urls look like. The url comparison stays as
      a fallback for entries written before tokens existed. */
@@ -93,6 +101,10 @@
 
   /* Last few characters are the identifying part of a stream url and the part
      that differs; the host prefix is the same for everything. */
+  /** Tail for VOD playback and remote controls.
+   * @param {*} u - Input for _tail().
+   * @returns {*} Value produced by the operation.
+   */
   function _tail(u) {
     u = String(u || '');
     return u.length > 34 ? '…' + u.slice(-34) : u;
@@ -125,7 +137,7 @@
      POSITION, not by the OSD — the whole point is to skip something without
      having to wake the controls first, and requiring a keypress to reveal the
      button that saves you a keypress would be self-defeating.
-      Only one can ever be up: intros are at the start, outros at the end. */
+       Only one can ever be up: intros are at the start, outros at the end. */
   var pillEl = null,
     pillAction = null,
     pillTimer = null;
@@ -133,6 +145,9 @@
 
   /* One-shot id pairing a stored metadata blob with the navigation that wrote
      it. Time plus randomness — it only has to be different from the last one. */
+  /** Play Token for VOD playback and remote controls.
+   * @returns {*} Value produced by the operation.
+   */
   function _playToken() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   }
@@ -143,6 +158,13 @@
      even though its navigation is ignored, leaving the next episode to reject
      a handover that pointed at the right stream all along. */
   var _navigating = false;
+
+  /** Start Episode for VOD playback and remote controls.
+   * @param {*} pl - Input for startEpisode().
+   * @param {number} idx - Zero-based index.
+   * @param {*} base - Input for startEpisode().
+   * @returns {void} Updates module or UI state.
+   */
   function startEpisode(pl, idx, base) {
     if (_navigating) return;
     var e = pl[idx];
@@ -192,7 +214,7 @@
        on this page — resume, subtitles, track preferences, engine memory —
        keys off the metadata read at load. Re-running it is what guarantees
        episode two behaves exactly like episode one.
-        replace(), not href: BACK goes to history.back(), and with href each
+         replace(), not href: BACK goes to history.back(), and with href each
        episode stacked another player entry — so after binge-watching four
        episodes BACK replayed episode three instead of leaving the player. */
     window.location.replace('player.html?t=' + encodeURIComponent(token) + '&url=' + encodeURIComponent(nextUrl) + '&title=' + encodeURIComponent(name));
@@ -213,6 +235,10 @@
       }
     });
   }
+
+  /** Pill for VOD playback and remote controls.
+   * @returns {*} Value produced by the operation.
+   */
   function pill() {
     if (pillEl && pillEl.parentNode) return pillEl;
     pillEl = document.createElement('button');
@@ -223,16 +249,30 @@
     document.body.appendChild(pillEl);
     return pillEl;
   }
+
+  /** Show Pill for VOD playback and remote controls.
+   * @param {string} text - Text.
+   * @param {*} action - Input for showPill().
+   * @returns {void} Updates module or UI state.
+   */
   function showPill(text, action) {
     var el = pill();
     el.textContent = text;
     el.className = 'pill-visible';
     pillAction = action;
   }
+
+  /** Hide Pill for VOD playback and remote controls.
+   * @returns {void} Updates module or UI state.
+   */
   function hidePill() {
     if (pillEl) pillEl.className = '';
     pillAction = null;
   }
+
+  /** Fire Pill for VOD playback and remote controls.
+   * @returns {*} Value produced by the operation.
+   */
   function firePill() {
     var a = pillAction;
     if (!a) return;
@@ -240,12 +280,19 @@
     hidePill();
     if (a === 'intro') Episodes.skipIntro();else if (a === 'next') Episodes.playNext();
   }
+
+  /** Cancel Auto Next for VOD playback and remote controls.
+   * @returns {boolean} Whether the condition holds.
+   */
   function cancelAutoNext() {
     autoNextAt = 0;
   }
 
   /* Re-evaluated on timeupdate, which fires several times a second — cheap
      because everything it calls is arithmetic on currentTime. */
+  /** Refresh Pill for VOD playback and remote controls.
+   * @returns {void} Updates module or UI state.
+   */
   function refreshPill() {
     if (typeof Episodes === 'undefined') return;
     if (autoNextAt) {
@@ -278,11 +325,18 @@
     clearInterval(pillTimer);
     pillTimer = setInterval(refreshPill, 250);
   });
+
+  /** Pill Visible for VOD playback and remote controls.
+   * @returns {*} Value produced by the operation.
+   */
   function pillVisible() {
     return !!(pillEl && pillEl.className === 'pill-visible' && pillAction);
   }
 
   /* ── Resume position + save progress (Continue Watching) ─────────────── */
+  /** Seek To Resume for VOD playback and remote controls.
+   * @returns {*} Value produced by the operation.
+   */
   function seekToResume() {
     if (_resumed || resumeAt <= 0) return;
     if (!isFinite(video.duration) || video.duration <= 0) return;
@@ -301,6 +355,10 @@
      sampled. Continue Watching shows the newest 20; keeping a few times that
      is plenty, and the oldest go first. */
   var PROGRESS_MAX = 80;
+  /** Save Progress for VOD playback and remote controls.
+   * @param {*} finished - Input for saveProgress().
+   * @returns {*} Value produced by the operation.
+   */
   function saveProgress(finished) {
     if (!meta || !meta.key) return;
     var dur = video.duration,
@@ -354,15 +412,24 @@
 
   /* ── OSD show / auto-hide ────────────────────────────────────────────── */
   var osdTimer = null;
+  /** Show Osd for VOD playback and remote controls.
+   * @returns {void} Updates module or UI state.
+   */
   function showOsd() {
     if (!osd) return;
     osd.classList.remove('osd-hidden');
     clearTimeout(osdTimer);
     osdTimer = setTimeout(hideOsd, 4000);
   }
+  /** Hide Osd for VOD playback and remote controls.
+   * @returns {void} Updates module or UI state.
+   */
   function hideOsd() {
     if (osd && !video.paused) osd.classList.add('osd-hidden');
   }
+  /** Osd Visible for VOD playback and remote controls.
+   * @returns {*} Value produced by the operation.
+   */
   function osdVisible() {
     return osd && !osd.classList.contains('osd-hidden');
   }
@@ -376,10 +443,13 @@
 
   /* Next episode is only a control when there IS one — a movie, or the last
      episode of a season, gets no dead button on the bar.
-      Shown or hidden in place rather than removed from the row: the season may
+       Shown or hidden in place rather than removed from the row: the season may
      arrive after this runs (see Episodes.resolveSeason), and a button spliced
      out of the focus array can't come back. Navigation skips hidden controls,
      so an invisible entry costs nothing. */
+  /** Sync Next Button for VOD playback and remote controls.
+   * @returns {*} Value produced by the operation.
+   */
   function syncNextButton() {
     var nextBtn = document.getElementById('ctrl-next');
     if (!nextBtn) return;
@@ -404,6 +474,10 @@
   var focusRow = backBtn ? [backBtn].concat(controls) : controls.slice();
   var focusIdx = focusRow.indexOf(document.getElementById('ctrl-play'));
   if (focusIdx < 0) focusIdx = 0;
+
+  /** Paint Focus for VOD playback and remote controls.
+   * @returns {void} Updates module or UI state.
+   */
   function paintFocus() {
     focusRow.forEach(function (el, i) {
       el.classList.toggle('tv-focus-visible', i === focusIdx);
@@ -414,6 +488,10 @@
      Next-episode button comes and goes, and fullscreen is hidden on webOS.
      Without the skip the ring would land on an invisible control and the row
      would appear to have a gap in it. */
+  /** Step Focus for VOD playback and remote controls.
+   * @param {number} dir - Direction.
+   * @returns {*} Value produced by the operation.
+   */
   function stepFocus(dir) {
     var i = focusIdx;
     do {
@@ -427,6 +505,9 @@
 
   /* play() returns nothing before Chromium 50, so `.play().catch` threw on
      webOS 3 and the play button did nothing at all. */
+  /** Toggle Play for VOD playback and remote controls.
+   * @returns {*} Value produced by the operation.
+   */
   function togglePlay() {
     if (!video.paused) {
       video.pause();
@@ -440,10 +521,17 @@
     }
     if (p && typeof p.then === 'function') p.then(null, function () {});
   }
+  /** Seek for VOD playback and remote controls.
+   * @param {number} delta - Relative amount.
+   * @returns {*} Value produced by the operation.
+   */
   function seek(delta) {
     if (!isFinite(video.duration)) return;
     video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + delta));
   }
+  /** Toggle Fullscreen for VOD playback and remote controls.
+   * @returns {*} Value produced by the operation.
+   */
   function toggleFullscreen() {
     var el = document.documentElement;
     if (document.fullscreenElement || document.webkitFullscreenElement) {
@@ -452,6 +540,11 @@
       (el.requestFullscreen || el.webkitRequestFullscreen || function () {}).call(el);
     }
   }
+
+  /** Activate for VOD playback and remote controls.
+   * @param {HTMLElement} el - DOM element.
+   * @returns {*} Value produced by the operation.
+   */
   function activate(el) {
     if (!el) return;
     switch (el.id) {
@@ -504,14 +597,27 @@
      missing meta.key (a rejected handover) degrades to the global memory
      rather than to none. */
   var TRACK_KEY = meta && meta.key || '';
+  /** Recall Track for VOD playback and remote controls.
+   * @param {*} what - Input for recallTrack().
+   * @returns {*} Value produced by the operation.
+   */
   function recallTrack(what) {
     return _recalledTrack(TRACK_KEY, what);
   }
+  /** Remember Track for VOD playback and remote controls.
+   * @param {*} what - Input for rememberTrack().
+   * @param {*} val - Value.
+   * @returns {*} Value produced by the operation.
+   */
   function rememberTrack(what, val) {
     _rememberTrack(TRACK_KEY, what, val);
   }
   var menuMode = 'subs'; // 'audio' | 'subs' | 'os' — drives BACK behaviour
 
+  /** Is Selectable for VOD playback and remote controls.
+   * @param {*} opt - Input for isSelectable().
+   * @returns {boolean} Whether the condition holds.
+   */
   function isSelectable(opt) {
     return opt && (opt.kind === 'track' || opt.kind === 'audio' || opt.kind === 'action' || opt.kind === 'os' || opt.kind === 'stepper');
   }
@@ -522,6 +628,13 @@
      subtitle delay, and it keeps long menus short. ENTER resets to default.
      Mirrors how the dropdowns in Settings behave, so the remote does the same
      thing everywhere in the app. */
+  /** Stepper for VOD playback and remote controls.
+   * @param {*} label - Input for stepper().
+   * @param {*} read - Input for stepper().
+   * @param {*} write - Input for stepper().
+   * @param {Object} opts - Options.
+   * @returns {*} Value produced by the operation.
+   */
   function stepper(label, read, write, opts) {
     opts = opts || {};
     return {
@@ -538,6 +651,13 @@
   var SUB_STYLES = [['shadow', 'Shadow'], ['box', 'Boxed'], ['plain', 'Plain']];
   var SUB_COLOURS = [['white', 'White'], ['yellow', 'Yellow'], ['cyan', 'Cyan']];
   var SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+
+  /** Cycle Index for VOD playback and remote controls.
+   * @param {Array} list - Input collection.
+   * @param {*} current - Input for cycleIndex().
+   * @param {number} dir - Direction.
+   * @returns {*} Value produced by the operation.
+   */
   function cycleIndex(list, current, dir) {
     var i = 0;
     for (var n = 0; n < list.length; n++) if (list[n][0] === current) {
@@ -549,6 +669,11 @@
     if (i > list.length - 1) i = list.length - 1;
     return i;
   }
+
+  /** Fmt Delay for VOD playback and remote controls.
+   * @param {*} sec - Input for fmtDelay().
+   * @returns {*} Value produced by the operation.
+   */
   function fmtDelay(sec) {
     var s = (sec > 0 ? '+' : sec < 0 ? '−' : '') + Math.abs(sec).toFixed(2) + 's';
     return sec === 0 ? '0.00s' : s;
@@ -557,6 +682,9 @@
   /* Audio and subtitles are separate menus — one button, one job. They share
      the same popup element and the same D-pad handling; only the contents and
      the title differ. */
+  /** Build Audio Options for VOD playback and remote controls.
+   * @returns {*} Value produced by the operation.
+   */
   function buildAudioOptions() {
     subsOptions = [];
     var audio = window.player && player.listAudioTracks ? player.listAudioTracks() : [];
@@ -577,6 +705,10 @@
       });
     }
   }
+
+  /** Build Subs Options for VOD playback and remote controls.
+   * @returns {*} Value produced by the operation.
+   */
   function buildSubsOptions() {
     subsOptions = [];
     var subs = window.player && player.listSubtitles ? player.listSubtitles() : [];
@@ -682,6 +814,9 @@
 
   /* Playback speed lives on its own button rather than being bolted onto the
      audio or subtitle menus — one button, one job, as with the other two. */
+  /** Build Speed Options for VOD playback and remote controls.
+   * @returns {*} Value produced by the operation.
+   */
   function buildSpeedOptions() {
     subsOptions = [];
 
@@ -736,21 +871,36 @@
       hint: 'OK resets to normal speed.'
     }));
   }
+
+  /** Is Current Opt for VOD playback and remote controls.
+   * @param {*} opt - Input for isCurrentOpt().
+   * @returns {boolean} Whether the condition holds.
+   */
   function isCurrentOpt(opt) {
     if (opt.kind === 'audio') return !!opt.current;
     if (opt.kind === 'track') return (opt.label || '').toLowerCase() === activeSubLabel;
     return false;
   }
+
+  /** Open Audio Menu for VOD playback and remote controls.
+   * @returns {void} Updates module or UI state.
+   */
   function openAudioMenu() {
     menuMode = 'audio';
     buildAudioOptions();
     renderMenu('Audio');
   }
+  /** Open Subs Menu for VOD playback and remote controls.
+   * @returns {void} Updates module or UI state.
+   */
   function openSubsMenu() {
     menuMode = 'subs';
     buildSubsOptions();
     renderMenu('Subtitles');
   }
+  /** Open Speed Menu for VOD playback and remote controls.
+   * @returns {void} Updates module or UI state.
+   */
   function openSpeedMenu() {
     menuMode = 'speed';
     buildSpeedOptions();
@@ -763,6 +913,9 @@
   /* Every provider that can be searched right now. Order is the tie-breaker
      when two results rank equally, so the one needing a key — and therefore
      deliberately chosen by the user — comes first. */
+  /** Search Providers for VOD playback and remote controls.
+   * @returns {*} Value produced by the operation.
+   */
   function searchProviders() {
     var out = [];
     if (typeof OpenSubtitles !== 'undefined' && OpenSubtitles.configured()) {
@@ -785,8 +938,13 @@
   /* Run every provider in parallel and merge. One that throws is dropped
      rather than failing the search — a dead provider must not take a working
      one down with it, which is the whole reason for running them together. */
+  /** Search available subtitle providers in parallel and isolate their errors.
+   * @param {Object} q - Movie or episode title and external identifiers.
+   * @returns {Promise<Object>} Ranked results, provider errors and response count.
+   */
   function searchAll(q) {
     var providers = searchProviders();
+    var errors = [];
     var jobs = providers.map(function (p) {
       return p.api.search(q).then(function (rows) {
         return (rows || []).map(function (r) {
@@ -795,25 +953,34 @@
           return r;
         });
       })['catch'](function (err) {
-        _searchErrors.push(p.label + ': ' + (err && err.message || 'failed'));
+        errors.push(p.label + ': ' + (err && err.message || 'failed'));
         return null; // null = this provider never answered; [] = it answered with nothing
       });
     });
     return Promise.all(jobs).then(function (lists) {
       var merged = [];
-      _searchOk = 0;
+      var searched = 0;
       for (var i = 0; i < lists.length; i++) {
         if (lists[i] === null) continue;
-        _searchOk++;
+        searched++;
         merged = merged.concat(lists[i]);
       }
-      return rankResults(merged, providers);
+      return {
+        results: rankResults(merged, providers),
+        errors: errors,
+        searched: searched
+      };
     });
   }
 
   /* Preferred language first, then download count, then provider order. The
      language preference is the OpenSubtitles one — it is the only such setting
      the app has, and having two would be worse than sharing one. */
+  /** Rank Results for VOD playback and remote controls.
+   * @param {*} rows - Input for rankResults().
+   * @param {*} providers - Input for rankResults().
+   * @returns {*} Value produced by the operation.
+   */
   function rankResults(rows, providers) {
     var want = '';
     try {
@@ -824,6 +991,11 @@
     want = want.toLowerCase();
     var order = {};
     for (var p = 0; p < providers.length; p++) order[providers[p].id] = p;
+
+    /** Lang Rank for VOD playback and remote controls.
+     * @param {*} r - Input for langRank().
+     * @returns {*} Value produced by the operation.
+     */
     function langRank(r) {
       var l = String(r.lang || '').toLowerCase();
       if (l === want) return 0;
@@ -840,12 +1012,14 @@
       return (order[a.provider] || 0) - (order[b.provider] || 0);
     });
   }
-  var _searchErrors = [];
-  var _searchOk = 0; // providers that actually answered, however emptily
+  var _osSearchId = 0; // Ignore results from an earlier search or download.
 
+  /** Start a subtitle search and ignore any older search's results.
+   * @returns {void} Replaces the active subtitle menu contents.
+   */
   function openOsSearch() {
+    var searchId = ++_osSearchId;
     menuMode = 'os';
-    _searchErrors = [];
     subsOptions = [{
       kind: 'note',
       label: 'Searching…'
@@ -867,8 +1041,9 @@
       renderMenu('Online subtitles');
       return;
     }
-    searchAll(q).then(function (results) {
-      if (menuMode !== 'os') return; // user moved on
+    searchAll(q).then(function (answer) {
+      if (searchId !== _osSearchId || menuMode !== 'os' || !subsOpen) return;
+      var results = answer.results;
       if (!results.length) {
         /* "No subtitles found" is a claim about the TITLE, and it is
            only true if something actually searched. When every provider
@@ -876,11 +1051,11 @@
            had — reporting a refusal as an absence — so the error leads
            instead and the claim is dropped entirely. */
         var why;
-        if (!_searchOk && _searchErrors.length) {
-          why = 'Could not search: ' + _searchErrors.join('  ·  ');
+        if (!answer.searched && answer.errors.length) {
+          why = 'Could not search: ' + answer.errors.join('  ·  ');
         } else {
           why = 'No subtitles found for "' + q.title + '".';
-          if (_searchErrors.length) why += '  ' + _searchErrors.join('  ·  ');
+          if (answer.errors.length) why += '  ' + answer.errors.join('  ·  ');
         }
         subsOptions = [{
           kind: 'note',
@@ -915,7 +1090,7 @@
       }
       renderMenu('Online subtitles');
     })['catch'](function (err) {
-      if (menuMode !== 'os') return;
+      if (searchId !== _osSearchId || menuMode !== 'os' || !subsOpen) return;
       subsOptions = [{
         kind: 'note',
         label: err && err.message ? err.message : 'Search failed.'
@@ -923,7 +1098,13 @@
       renderMenu('Online subtitles');
     });
   }
+
+  /** Download Os Subtitle for VOD playback and remote controls.
+   * @param {*} opt - Input for downloadOsSubtitle().
+   * @returns {*} Value produced by the operation.
+   */
   function downloadOsSubtitle(opt) {
+    var searchId = ++_osSearchId;
     subsOptions = [{
       kind: 'note',
       label: 'Downloading subtitle…'
@@ -931,7 +1112,7 @@
     renderMenu('Online subtitles');
     var api = opt.provider === 'assrt' && typeof Assrt !== 'undefined' ? Assrt : OpenSubtitles;
     api.download(opt.fileId, opt.lang).then(function (res) {
-      if (menuMode !== 'os') return;
+      if (searchId !== _osSearchId || menuMode !== 'os' || !subsOpen) return;
       /* Providers hand back different things: OpenSubtitles a URL to
          fetch, Assrt the decoded text (it has to decode — its files are
          frequently GB18030). addExternalSubs accepts either, and `format`
@@ -953,6 +1134,7 @@
       /* addExternalSubs fetches and converts before the track appears, so
          poll briefly for it rather than assuming it's there. */
       waitForTrack(_osLabel(opt), function (found) {
+        if (searchId !== _osSearchId || menuMode !== 'os' || !subsOpen) return;
         if (found && player.setSubtitle) {
           var subs = player.listSubtitles();
           for (var i = 0; i < subs.length; i++) {
@@ -973,7 +1155,7 @@
         }
       });
     })['catch'](function (err) {
-      if (menuMode !== 'os') return;
+      if (searchId !== _osSearchId || menuMode !== 'os' || !subsOpen) return;
       subsOptions = [{
         kind: 'note',
         label: err && err.message ? err.message : 'Download failed.'
@@ -986,6 +1168,10 @@
      module is present so there is one implementation, but keeps a local
      fallback — this runs on the OpenSubtitles path too, which must not start
      depending on a provider it has nothing to do with. */
+  /** Format Of Name for VOD playback and remote controls.
+   * @param {string} name - Name.
+   * @returns {*} Value produced by the operation.
+   */
   function formatOfName(name) {
     if (typeof Assrt !== 'undefined' && Assrt.formatOf) return Assrt.formatOf(name);
     var m = /\.([a-z0-9]+)$/i.exec(String(name || '').split('?')[0].split('#')[0]);
@@ -996,12 +1182,25 @@
   /* The label the downloaded track carries. It names the provider because it
      is also the key the pick is remembered under, and two providers can
      supply the same language for one title. */
+  /** Os Label for VOD playback and remote controls.
+   * @param {*} opt - Input for _osLabel().
+   * @returns {*} Value produced by the operation.
+   */
   function _osLabel(opt) {
     var who = opt.providerLabel || (opt.provider === 'assrt' ? 'Assrt' : 'OpenSubtitles');
     return who + ' (' + String(opt.lang || '').toUpperCase() + ')';
   }
+
+  /** Wait For Track for VOD playback and remote controls.
+   * @param {*} label - Input for waitForTrack().
+   * @param {Function} done - Completion callback.
+   * @returns {*} Value produced by the operation.
+   */
   function waitForTrack(label, done) {
     var tries = 0;
+    /** Poll the active player for status updates while the screen remains open.
+     * @returns {void} Runs its startup, polling, or UI side effects.
+     */
     (function poll() {
       var subs = window.player && player.listSubtitles ? player.listSubtitles() : [];
       for (var i = 0; i < subs.length; i++) if (subs[i].label === label) {
@@ -1015,6 +1214,11 @@
       setTimeout(poll, 200);
     })();
   }
+
+  /** Render Menu for VOD playback and remote controls.
+   * @param {string} title - Display title.
+   * @returns {void} Updates module or UI state.
+   */
   function renderMenu(title) {
     subsList.innerHTML = '';
     subsOptions.forEach(function (opt, i) {
@@ -1073,6 +1277,9 @@
   /* -1 when the menu is all notes/headers (e.g. a file with one audio track):
      paintSubs() then draws no ring at all, rather than ringing a line of
      explanatory text that can't be actioned. */
+  /** First Selectable Index for VOD playback and remote controls.
+   * @returns {*} Value produced by the operation.
+   */
   function firstSelectableIndex() {
     var firstAny = -1;
     for (var i = 0; i < subsOptions.length; i++) {
@@ -1083,7 +1290,12 @@
     }
     return firstAny;
   }
+
+  /** Close Subs for VOD playback and remote controls.
+   * @returns {void} Updates module or UI state.
+   */
   function closeSubs() {
+    ++_osSearchId;
     subsMenu.hidden = true;
     subsOpen = false;
     paintFocus();
@@ -1093,6 +1305,10 @@
   /* Transient message over the video — used when an action silently fails and
      there's no menu left open to report into. */
   var _noteTimer = null;
+  /** Flash Note for VOD playback and remote controls.
+   * @param {string} text - Text.
+   * @returns {*} Value produced by the operation.
+   */
   function flashNote(text) {
     var el = document.getElementById('player-note');
     if (!el) {
@@ -1107,6 +1323,10 @@
       el.className = '';
     }, 6000);
   }
+
+  /** Paint Subs for VOD playback and remote controls.
+   * @returns {void} Updates module or UI state.
+   */
   function paintSubs() {
     var nodes = subsList.childNodes;
     for (var i = 0; i < nodes.length; i++) {
@@ -1120,6 +1340,10 @@
   }
 
   /* Step over headers and notes so they're never focusable. */
+  /** Move Subs for VOD playback and remote controls.
+   * @param {number} dir - Direction.
+   * @returns {*} Value produced by the operation.
+   */
   function moveSubs(dir) {
     if (subsIdx < 0) return; // nothing selectable in this menu
     var i = subsIdx + dir;
@@ -1133,6 +1357,10 @@
   /* LEFT/RIGHT on a stepper row. Only the value text is rewritten, so the menu
      doesn't rebuild and the focus ring stays put while the user holds a
      direction — the whole point of adjusting in place. */
+  /** Step Option for VOD playback and remote controls.
+   * @param {number} dir - Direction.
+   * @returns {*} Value produced by the operation.
+   */
   function stepOption(dir) {
     var opt = subsOptions[subsIdx];
     if (!opt || opt.kind !== 'stepper') return;
@@ -1140,13 +1368,26 @@
     if (opt._valueEl) opt._valueEl.textContent = opt.read();
     showStepHint(opt);
   }
+
+  /** Show Step Hint for VOD playback and remote controls.
+   * @param {*} opt - Input for showStepHint().
+   * @returns {void} Updates module or UI state.
+   */
   function showStepHint(opt) {
     if (!subsTitle) return;
     subsTitle.textContent = opt.hint || menuTitleFor(menuMode);
   }
+  /** Menu Title For for VOD playback and remote controls.
+   * @param {string} mode - Selected mode.
+   * @returns {*} Value produced by the operation.
+   */
   function menuTitleFor(mode) {
     return mode === 'audio' ? 'Audio' : mode === 'speed' ? 'Playback' : mode === 'os' ? 'Online subtitles' : 'Subtitles';
   }
+
+  /** Apply Track Choice for VOD playback and remote controls.
+   * @returns {void} Updates module or UI state.
+   */
   function applyTrackChoice() {
     var opt = subsOptions[subsIdx];
     if (!opt) {
@@ -1195,6 +1436,9 @@
 
   /* Re-apply the remembered audio language once tracks exist. Matches on
      language/label, and does nothing when there's no match — never guesses. */
+  /** Restore Audio Preference for VOD playback and remote controls.
+   * @returns {*} Value produced by the operation.
+   */
   function restoreAudioPreference() {
     var want = recallTrack('audio');
     if (!want || !window.player || !player.listAudioTracks) return;
@@ -1218,6 +1462,10 @@
       }
     }
   }
+
+  /** Go Back for VOD playback and remote controls.
+   * @returns {*} Value produced by the operation.
+   */
   function goBack() {
     try {
       player.destroyHls();
@@ -1229,6 +1477,9 @@
   }
 
   /* ── Icon state ──────────────────────────────────────────────────────── */
+  /** Update Play Icon for VOD playback and remote controls.
+   * @returns {void} Updates module or UI state.
+   */
   function updatePlayIcon() {
     var btn = document.getElementById('ctrl-play');
     if (!btn) return;
@@ -1241,6 +1492,10 @@
   }
 
   /* ── Scrubber ────────────────────────────────────────────────────────── */
+  /** Fmt for VOD playback and remote controls.
+   * @param {number} t - Time value.
+   * @returns {*} Value produced by the operation.
+   */
   function fmt(t) {
     if (!isFinite(t) || t < 0) t = 0;
     var s = Math.floor(t % 60),
@@ -1255,6 +1510,10 @@
   var thumb = document.getElementById('osd-seek-thumb');
   var curEl = document.getElementById('osd-time-cur');
   var durEl = document.getElementById('osd-time-dur');
+
+  /** Update Progress for VOD playback and remote controls.
+   * @returns {void} Updates module or UI state.
+   */
   function updateProgress() {
     var d = video.duration;
     if (!isFinite(d) || d <= 0) return;
@@ -1410,7 +1669,7 @@
      The second half never becomes a playable track, but it is what lets the
      menu explain an empty list truthfully instead of claiming the title has
      no subtitles at all.
-      Whatever the handover carried is attached immediately, and anything it
+       Whatever the handover carried is attached immediately, and anything it
      missed is chased down in the background against the stream that is
      already playing. See player/subtitles.js — the VOD page races its own
      lookup against a 2s cap, so "no subtitles" from there means "not within
@@ -1437,6 +1696,10 @@
      on `loadeddata` — whichever finds tracks first wins, and re-running is
      harmless because both restores are idempotent. */
   activeSubLabel = recallTrack('sub') || 'off';
+
+  /** Restore Track Preferences for VOD playback and remote controls.
+   * @returns {*} Value produced by the operation.
+   */
   function restoreTrackPreferences() {
     restoreAudioPreference();
     if (!activeSubLabel || activeSubLabel === 'off') return;

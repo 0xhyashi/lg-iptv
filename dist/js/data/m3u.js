@@ -4,6 +4,9 @@ function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present,
 function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
+/* data/m3u.js — fetch and parse M3U playlists into Live TV channels.
+ * Normalizes category IDs and stream URLs for the same UI as Xtream sources.
+ */
 // ── M3U / M3U8 playlist support ───────────────────────────────────────────────
 //
 // Parses a remote M3U8 playlist URL and returns channels + categories in the
@@ -27,6 +30,9 @@ var M3U_TIMEOUT_MS = 45000; // a 20 000-channel playlist is several MB
    "iptv_m3u_config" key is only kept in step by the Save button, so any other
    way of activating a profile left Live TV loading the previous playlist (or
    none). The old key is still honoured for installs from before profiles. */
+/** M3u Load Config for M3U channel parsing.
+ * @returns {*} Function result.
+ */
 function m3uLoadConfig() {
   var _window$IPTV_M3U_CONF;
   var cfg = null;
@@ -42,6 +48,10 @@ function m3uLoadConfig() {
 
 // ── Disk cache ────────────────────────────────────────────────────────────────
 
+/** M3u Cache Key for M3U channel parsing.
+ * @param {string} url - URL.
+ * @returns {*} Function result.
+ */
 function _m3uCacheKey(url) {
   return M3U_CACHE_PREFIX + Config.hash(String(url || ""));
 }
@@ -49,6 +59,10 @@ function _m3uCacheKey(url) {
 /* `_source` is the same on every row, and at 20 000 channels that one field
    is a few hundred KB of a ~5 MB store — so it is dropped on the way in and
    put back on the way out. */
+/** M3u Load Cache for M3U channel parsing.
+ * @param {string} url - URL.
+ * @returns {*} Function result.
+ */
 function m3uLoadCache(url) {
   Store.remove(M3U_CACHE_LEGACY);
   var hit = Store.cacheGet(_m3uCacheKey(url), M3U_TTL_MS);
@@ -62,6 +76,12 @@ function m3uLoadCache(url) {
     epgUrl: hit.epgUrl || ""
   };
 }
+
+/** M3u Save Cache for M3U channel parsing.
+ * @param {string} url - URL.
+ * @param {*} parsed - Input for m3uSaveCache().
+ * @returns {*} Function result.
+ */
 function m3uSaveCache(url, parsed) {
   var channels = parsed.channels.map(function (ch) {
     return {
@@ -79,6 +99,10 @@ function m3uSaveCache(url, parsed) {
     epgUrl: parsed.epgUrl || ""
   });
 }
+
+/** M3u Clear Cache for M3U channel parsing.
+ * @returns {*} Function result.
+ */
 function m3uClearCache() {
   Store.remove(M3U_CACHE_LEGACY);
   Store.removeByPrefix(M3U_CACHE_PREFIX);
@@ -87,6 +111,11 @@ function m3uClearCache() {
 // ── Parser ────────────────────────────────────────────────────────────────────
 
 var _attrReCache = {};
+/** Parse Attr for M3U channel parsing.
+ * @param {*} extinf - Input for _parseAttr().
+ * @param {*} attr - Input for _parseAttr().
+ * @returns {*} Function result.
+ */
 function _parseAttr(extinf, attr) {
   var re = _attrReCache[attr];
   // Handles: attr="value"  attr='value'  attr=value (unquoted)
@@ -98,6 +127,10 @@ function _parseAttr(extinf, attr) {
 /* The display name is whatever follows the first comma that is NOT inside a
    quoted attribute. Splitting on the first comma outright broke on the very
    common group-title="News, UK": the "name" became ` UK" tvg-logo=…,BBC One`. */
+/** Extinf Name for M3U channel parsing.
+ * @param {*} extinf - Input for _extinfName().
+ * @returns {*} Function result.
+ */
 function _extinfName(extinf) {
   var quote = "";
   for (var i = 0; i < extinf.length; i++) {
@@ -114,6 +147,11 @@ function _extinfName(extinf) {
   }
   return "";
 }
+
+/** M3u Parse for M3U channel parsing.
+ * @param {string} text - Text to process.
+ * @returns {*} Function result.
+ */
 function m3uParse(text) {
   // Normalise all line-ending styles (\r\n, \r, \n) before splitting
   var lines = text.replace(/^﻿/, "").replace(/\r\n?/g, "\n").split("\n");
@@ -184,9 +222,17 @@ function m3uParse(text) {
 
 /* Through Net so the timeout is real on every webOS version — a bare fetch +
    AbortController never timed out on webOS 4/5, where the controller is a stub. */
+/** M3u Fetch Playlist for M3U channel parsing.
+ * @param {string} url - URL.
+ * @returns {Promise<*>} Promise for the asynchronous operation.
+ */
 function m3uFetchPlaylist(_x) {
   return _m3uFetchPlaylist.apply(this, arguments);
 } // ── Public API (mirrors xtream shape) ─────────────────────────────────────────
+/** M3u Get Channels And Categories for M3U channel parsing.
+ * @param {*} m3uCfg - Input for m3uGetChannelsAndCategories().
+ * @returns {Promise<*>} Promise for the asynchronous operation.
+ */
 function _m3uFetchPlaylist() {
   _m3uFetchPlaylist = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(url) {
     var text;
@@ -215,6 +261,9 @@ function m3uGetChannelsAndCategories(_x2) {
   return _m3uGetChannelsAndCategories.apply(this, arguments);
 } // M3U channels have no server-side EPG API — return empty so the app
 // falls back to XMLTV if the user has configured one.
+/** M3u Get EPG for M3U channel parsing.
+ * @returns {*} Function result.
+ */
 function _m3uGetChannelsAndCategories() {
   _m3uGetChannelsAndCategories = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(m3uCfg) {
     return _regenerator().w(function (_context2) {
@@ -233,6 +282,10 @@ function m3uGetEPG(/*streamId*/
 
 // Build the playback URL for an M3U channel — it's stored directly on the
 // channel object, so just return it.
+/** M3u Build Live URL for M3U channel parsing.
+ * @param {*} channel - Input for m3uBuildLiveURL().
+ * @returns {*} Function result.
+ */
 function m3uBuildLiveURL(channel) {
   return channel.stream_url || "";
 }

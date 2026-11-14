@@ -48,6 +48,12 @@ window.Assrt = function () {
      purpose — a personal token from Settings overrides it. Its whole value is
      that search works before the user has configured anything. */
   var DEFAULT_TOKEN = 'tNjXZUnOJWcHznHDyalNMYqqP6IdDdpQ';
+
+  /** Get for Assrt subtitle lookup.
+   * @param {string} key - Stored key or lookup identifier.
+   * @param {*} dflt - Input for get().
+   * @returns {*} Function result.
+   */
   function get(key, dflt) {
     try {
       return localStorage.getItem(key) || dflt || '';
@@ -55,6 +61,10 @@ window.Assrt = function () {
       return dflt || '';
     }
   }
+
+  /** Token for Assrt subtitle lookup.
+   * @returns {*} Function result.
+   */
   function token() {
     var t = String(get(KEY_TOKEN, '')).replace(/^\s+|\s+$/g, '');
     return t || DEFAULT_TOKEN;
@@ -63,6 +73,9 @@ window.Assrt = function () {
   /* Always true, and that is the point: a token always exists, so the
      "Search online…" row can be offered on every title instead of being
      hidden behind setup the user has not done. */
+  /** Configured for Assrt subtitle lookup.
+   * @returns {*} Function result.
+   */
   function configured() {
     return true;
   }
@@ -72,6 +85,10 @@ window.Assrt = function () {
      be ranked by language alongside OpenSubtitles' ISO codes. Checked English
      first: a "简英" dual subtitle carries English text too, and for this app's
      users that is the more useful of the two labels. */
+  /** Lang Of for Assrt subtitle lookup.
+   * @param {*} desc - Input for langOf().
+   * @returns {*} Function result.
+   */
   function langOf(desc) {
     var d = String(desc || '');
     if (d.indexOf('英') !== -1) return 'en';
@@ -79,6 +96,11 @@ window.Assrt = function () {
     if (d.indexOf('繁') !== -1) return 'zh-TW';
     return 'zh';
   }
+
+  /** Pad2 for Assrt subtitle lookup.
+   * @param {*} n - Input for pad2().
+   * @returns {*} Function result.
+   */
   function pad2(n) {
     return (n < 10 ? '0' : '') + n;
   }
@@ -88,6 +110,10 @@ window.Assrt = function () {
      title+year narrows well. An episode's release name carries the season's
      year rather than the series' first-air year, so sending the year there
      matches nothing — episodes go by SxxEyy instead. */
+  /** Build Query for Assrt subtitle lookup.
+   * @param {*} q - Input for buildQuery().
+   * @returns {*} Function result.
+   */
   function buildQuery(q) {
     q = q || {};
     if (q.manualQuery) return String(q.manualQuery).replace(/^\s+|\s+$/g, '');
@@ -109,6 +135,10 @@ window.Assrt = function () {
      player's picker and download path treat both providers identically and
      neither needs to know the other exists. `provider` is the only extra
      field, and it exists solely so download() can be routed. */
+  /** Search for Assrt subtitle lookup.
+   * @param {*} q - Input for search().
+   * @returns {*} Function result.
+   */
   function search(q) {
     var query = buildQuery(q);
     /* Two characters matches half the database and wastes a request on a
@@ -160,11 +190,16 @@ window.Assrt = function () {
      Returns { text, format } rather than a URL, because Assrt serves the file
      from a host with its own rules and the body has to be decoded here (see
      decode() below). The player accepts either shape.
-      Two of the three routes his implementation has are kept. The third — a
+       Two of the three routes his implementation has are kept. The third — a
      .zip that has to be inflated — is deliberately dropped: it needs a full
      DEFLATE implementation, it is the rare case even upstream ("filelist
      usually covers it"), and a clear "this one is a zip, pick another" beats
      shipping an inflater to this app for it. */
+  /** Download for Assrt subtitle lookup.
+   * @param {*} fileId - Input for download().
+   * @param {*} lang - Input for download().
+   * @returns {*} Function result.
+   */
   function download(fileId, lang) {
     var url = BASE + '/sub/detail?token=' + encodeURIComponent(token()) + '&id=' + encodeURIComponent(fileId);
     return Net.json(url, {
@@ -206,6 +241,11 @@ window.Assrt = function () {
     20004: 'Assrt’s daily quota for the app’s shared token is used up — try again tomorrow, or add your own free token.',
     20900: 'Assrt is temporarily unavailable.'
   };
+
+  /** Status Error for Assrt subtitle lookup.
+   * @param {*} body - Input for statusError().
+   * @returns {*} Function result.
+   */
   function statusError(body) {
     var code = body && body.status;
     var msg = STATUS_TEXT[code] || (body && body.errmsg ? 'Assrt: ' + body.errmsg : 'Assrt refused the request (status ' + code + ').');
@@ -213,14 +253,31 @@ window.Assrt = function () {
     err.status = code;
     return err;
   }
+
+  /** Strip for Assrt subtitle lookup.
+   * @param {*} u - Input for strip().
+   * @returns {*} Function result.
+   */
   function strip(u) {
     return String(u).split('?')[0].split('#')[0];
   }
+
+  /** Format Of for Assrt subtitle lookup.
+   * @param {string} name - Display name.
+   * @returns {*} Function result.
+   */
   function formatOf(name) {
     var m = /\.([a-z0-9]+)$/i.exec(strip(String(name || '')));
     var ext = m ? m[1].toLowerCase() : '';
     return ext === 'ass' || ext === 'ssa' || ext === 'vtt' ? ext : 'srt';
   }
+
+  /** Fetch Text for Assrt subtitle lookup.
+   * @param {string} url - URL.
+   * @param {string} name - Display name.
+   * @param {*} lang - Input for fetchText().
+   * @returns {*} Function result.
+   */
   function fetchText(url, name, lang) {
     return Net.request(url, {
       timeout: TIMEOUT,
@@ -254,19 +311,24 @@ window.Assrt = function () {
      turns "wrong encoding" into a throw we can act on); what follows depends
      on the language, because the two plausible legacy encodings disagree
      about exactly the bytes that matter:
-        Chinese      → GB18030
+         Chinese      → GB18030
        everything   → windows-1252
-      Ordering by language rather than always trying GB18030 first is the fix
+       Ordering by language rather than always trying GB18030 first is the fix
      for a real failure: a CP1252 French or Spanish .srt has bytes like 0xE9
      for "é", and GB18030 maps those high bytes to CJK ideographs — so the
      subtitle came out as English words interleaved with Chinese characters.
      Plain ASCII is unaffected either way, which is why it survives casual
      testing and only shows up on accented text.
-      A CJK sanity check backstops the ordering: if a non-Chinese result decodes
+       A CJK sanity check backstops the ordering: if a non-Chinese result decodes
      to a lot of ideographs, the guess was wrong and the other encoding wins.
-      TextDecoder is feature-detected rather than assumed — it exists on the
+       TextDecoder is feature-detected rather than assumed — it exists on the
      Chrome 38 floor this app targets, but the set of supported encoding labels
      varies by build, and a missing one must degrade rather than throw. */
+  /** Decode for Assrt subtitle lookup.
+   * @param {*} buf - Input for decode().
+   * @param {*} lang - Input for decode().
+   * @returns {*} Function result.
+   */
   function decode(buf, lang) {
     var bytes = new Uint8Array(buf);
     if (typeof TextDecoder !== 'function') return rawDecode(bytes);
@@ -295,6 +357,12 @@ window.Assrt = function () {
     } catch (e) {}
     return rawDecode(bytes);
   }
+
+  /** Try Decode for Assrt subtitle lookup.
+   * @param {*} bytes - Input for tryDecode().
+   * @param {*} label - Input for tryDecode().
+   * @returns {*} Function result.
+   */
   function tryDecode(bytes, label) {
     try {
       return new TextDecoder(label).decode(bytes);
@@ -306,12 +374,21 @@ window.Assrt = function () {
   /* Proportion of CJK ideographs, sampled from the head — enough to tell a
      mis-decode from a stray accented character without walking a whole film's
      worth of dialogue. */
+  /** Cjk Ratio for Assrt subtitle lookup.
+   * @param {string} text - Text to process.
+   * @returns {*} Function result.
+   */
   function cjkRatio(text) {
     var head = String(text).slice(0, 4000);
     if (!head.length) return 0;
     var hits = head.match(/[一-鿿]/g);
     return hits ? hits.length / head.length : 0;
   }
+
+  /** Raw Decode for Assrt subtitle lookup.
+   * @param {*} bytes - Input for rawDecode().
+   * @returns {*} Function result.
+   */
   function rawDecode(bytes) {
     var s = '';
     for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);

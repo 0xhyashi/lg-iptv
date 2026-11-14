@@ -7,6 +7,86 @@
 (function () {
     'use strict';
     var W = window;
+
+    /* The upstream v8.2.2 bundle uses these newer built-ins even when Babel
+     * removes its modern syntax. The parent page's polyfills only cover the
+     * older Bunkhouse app; these are scoped to WeatherStar's iframe realm. */
+    if (W.Promise && !W.Promise.allSettled) {
+        W.Promise.allSettled = function (items) {
+            return W.Promise.all(Array.prototype.map.call(items, function (item) {
+                return W.Promise.resolve(item).then(
+                    function (value) {return {status:'fulfilled',value:value};},
+                    function (reason) {return {status:'rejected',reason:reason};}
+                );
+            }));
+        };
+    }
+    if (!Object.hasOwn) {
+        Object.hasOwn = function (obj, key) {
+            return Object.prototype.hasOwnProperty.call(Object(obj), key);
+        };
+    }
+    if (!Object.fromEntries) {
+        Object.fromEntries = function (entries) {
+            var object = {};
+            var list = Array.from(entries);
+            for (var i = 0; i < list.length; i++) {
+                object[list[i][0]] = list[i][1];
+            }
+            return object;
+        };
+    }
+    if (!Array.prototype.flat) {
+        Array.prototype.flat = function (depth) {
+            var limit = depth === undefined ? 1 : Number(depth);
+            var out = [];
+            /** Append an array's nested values up to the requested depth.
+             * @param {Array} values - Source values to flatten.
+             * @param {number} remaining - Maximum remaining nested depth.
+             * @returns {void} Appends to out.
+             */
+            function append(values, remaining) {
+                for (var i = 0; i < values.length; i++) {
+                    if (!(i in values)) continue;
+                    if (Array.isArray(values[i]) && remaining > 0) append(values[i], remaining - 1);
+                    else out.push(values[i]);
+                }
+            }
+            append(this, limit);
+            return out;
+        };
+    }
+    if (!Array.prototype.flatMap) {
+        Array.prototype.flatMap = function (callback, thisArg) {
+            return Array.prototype.map.call(this, callback, thisArg).flat();
+        };
+    }
+    if (!String.prototype.padStart) {
+        String.prototype.padStart = function (length, fill) {
+            var str = String(this), pad = fill === undefined ? ' ' : String(fill);
+            if (str.length >= Number(length) || !pad) return str;
+            while (str.length < length) str = pad + str;
+            return str.slice(-Number(length));
+        };
+    }
+    if (!String.prototype.padEnd) {
+        String.prototype.padEnd = function (length, fill) {
+            var str = String(this), pad = fill === undefined ? ' ' : String(fill);
+            if (str.length >= Number(length) || !pad) return str;
+            while (str.length < length) str += pad;
+            return str.slice(0, Number(length));
+        };
+    }
+    if (!String.prototype.replaceAll) {
+        String.prototype.replaceAll = function (search, replacement) {
+            var str = String(this);
+            if (search instanceof RegExp) {
+                if (!search.global) throw new TypeError('replaceAll requires a global regular expression');
+                return str.replace(search, replacement);
+            }
+            return str.split(String(search)).join(String(replacement));
+        };
+    }
     /** Send for WeatherStar iframe compatibility and local diagnostics.
      * @param {*} type - Input for send().
      * @param {*} message - Input for send().
@@ -81,6 +161,14 @@
         var originalFetch = W.fetch;
         W.fetch = function (url, options) {
             var address = String(url || '');
+            var localKey = address.split('?')[0].replace(/^\.\//, '');
+            if (W.location.protocol === 'file:' && W.BunkhouseWeatherData &&
+                Object.prototype.hasOwnProperty.call(W.BunkhouseWeatherData, localKey)) {
+                var body = JSON.stringify(W.BunkhouseWeatherData[localKey]);
+                return W.Promise.resolve({ok:true,status:200,
+                    json:function(){return W.Promise.resolve(JSON.parse(body));},
+                    text:function(){return W.Promise.resolve(body);}});
+            }
             if (address.indexOf('https://api.weather.gov/') !== 0) {
                 return originalFetch.call(W, url, options);
             }
@@ -130,8 +218,15 @@
     }, false);
 
     var lastStatus = '';
+    var rendered = false;
     W.addEventListener('DOMContentLoaded', function () {
         setInterval(function () {
+            // A real forecast display, not the upstream loading/progress card.
+            // This signal lets the parent remove its no-black-screen overlay.
+            if (!rendered && document.querySelector('.weather-display.show:not(#progress-html)')) {
+                rendered = true;
+                send('display', 'Original forecast graphics are visible');
+            }
             var el = document.querySelector('.location-status');
             var status = el && el.textContent && el.textContent.trim();
             if (!status || status === lastStatus) return;

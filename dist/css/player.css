@@ -851,3 +851,68 @@ html.no-flex-gap #osd-controls > * + * {
     border-color: var(--accent);
     background: rgba(229,0,30,0.92);
 }
+#radio-audio {
+    display: none;
+}
+#radio-visual {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    -webkit-align-items: stretch;
+    align-items: stretch;
+    -webkit-justify-content: flex-start;
+    justify-content: flex-start;
+    box-sizing: border-box;
+    padding: 2rem 2rem 4rem;
+    background: radial-gradient(ellipse at 50% 20%, #25384d 0%, #151b2b 48%, #070910 100%);
+    color: #fff;
+    text-align: center;
+}
+#radio-icon {
+    font-size: 5rem;
+    line-height: 1;
+    color: #80c4e8;
+    margin-bottom: 1rem;
+}
+#radio-kicker {
+    letter-spacing: 0.22em;
+    font-size: 0.86rem;
+    color: #8cafd1;
+    font-weight: 800;
+}
+#radio-name {
+    font-size: 1.7rem;
+    font-weight: 700;
+    max-width: 95%;
+    margin: 0.5rem 0;
+    line-height: 1.25;
+}
+#radio-status {
+    color: #c6cedc;
+    font-size: 1rem;
+    margin-bottom: 1.1rem;
+}
+#radio-toggle {
+    color: #fff;
+    background: #205d83;
+    border: 1px solid #65bce3;
+    font: inherit;
+    font-weight: 700;
+    padding: 0.7rem 1.8rem;
+    border-radius: 1.5rem;
+    cursor: pointer;
+}
+#radio-toggle:focus {
+    outline: 2px solid #fff;
+    outline-offset: 4px;
+}
+#pip-bar {
+    z-index: 3;
+}

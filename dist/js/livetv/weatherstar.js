@@ -1,0 +1,692 @@
+"use strict";
+
+/* WeatherStar's original graphics + user-selectable continuous soundtrack.
+ *
+ * Forecast: pristine upstream ws4kp built from pinned source.
+ * Local original soundtrack: its 17-song shuffled native player, unmodified.
+ * External: Nightwave Plaza or SomaFM public MP3 through ONE parent <audio>.
+ * Only one soundtrack is allowed at a time. We explicitly reload WeatherStar
+ * with mediaPlaying=false when LEAVING Classic so its built-in audio is shut
+ * down before starting the live stream. The forecast UI source is untouched.
+ */
+var WeatherChannel = function () {
+  "use strict";
+
+  var active = false;
+  var defaultCity = "Ellicott City, Maryland, USA";
+  var DEFAULT_SOUND = "nightwave";
+  var sounds = {
+    nightwave: {
+      name: "Nightwave Plaza",
+      url: "https://radio.plaza.one/mp3"
+    },
+    classic: {
+      name: "Classic WeatherStar (17 local songs)",
+      url: ""
+    },
+    soma: {
+      name: "SomaFM Vaporwaves",
+      url: "https://ice5.somafm.com/vaporwaves-128-mp3"
+    }
+  };
+  var soundtrack = DEFAULT_SOUND;
+  var soundPaused = false;
+  var loadSerial = 0;
+  var nwsError = ""; // Most recent NWS access failure reported by the local iframe.
+  var weatherWatchdog = null;
+  var forecastRendered = false;
+
+  /** Find a WeatherStar control by its DOM ID.
+   * @param {string} id - DOM element or stored object ID.
+   * @returns {HTMLElement|null} Matching element, or null.
+   */
+  function $(id) {
+    return document.getElementById(id);
+  }
+  /** Return the separate Nightwave/SomaFM audio element.
+   * @returns {HTMLAudioElement|null} Active audio element, or null.
+   */
+  function externalPlayer() {
+    return $("weatherstar-external-audio");
+  }
+  /** Return the user's saved weather location or the default.
+   * @returns {string} Requested text value.
+   */
+  function getCity() {
+    try {
+      return localStorage.getItem("bunkhouse_weather_city") || defaultCity;
+    } catch (_) {
+      return defaultCity;
+    }
+  }
+  /** Remember the weather location.
+   * @param {string} city - Location name, ZIP code or coordinates.
+   * @returns {void} No return value.
+   */
+  function saveCity(city) {
+    try {
+      localStorage.setItem("bunkhouse_weather_city", city);
+    } catch (_) {}
+  }
+  /** Restore the preferred music source.
+   * @returns {void} No return value.
+   */
+  function restoreSound() {
+    try {
+      var saved = localStorage.getItem("bunkhouse_weather_soundtrack");
+      if (sounds[saved]) soundtrack = saved;
+    } catch (_) {}
+  }
+  /** Persist the selected soundtrack.
+   * @returns {void} No return value.
+   */
+  function rememberSound() {
+    try {
+      localStorage.setItem("bunkhouse_weather_soundtrack", soundtrack);
+    } catch (_) {}
+  }
+  /** Write a safe WeatherStar status message.
+   * @param {string} text - Text to display or parse.
+   * @returns {void} No return value.
+   */
+  function setMessage(text) {
+    var status = $("weatherstar-status");
+    if (status) status.textContent = text;
+  }
+  /** Show a readable forecast loading/error screen in place of a blank iframe.
+   * @param {string} text - Message; empty string hides the diagnostic.
+   * @returns {void} Updates the diagnostic overlay.
+   */
+  function showForecastDiagnostic(text) {
+    var overlay = $("weatherstar-diagnostics");
+    var message = $("weatherstar-diagnostics-message");
+    if (overlay) overlay.style.display = text ? "flex" : "none";
+    if (message && text) message.textContent = text;
+  }
+  /** Cancel the pending forecast-display readiness timeout.
+   * @returns {void} Stops the timer.
+   */
+  function stopWeatherWatchdog() {
+    if (weatherWatchdog !== null) {
+      clearTimeout(weatherWatchdog);
+      weatherWatchdog = null;
+    }
+  }
+  /** Warn after a long blank forecast without claiming the iframe worked.
+   * @returns {void} Schedules an on-screen diagnostic.
+   */
+  function startWeatherWatchdog() {
+    stopWeatherWatchdog();
+    if (typeof setTimeout !== "function") return;
+    weatherWatchdog = setTimeout(function () {
+      weatherWatchdog = null;
+      if (!active || forecastRendered) return;
+      showForecastDiagnostic(nwsError ? "NWS request failed: " + nwsError : "The original WeatherStar display has not started. This may be a webOS browser compatibility, network, or forecast-service problem. Try RETRY FORECAST.");
+    }, 18000);
+  }
+  /** Update soundtrack controls to reflect current playback.
+   * @returns {void} No return value.
+   */
+  function updateControls() {
+    var select = $("weatherstar-soundtrack");
+    if (select) select.value = soundtrack;
+    var toggle = $("weatherstar-music");
+    if (toggle) {
+      toggle.textContent = soundtrack === "classic" ? soundPaused ? "▶ PLAY CLASSIC" : "♫ CLASSIC MUSIC" : soundPaused ? "▶ PLAY SOUND" : "Ⅱ PAUSE SOUND";
+      toggle.title = soundtrack === "classic" ? "Toggle WeatherStar's original 17-track shuffle (press if silent)" : "Pause or resume the selected live internet-radio station";
+    }
+  }
+  // WeatherStar 8.2.2 normally geocodes latLonQuery with ArcGIS /find
+  // BEFORE it makes any NWS request. That step is the source of the exact
+  // "Location search isn't responding" startup error on the TV.
+  // Supplying BOTH latLon and latLonQuery skips that fragile extra lookup.
+  // The initial city is known and requires no network-based geocoding.
+  var defaultCoordinates = {
+    lat: 39.2673,
+    lon: -76.7983
+  };
+  /** Validate latitude and longitude bounds.
+   * @param {Object} p - Latitude/longitude pair to validate.
+   * @returns {boolean} Whether the requested condition is met.
+   */
+  function coordsOK(p) {
+    return p && isFinite(p.lat) && isFinite(p.lon) && p.lat >= -90 && p.lat <= 90 && p.lon >= -180 && p.lon <= 180;
+  }
+  /** Read coordinates cached for the specified location.
+   * @param {string} city - Location name, ZIP code or coordinates.
+   * @returns {Object|null} Matching object, or null.
+   */
+  function getCachedCoordinates(city) {
+    if (String(city).toLowerCase().trim() === defaultCity.toLowerCase()) {
+      return defaultCoordinates;
+    }
+    try {
+      var old = JSON.parse(localStorage.getItem("bunkhouse_weather_coords") || "null");
+      if (old && old.city === city && coordsOK(old.coords)) return old.coords;
+    } catch (_) {}
+    return null;
+  }
+  /** Cache the resolved coordinates with the location name.
+   * @param {string} city - Location name, ZIP code or coordinates.
+   * @param {Object} coords - Latitude/longitude pair {lat,lon}.
+   * @returns {void} No return value.
+   */
+  function storeCoordinates(city, coords) {
+    try {
+      localStorage.setItem("bunkhouse_weather_coords", JSON.stringify({
+        city: city,
+        coords: coords
+      }));
+    } catch (_) {}
+  }
+  /** Resolve city, ZIP or explicit coordinates before loading WeatherStar.
+   * @param {string} city - Location name, ZIP code or coordinates.
+   * @returns {Promise<Object>} Resolves with the requested object.
+   */
+  function resolveCoordinates(city) {
+    var cached = getCachedCoordinates(city);
+    if (cached) return Promise.resolve(cached);
+    var direct = /^\s*(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$/.exec(city);
+    if (direct) {
+      var given = {
+        lat: Number(direct[1]),
+        lon: Number(direct[2])
+      };
+      if (coordsOK(given)) return Promise.resolve(given);
+      return Promise.reject(new Error("Invalid latitude/longitude."));
+    }
+    if (/^\d{5}$/.test(city)) {
+      return Net.json("https://api.zippopotam.us/us/" + encodeURIComponent(city), {
+        timeout: 10000
+      }).then(function (data) {
+        var place = data && data.places && data.places[0];
+        if (!place) throw new Error("ZIP code has no coordinates");
+        var coords = {
+          lat: Number(place.latitude),
+          lon: Number(place.longitude)
+        };
+        if (!coordsOK(coords)) throw new Error("Invalid ZIP coordinates");
+        storeCoordinates(city, coords);
+        return coords;
+      });
+    }
+    // For non-default cities, geocode once in the Bunkhouse parent window.
+    // Unlike the upstream iframe, this window has our webOS fetch polyfills.
+    var endpoint = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/find" + "?f=json&text=" + encodeURIComponent(city);
+    // Net's timeout rejects even on old webOS versions without working abort().
+    return Net.json(endpoint, {
+      timeout: 10000
+    }).then(function (data) {
+      var geometry = data && data.locations && data.locations[0] && data.locations[0].feature && data.locations[0].feature.geometry;
+      if (!geometry) throw new Error("Location not found");
+      var coords = {
+        lat: Number(geometry.y),
+        lon: Number(geometry.x)
+      };
+      if (!coordsOK(coords)) throw new Error("Location has invalid coordinates");
+      storeCoordinates(city, coords);
+      return coords;
+    });
+  }
+  /** Build a WeatherStar URL containing native coordinate and music settings.
+   * @param {Object} coords - Latitude/longitude pair {lat,lon}.
+   * @returns {string} Requested text value.
+   */
+  function weatherURL(coords) {
+    // Always load the packaged copy. The remote site is unreliable in a
+    // file:// iframe on LG TVs and can render an empty black frame.
+    var base = "../weatherstar/index.html";
+    var isClassic = soundtrack === "classic";
+    var query = "?latLonQuery=" + encodeURIComponent(getCity());
+    if (coords && coordsOK(coords)) {
+      // Bypasses upstream ArcGIS findLocation() and loads NWS directly.
+      query += "&latLon=" + encodeURIComponent(JSON.stringify(coords));
+    }
+    return base + query + "&kiosk=true&mediaPlaying=" + (isClassic && !soundPaused ? "true" : "false") + "&mediaVolume=0.65&viewMode=standard";
+  }
+  /** Pause and unload the external vaporwave audio stream.
+   * @returns {void} No return value.
+   */
+  function stopExternal() {
+    var player = externalPlayer();
+    if (!player) return;
+    // Reset the network connection; never keep radio streaming after exit.
+    try {
+      player.pause();
+    } catch (_) {}
+    player.removeAttribute("src");
+    try {
+      player.load();
+    } catch (_) {}
+  }
+  /** Tune the selected Nightwave/SomaFM stream and show its state.
+   * @returns {void} No return value.
+   */
+  function startExternal() {
+    if (!active || soundtrack === "classic" || soundPaused) return;
+    var player = externalPlayer();
+    if (!player) {
+      setMessage("Weather audio player unavailable.");
+      return;
+    }
+    var url = sounds[soundtrack].url;
+    if (!url) return;
+    if (player.getAttribute("src") !== url) {
+      stopExternal();
+      player.src = url;
+    }
+    updateControls();
+    setMessage("Connecting to " + sounds[soundtrack].name + "…");
+    var id = ++loadSerial;
+    var playResult;
+    try {
+      playResult = player.play();
+    } catch (_) {
+      setMessage("Press PLAY SOUND to start " + sounds[soundtrack].name + ".");
+      soundPaused = true;
+      updateControls();
+      return;
+    }
+    if (playResult && typeof playResult.catch === "function") {
+      playResult.catch(function (error) {
+        if (active && id === loadSerial && soundtrack !== "classic") {
+          soundPaused = true;
+          updateControls();
+          setMessage(error && error.name === "NotAllowedError" ? "LG blocked automatic audio: press PLAY SOUND." : "Couldn't start " + sounds[soundtrack].name + ". Press PLAY SOUND to retry.");
+        }
+      });
+    }
+  }
+  /** Locate WeatherStar's native music button when same-origin.
+   * @returns {HTMLElement|null} Matching element, or null.
+   */
+  function getNativeButton() {
+    var frame = $("weatherstar-frame");
+    try {
+      return frame && frame.contentWindow && frame.contentWindow.document.getElementById("ToggleMedia");
+    } catch (_) {
+      return null;
+    }
+  }
+  /** Control the original internal WeatherStar music.
+   * @returns {void} No return value.
+   */
+  function toggleClassic() {
+    var button = getNativeButton();
+    if (button) {
+      // Real click controls the ORIGINAL WeatherStar native shuffle;
+      // may still need user gesture on older webOS browsers.
+      button.click();
+      var pressed = button.getAttribute("aria-pressed");
+      soundPaused = pressed !== "true";
+      updateControls();
+      setMessage(soundPaused ? "Classic WeatherStar paused." : "Classic WeatherStar: 17-song shuffled soundtrack.");
+      return;
+    }
+    // The frame may still be loading; reload the local player once.
+    soundPaused = !soundPaused;
+    updateControls();
+    navigate();
+    setMessage("WeatherStar is loading; press PLAY SOUND after it appears if needed.");
+  }
+  /** Load the selected WeatherStar page after coordinates resolve.
+   * @returns {void} No return value.
+   */
+  function navigate() {
+    if (!active) return;
+    // Never let previous location resolutions reload a different channel.
+    var navigationId = ++loadSerial;
+    nwsError = "";
+    forecastRendered = false;
+    stopWeatherWatchdog();
+    showForecastDiagnostic("Starting original WeatherStar 4000+ forecast for " + getCity() + "…");
+    stopExternal();
+    var frame = $("weatherstar-frame");
+    if (!frame) return;
+    var city = getCity(),
+      input = $("weatherstar-city");
+    if (input) input.value = city;
+    frame.src = "about:blank";
+    var source = $("weatherstar-retry");
+    if (source) source.textContent = "RETRY FORECAST";
+    updateControls();
+    setMessage("Finding forecast coordinates for " + city + "…");
+    resolveCoordinates(city).then(function (coords) {
+      if (!active || navigationId !== loadSerial) return;
+      frame.src = weatherURL(coords);
+      startWeatherWatchdog();
+      setMessage("Loading local WeatherStar 4000+ forecast…");
+    }).catch(function (error) {
+      if (!active || navigationId !== loadSerial) return;
+      showForecastDiagnostic("Cannot find location: " + (error && error.message || "lookup failed") + ". Try a US ZIP code or latitude,longitude.");
+      setMessage("Cannot find location: " + (error && error.message || "lookup failed") + ". Try a US ZIP code or latitude,longitude.");
+    });
+  }
+  /** Enter the WeatherStar channel.
+   * @returns {void} No return value.
+   */
+  function open() {
+    if (active) return;
+    var root = $("weatherstar-view");
+    if (!root) return;
+    active = true;
+    root.style.display = "flex";
+    var video = $("player");
+    if (video) video.style.display = "none";
+    var msg = $("player-msg");
+    if (msg) msg.style.display = "none";
+    navigate();
+  }
+  /** Unload WeatherStar and stop its external music.
+   * @returns {void} No return value.
+   */
+  function close() {
+    if (!active) return;
+    active = false;
+    ++loadSerial;
+    stopWeatherWatchdog();
+    forecastRendered = false;
+    showForecastDiagnostic("");
+    stopExternal();
+    var root = $("weatherstar-view");
+    if (root) root.style.display = "none";
+    var frame = $("weatherstar-frame");
+    // Unload the actual upstream player, which stops any classic music.
+    if (frame) frame.src = "about:blank";
+    var video = $("player");
+    if (video) video.style.display = "block";
+  }
+  /** Return from weather to the TV channel list.
+   * @returns {void} No return value.
+   */
+  function backToChannels() {
+    if (typeof isFullscreen === "function" && isFullscreen()) {
+      toggleFullscreen();
+      return;
+    }
+    close();
+    currentChannel = null;
+    var msg = $("player-msg");
+    if (msg) {
+      msg.style.display = "flex";
+      msg.textContent = "Select a TV channel";
+    }
+    if (typeof setTVZone === "function") setTVZone("channel-list");
+    var list = $("channel-list-wrap");
+    if (list) {
+      try {
+        list.focus();
+      } catch (_) {}
+    }
+  }
+  /** Switch music source without playing two tracks together.
+   * @param {string} next - New soundtrack identifier.
+   * @returns {void} No return value.
+   */
+  function changeSound(next) {
+    if (!sounds[next] || next === soundtrack) return;
+    var wasClassic = soundtrack === "classic";
+    var nowClassic = next === "classic";
+    ++loadSerial;
+    stopExternal();
+    soundtrack = next;
+    soundPaused = false;
+    rememberSound();
+    updateControls();
+    if (!active) return;
+    if (wasClassic !== nowClassic) {
+      // A reload replaces the WeatherStar media player, guaranteeing
+      // the previous sound is stopped even for a cross-origin frame.
+      navigate();
+    } else {
+      startExternal();
+    }
+  }
+  /** Pause or resume the current music source.
+   * @returns {void} No return value.
+   */
+  function toggleSound() {
+    if (!active) return;
+    if (soundtrack === "classic") {
+      toggleClassic();
+      return;
+    }
+    var player = externalPlayer();
+    if (!player) return;
+    if (!soundPaused && !player.paused) {
+      soundPaused = true;
+      ++loadSerial;
+      player.pause();
+      setMessage(sounds[soundtrack].name + " paused.");
+    } else {
+      soundPaused = false;
+      startExternal();
+    }
+    updateControls();
+  }
+  /** Advance the soundtrack picker in its fixed order.
+   * @param {number} step - Signed number of modes or tracks to advance.
+   * @returns {void} No return value.
+   */
+  function cycleSound(step) {
+    var options = ["nightwave", "classic", "soma"];
+    var index = options.indexOf(soundtrack);
+    changeSound(options[(index + options.length + (step || 1)) % options.length]);
+    updateControls();
+  }
+  /** Handle LG remote input while the weather channel is active.
+   * @param {KeyboardEvent} e - Remote or keyboard event.
+   * @param {number} key - LG/webOS key code.
+   * @returns {boolean} Whether the requested condition is met.
+   */
+  function handleKey(e, key) {
+    if (!active) return false;
+    var focus = document.activeElement;
+    var fid = focus && focus.id || "";
+    if (fid === "weatherstar-city" && key !== 461 && key !== 27 && key !== 8 && key !== 415 && key !== 19 && key !== 179) {
+      // Let the native TV keyboard edit the City/ZIP field.
+      return false;
+    }
+    if (key === 38 || key === 40) {
+      e.preventDefault();
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      if (fid === "weatherstar-soundtrack") {
+        cycleSound(key === 38 ? -1 : 1);
+      } else {
+        var select = $("weatherstar-soundtrack");
+        if (select) select.focus();
+      }
+      return true;
+    }
+    if (key === 37 || key === 39) {
+      e.preventDefault();
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      var ids = ["weatherstar-city", "weatherstar-location-go", "weatherstar-soundtrack", "weatherstar-music", "weatherstar-retry", "weatherstar-fullscreen", "weatherstar-ham", "weatherstar-exit"];
+      var idx = ids.indexOf(fid);
+      var newIdx = idx === -1 ? 2 : (idx + ids.length + (key === 37 ? -1 : 1)) % ids.length;
+      var target = $(ids[newIdx]);
+      if (target) target.focus();
+      return true;
+    }
+    if (key === 13) {
+      if (fid === "weatherstar-soundtrack") {
+        e.preventDefault();
+        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+        cycleSound(1);
+        return true;
+      }
+      if (/^weatherstar-(?:music|retry|fullscreen|ham|exit|location-go)$/.test(fid)) {
+        e.preventDefault();
+        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+        focus.click();
+        return true;
+      }
+    }
+    if (key === 461 || key === 27 || key === 8) {
+      e.preventDefault();
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      backToChannels();
+      return true;
+    }
+    if (key === 415 || key === 19 || key === 179) {
+      e.preventDefault();
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      if (soundtrack === "classic") {
+        if (key === 179 || key === 415 || key === 19) toggleClassic();
+      } else if (key === 179 || key === 415 && soundPaused || key === 19 && !soundPaused) {
+        toggleSound();
+      }
+      return true;
+    }
+    return false;
+  }
+  /** Start the chosen audio and register iframe key handling.
+   * @returns {void} No return value.
+   */
+  function onFrameLoaded() {
+    if (!active) return;
+    var frame = $("weatherstar-frame");
+    if (!frame || frame.src.indexOf("about:blank") !== -1) return;
+    if (soundtrack !== "classic") {
+      startExternal(); // source URL explicitly mutes native WeatherStar
+    } else {
+      updateControls();
+      setMessage("Classic WeatherStar ready. Press CLASSIC MUSIC if the browser blocks autoplay.");
+    }
+    try {
+      var child = frame.contentWindow;
+      if (child && !child.__bunkhouseWeatherKeys) {
+        child.addEventListener("keydown", function (e) {
+          var key = e.keyCode || e.which;
+          // Key events originating inside the iframe never bubble to
+          // the parent; mirror BLUE soundtrack-cycle behavior here.
+          if (key === 406 || key === 77) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            cycleSound(1);
+            return;
+          }
+          handleKey(e, key);
+        }, true);
+        child.__bunkhouseWeatherKeys = true;
+      }
+    } catch (_) {
+      // Hosted cross-origin playback: toolbar stays outside the frame.
+    }
+  }
+  /** Wire location, soundtrack and exit controls once.
+   * @returns {void} No return value.
+   */
+  function setup() {
+    var frame = $("weatherstar-frame"),
+      city = $("weatherstar-city");
+    if (!frame) return;
+    restoreSound();
+    soundPaused = false;
+    if (city) city.value = getCity();
+    updateControls();
+    var select = $("weatherstar-soundtrack");
+    if (select) select.addEventListener("change", function () {
+      changeSound(select.value);
+    });
+    var locBtn = $("weatherstar-location-go");
+    if (locBtn) locBtn.addEventListener("click", function () {
+      var val = (city && city.value || "").trim();
+      if (!val) {
+        setMessage("Enter a US ZIP code or City, State.");
+        return;
+      }
+      if (val.length > 110) {
+        setMessage("Location is too long.");
+        return;
+      }
+      saveCity(val);
+      navigate();
+    });
+    if (city) city.addEventListener("keydown", function (e) {
+      if (e.keyCode === 13) {
+        e.preventDefault();
+        locBtn.click();
+      }
+    });
+    var exit = $("weatherstar-exit");
+    if (exit) exit.addEventListener("click", function (e) {
+      e.stopPropagation();
+      backToChannels();
+    });
+    var fullscreen = $("weatherstar-fullscreen");
+    if (fullscreen) fullscreen.addEventListener("click", function (e) {
+      e.stopPropagation();
+      toggleFullscreen();
+    });
+    var ham = $("weatherstar-ham");
+    if (ham) ham.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (typeof bunkhouseOpenHam === "function") bunkhouseOpenHam();
+    });
+    var source = $("weatherstar-retry");
+    if (source) source.addEventListener("click", function (e) {
+      e.stopPropagation();
+      navigate();
+    });
+    var music = $("weatherstar-music");
+    if (music) music.addEventListener("click", function (e) {
+      e.stopPropagation();
+      toggleSound();
+    });
+    var player = externalPlayer();
+    if (player) {
+      player.addEventListener("playing", function () {
+        if (active && soundtrack !== "classic" && !soundPaused) {
+          setMessage("LIVE • " + sounds[soundtrack].name + " • 24/7 vaporwave");
+        }
+      });
+      player.addEventListener("waiting", function () {
+        if (active && soundtrack !== "classic" && !soundPaused) setMessage("Buffering " + sounds[soundtrack].name + "…");
+      });
+      player.addEventListener("error", function () {
+        if (active && soundtrack !== "classic" && !soundPaused) setMessage("Radio stream unavailable. Press PAUSE then PLAY SOUND to retry.");
+      });
+    }
+    // WeatherStar runs in its own iframe JavaScript realm. The local
+    // behavior-only compatibility bootstrap reports script errors and
+    // location/network failures to Bunkhouse. Validate event.source so
+    // other pages cannot impersonate the weather iframe.
+    window.addEventListener("message", function (event) {
+      if (!active || !frame || event.source !== frame.contentWindow) return;
+      var data = event.data;
+      if (!data || data.bunkhouseWeatherstar !== 1) return;
+      if (data.type === "display") {
+        forecastRendered = true;
+        stopWeatherWatchdog();
+        showForecastDiagnostic("");
+        setMessage("Original WeatherStar 4000+ forecast is displaying.");
+      } else if (data.type === "error") {
+        showForecastDiagnostic("WEATHERSTAR ERROR: " + data.message);
+        setMessage("WEATHERSTAR ERROR: " + data.message);
+      } else if (data.type === "nws-error") {
+        nwsError = String(data.message || "request failed");
+        showForecastDiagnostic("NWS lookup: " + nwsError + ". Press RETRY FORECAST after checking the connection.");
+        setMessage("NWS lookup: " + nwsError + " — press RETRY FORECAST to try again.");
+      } else if (data.type === "status") {
+        if (!forecastRendered && nwsError) showForecastDiagnostic("NWS lookup: " + nwsError + " — " + data.message);
+        setMessage(nwsError ? "NWS lookup: " + nwsError + " — " + data.message : "WeatherStar: " + data.message);
+      }
+    });
+    var diagnosticRetry = $("weatherstar-diagnostics-retry");
+    if (diagnosticRetry) diagnosticRetry.addEventListener("click", navigate);
+    frame.addEventListener("load", onFrameLoaded);
+  }
+  return {
+    setup: setup,
+    open: open,
+    close: close,
+    isOpen: function isOpen() {
+      return active;
+    },
+    changeSound: changeSound,
+    cycleSound: cycleSound,
+    handleKey: handleKey,
+    backToChannels: backToChannels
+  };
+}();

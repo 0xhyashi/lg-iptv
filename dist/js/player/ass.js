@@ -72,12 +72,21 @@ window.AssSubs = function () {
   var TICK_MS = 80;
 
   /* ── Format detection ─────────────────────────────────────────────────── */
+  /** Is Ass for ASS subtitle rendering.
+   * @param {string} url - Requested URL.
+   * @returns {boolean} Whether the condition holds.
+   */
   function isAss(url) {
     var clean = String(url || '').split('?')[0].split('#')[0];
     var m = /\.([a-z0-9]+)$/i.exec(clean);
     var ext = m ? m[1].toLowerCase() : '';
     return ext === 'ass' || ext === 'ssa';
   }
+
+  /** Trim for ASS subtitle rendering.
+   * @param {string} s - Input text.
+   * @returns {*} Value produced by the operation.
+   */
   function trim(s) {
     return String(s === undefined || s === null ? '' : s).replace(/^\s+|\s+$/g, '');
   }
@@ -87,6 +96,10 @@ window.AssSubs = function () {
      ALPHA inverted (00 is opaque, FF is invisible). SSA files sometimes carry
      a plain decimal instead. Getting either wrong is not subtle: red and blue
      swap, or every line renders fully transparent. */
+  /** Colour for ASS subtitle rendering.
+   * @param {*} raw - Input for colour().
+   * @returns {*} Value produced by the operation.
+   */
   function colour(raw) {
     var s = trim(raw);
     if (!s) return '';
@@ -117,6 +130,10 @@ window.AssSubs = function () {
      V4+ uses the numeric keypad (1 = bottom-left … 9 = top-right). The older
      SSA V4 scheme is a bitfield, and a file written in it will otherwise put
      every line in the wrong third of the screen. */
+  /** Ssa Align for ASS subtitle rendering.
+   * @param {*} a - Input for ssaAlign().
+   * @returns {*} Value produced by the operation.
+   */
   function ssaAlign(a) {
     var h = a & 3; // 1 left, 2 centre, 3 right
     if (!h) h = 2;
@@ -126,6 +143,10 @@ window.AssSubs = function () {
   }
 
   /* ── Timecodes ────────────────────────────────────────────────────────── */
+  /** Seconds for ASS subtitle rendering.
+   * @param {*} v - Input for seconds().
+   * @returns {*} Value produced by the operation.
+   */
   function seconds(v) {
     var m = /^(?:(\d+):)?(\d{1,2}):(\d{1,2})(?:[.,](\d{1,3}))?$/.exec(trim(v));
     if (!m) return NaN;
@@ -139,6 +160,11 @@ window.AssSubs = function () {
   /* Split on commas but stop after n-1 of them: the last field of a Dialogue
      line is the text, which routinely contains commas of its own (and always
      does inside override tags like \pos(640,700)). */
+  /** Split Limited for ASS subtitle rendering.
+   * @param {string} s - Input text.
+   * @param {number} n - Count or index.
+   * @returns {*} Value produced by the operation.
+   */
   function splitLimited(s, n) {
     var out = [],
       start = 0;
@@ -158,6 +184,10 @@ window.AssSubs = function () {
      table. Fields are read by NAME off the section's own `Format:` line
      rather than by position, because the order genuinely varies and a
      positional read silently mislabels every column when it doesn't. */
+  /** Parse Script for ASS subtitle rendering.
+   * @param {string} text - Text.
+   * @returns {*} Value produced by the operation.
+   */
   function parseScript(text) {
     var out = {
       w: 384,
@@ -290,6 +320,11 @@ window.AssSubs = function () {
     });
     return out;
   }
+
+  /** Fields for ASS subtitle rendering.
+   * @param {*} val - Value.
+   * @returns {*} Value produced by the operation.
+   */
   function fields(val) {
     var raw = val.split(',');
     var out = [];
@@ -303,11 +338,18 @@ window.AssSubs = function () {
      animation ones (\t, \fad, \move's motion, \clip) are ignored on purpose
      rather than approximated, because a wrong approximation is more
      distracting than a line that simply sits still.
-      Each tag is matched with its own expression rather than by tokenising the
+       Each tag is matched with its own expression rather than by tokenising the
      block. That is safe here because the patterns all anchor on a digit or
      `&H` immediately after the tag name, which is what keeps \fscx from
      matching \fs, \shad from matching \s, and \be from matching \b — the
      three collisions that a naive scan gets wrong. */
+  /** Apply Tags for ASS subtitle rendering.
+   * @param {*} block - Input for applyTags().
+   * @param {*} st - Input for applyTags().
+   * @param {*} base - Input for applyTags().
+   * @param {*} styles - Input for applyTags().
+   * @returns {void} Updates module or UI state.
+   */
   function applyTags(block, st, base, styles) {
     var m;
 
@@ -362,6 +404,12 @@ window.AssSubs = function () {
     m = /\\p(\d+)/.exec(block);
     if (m) st.draw = parseInt(m[1], 10) > 0;
   }
+
+  /** Copy Style for ASS subtitle rendering.
+   * @param {*} dst - Input for copyStyle().
+   * @param {*} src - Input for copyStyle().
+   * @returns {*} Value produced by the operation.
+   */
   function copyStyle(dst, src) {
     dst.font = src.font;
     dst.size = src.size;
@@ -378,17 +426,34 @@ window.AssSubs = function () {
     dst.align = src.align;
     return dst;
   }
+
+  /** New State for ASS subtitle rendering.
+   * @param {*} base - Input for newState().
+   * @returns {*} Value produced by the operation.
+   */
   function newState(base) {
     var st = copyStyle({}, base);
     st.pos = null;
     st.draw = false;
     return st;
   }
+
+  /** Esc for ASS subtitle rendering.
+   * @param {string} s - Input text.
+   * @returns {*} Value produced by the operation.
+   */
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   /* ── One dialogue line → HTML ─────────────────────────────────────────── */
+  /** Render Text for ASS subtitle rendering.
+   * @param {*} raw - Input for renderText().
+   * @param {*} base - Input for renderText().
+   * @param {*} styles - Input for renderText().
+   * @param {*} sy - Input for renderText().
+   * @returns {void} Updates module or UI state.
+   */
   function renderText(raw, base, styles, sy) {
     var st = newState(base);
     var html = '';
@@ -411,6 +476,13 @@ window.AssSubs = function () {
       state: st
     };
   }
+
+  /** Run Html for ASS subtitle rendering.
+   * @param {*} run - Input for runHtml().
+   * @param {*} st - Input for runHtml().
+   * @param {*} sy - Input for runHtml().
+   * @returns {*} Value produced by the operation.
+   */
   function runHtml(run, st, sy) {
     if (!run || st.draw) return ''; // drawing commands are not text
     var text = esc(run).replace(/\\N/g, "\0BR\0") // hard break
@@ -448,13 +520,17 @@ window.AssSubs = function () {
      quoted and stripped of anything that could close the attribute or the
      declaration. The generic fallback is what makes CJK and Cyrillic work
      without bundling a thing: the TV's own font stack resolves them.
-      SINGLE quotes, and that is not cosmetic. These declarations are written
+       SINGLE quotes, and that is not cosmetic. These declarations are written
      into a style="..." attribute via innerHTML, so a double-quoted family name
      closes the attribute early — the browser then reads the rest of the
      declaration list as stray HTML attributes and silently drops every
      property after font-family. Weight, slant, the outline shadow and the
      opaque-box background all live after it, so the text still appeared and
      looked almost right, which is exactly why this is worth a comment. */
+  /** Css Font for ASS subtitle rendering.
+   * @param {string} name - Name.
+   * @returns {*} Value produced by the operation.
+   */
   function cssFont(name) {
     return "'" + String(name).replace(/["'\\;:<>{}]/g, '') + "', sans-serif";
   }
@@ -465,6 +541,11 @@ window.AssSubs = function () {
      three pixels because the cost is eight shadows per pixel of width and a TV
      redrawing a dozen spans will drop frames long before the outline looks
      any better. */
+  /** Outline Shadow for ASS subtitle rendering.
+   * @param {*} st - Input for outlineShadow().
+   * @param {*} sy - Input for outlineShadow().
+   * @returns {*} Value produced by the operation.
+   */
   function outlineShadow(st, sy) {
     var parts = [];
     var w = Math.min(3, Math.round((st.outline || 0) * sy));
@@ -486,8 +567,11 @@ window.AssSubs = function () {
      a 2.39:1 film in a 16:9 box has black bars top and bottom, and an overlay
      stretched over the whole element puts every bottom-aligned line inside the
      lower bar, where the TV's own overscan can clip it off entirely.
-      Everything inside is then scaled from the script's PlayRes to those
+       Everything inside is then scaled from the script's PlayRes to those
      pixels, which is what makes \pos land where the author put it. */
+  /** Geometry for ASS subtitle rendering.
+   * @returns {*} Value produced by the operation.
+   */
   function geometry() {
     if (!_video) return null;
     var bw = _video.clientWidth,
@@ -513,6 +597,10 @@ window.AssSubs = function () {
       h: h
     };
   }
+
+  /** Ensure Overlay for ASS subtitle rendering.
+   * @returns {*} Value produced by the operation.
+   */
   function ensureOverlay() {
     if (_overlay && _overlay.parentNode) return _overlay;
     if (!_host) return null;
@@ -528,11 +616,14 @@ window.AssSubs = function () {
      normal flow stack the lines inside each cell is what gives simultaneous
      dialogue its correct vertical order for free — no measuring, no second
      layout pass, and it stays right when a line wraps to two rows.
-      Index 0 is the layer for \pos lines, which set their own coordinates and
+       Index 0 is the layer for \pos lines, which set their own coordinates and
      so belong to no cell. It exists purely so they are CLEARED like everything
      else: appending them straight to the overlay meant a redraw emptied the
      nine cells and left every positioned sign behind, so they piled up and
      stayed on screen for the rest of the film. */
+  /** Ensure Zones for ASS subtitle rendering.
+   * @returns {*} Value produced by the operation.
+   */
   function ensureZones() {
     var overlay = ensureOverlay();
     if (!overlay) return null;
@@ -553,6 +644,9 @@ window.AssSubs = function () {
   }
 
   /* ── Drawing ──────────────────────────────────────────────────────────── */
+  /** Draw for ASS subtitle rendering.
+   * @returns {void} Updates module or UI state.
+   */
   function draw() {
     if (_active < 0 || !_video) return;
     var sub = _subs[_active];
@@ -647,16 +741,28 @@ window.AssSubs = function () {
     }
     for (var p = 0; p < positioned.length; p++) zones[0].appendChild(positioned[p]);
   }
+
+  /** Start Timer for ASS subtitle rendering.
+   * @returns {void} Updates module or UI state.
+   */
   function startTimer() {
     if (_timer) return;
     _timer = setInterval(draw, TICK_MS);
   }
+
+  /** Stop Timer for ASS subtitle rendering.
+   * @returns {void} Updates module or UI state.
+   */
   function stopTimer() {
     if (_timer) {
       clearInterval(_timer);
       _timer = null;
     }
   }
+
+  /** Clear Overlay for ASS subtitle rendering.
+   * @returns {void} Updates module or UI state.
+   */
   function clearOverlay() {
     _sig = '';
     if (!_overlay) return;
@@ -670,11 +776,16 @@ window.AssSubs = function () {
      the overlay shares its coordinate space and its fate when the page tears
      the player down. It sits below the OSD because pip-wrap comes first in
      document order and the OSD carries a z-index.
-      Deliberately idempotent for the same video: subtitles arrive in waves —
+       Deliberately idempotent for the same video: subtitles arrive in waves —
      the play handover, then the panel lookup a moment later, then an
      OpenSubtitles download minutes in — and each wave calls this before
      adding. Resetting unconditionally would drop the earlier tracks (and the
      one currently on screen) every time a later one showed up. */
+  /** Attach for ASS subtitle rendering.
+   * @param {*} video - Input for attach().
+   * @param {*} host - Input for attach().
+   * @returns {void} Updates module or UI state.
+   */
   function attach(video, host) {
     var target = video || null;
     if (_video && target === _video) {
@@ -689,6 +800,10 @@ window.AssSubs = function () {
   /* Sidecars are registered without being fetched. A title can list half a
      dozen and the user will watch at most one, so the body is pulled the
      first time a track is actually selected — see show(). */
+  /** Add for ASS subtitle rendering.
+   * @param {Array} list - Input collection.
+   * @returns {*} Value produced by the operation.
+   */
   function add(list) {
     if (!list || !list.length) return 0;
     var added = 0;
@@ -717,6 +832,10 @@ window.AssSubs = function () {
     }
     return added;
   }
+
+  /** List for ASS subtitle rendering.
+   * @returns {*} Value produced by the operation.
+   */
   function list() {
     var out = [];
     for (var i = 0; i < _subs.length; i++) {
@@ -728,9 +847,18 @@ window.AssSubs = function () {
     }
     return out;
   }
+
+  /** Count for ASS subtitle rendering.
+   * @returns {*} Value produced by the operation.
+   */
   function count() {
     return _subs.length;
   }
+
+  /** Show for ASS subtitle rendering.
+   * @param {string} id - Identifier.
+   * @returns {void} Updates module or UI state.
+   */
   function show(id) {
     var sub = _subs[id];
     if (!_video || !sub) return;
@@ -770,23 +898,39 @@ window.AssSubs = function () {
       _note = 'ass: load failed (' + (err && err.message || 'network error') + ')';
     });
   }
+
+  /** Hide for ASS subtitle rendering.
+   * @returns {void} Updates module or UI state.
+   */
   function hide() {
     _gen++; // cancel anything still fetching
     _active = -1;
     stopTimer();
     clearOverlay();
   }
+
+  /** Active for ASS subtitle rendering.
+   * @returns {*} Value produced by the operation.
+   */
   function active() {
     return _active;
   }
 
   /* Same sign convention as the player's subtitle delay: positive means the
      subtitles appear later, so the script's clock is read behind the video's. */
+  /** Set Offset for ASS subtitle rendering.
+   * @param {*} seconds - Input for setOffset().
+   * @returns {void} Updates module or UI state.
+   */
   function setOffset(seconds) {
     _offset = isFinite(seconds) ? seconds : 0;
     _sig = ''; // force a redraw at the new timing
     draw();
   }
+
+  /** Destroy for ASS subtitle rendering.
+   * @returns {*} Value produced by the operation.
+   */
   function destroy() {
     _gen++;
     _active = -1;
@@ -804,6 +948,9 @@ window.AssSubs = function () {
      nothing is on screen" has three indistinguishable causes: the fetch
      failed, the file parsed to nothing, or it parsed fine and the geometry is
      wrong. */
+  /** Describe for ASS subtitle rendering.
+   * @returns {*} Value produced by the operation.
+   */
   function describe() {
     if (!_subs.length) return 'none';
     var s = _subs.length + ' file' + (_subs.length === 1 ? '' : 's') + (_active >= 0 ? ', showing #' + (_active + 1) : ', none showing');

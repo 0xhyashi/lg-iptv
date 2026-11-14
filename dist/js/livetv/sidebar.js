@@ -18,15 +18,33 @@
 // apart — which is what happened when a category was starred from the sidebar
 // and the channel list carried on filtering against a stale array.
 
+/** Check whether a channel is favorited.
+ * @param {string} sid - Channel stream ID.
+ * @returns {boolean} Whether the requested condition is met.
+ */
 function isFav(sid) {
   return Favourites.isChannel(sid);
 }
+/** Toggle a channel favorite.
+ * @param {string} sid - Channel stream ID.
+ * @returns {*} Value described above.
+ */
 function toggleFav(sid) {
   return Favourites.toggleChannel(sid);
 }
+/** List user-created channel groups.
+ * @returns {Array<Object>} Matching channel or data entries.
+ */
 function favGroupsList() {
   return Favourites.groups();
 }
+
+/** Move a favorite and restore its focus.
+ * @param {string} sid - Channel stream ID.
+ * @param {number} dir - Station movement direction.
+ * @param {string} subzone - Action to refocus after reordering.
+ * @returns {void} No return value.
+ */
 function _reorderAndRefocus(sid, dir, subzone) {
   if (!Favourites.moveChannel(sid, dir)) return; // already at an end
   _keepScrollOnApply = true;
@@ -40,18 +58,42 @@ function _reorderAndRefocus(sid, dir, subzone) {
   tvRowSubZone = subzone;
   tvFocusRowButtons();
 }
+
+/** Check group membership for a channel.
+ * @param {string} gid - Favorites group ID.
+ * @param {string} sid - Channel stream ID.
+ * @returns {boolean} Whether the requested condition is met.
+ */
 function isInGroup(gid, sid) {
   return Favourites.isInGroup(gid, sid);
 }
+/** Add or remove a channel from a group.
+ * @param {string} gid - Favorites group ID.
+ * @param {string} sid - Channel stream ID.
+ * @returns {*} Value described above.
+ */
 function toggleChannelInGroup(gid, sid) {
   return Favourites.toggleInGroup(gid, sid);
 }
+/** Create a named favorites group.
+ * @param {string} name - User-visible name.
+ * @returns {*} Value described above.
+ */
 function createFavGroup(name) {
   return Favourites.createGroup(name);
 }
+/** Rename an existing favorites group.
+ * @param {string} id - DOM element or stored object ID.
+ * @param {string} name - User-visible name.
+ * @returns {*} Value described above.
+ */
 function renameFavGroup(id, name) {
   return Favourites.renameGroup(id, name);
 }
+/** Delete a favorites group and update the panel.
+ * @param {string} id - DOM element or stored object ID.
+ * @returns {void} No return value.
+ */
 function deleteFavGroup(id) {
   Favourites.deleteGroup(id);
   if (activeFavGroup === id) activeFavGroup = "all";
@@ -64,6 +106,10 @@ function deleteFavGroup(id) {
 
 var _categoryNames = new Map(); // category_id → name, for the sidebar labels
 
+/** Toggle a category favorite.
+ * @param {string} catId - Category ID.
+ * @returns {*} Value described above.
+ */
 function toggleFavCategory(catId) {
   var nowFav = Favourites.toggleCategory("live", catId);
   renderFavSectionList();
@@ -74,6 +120,10 @@ function toggleFavCategory(catId) {
   if (activeCategory === "favs") applyFilters();
   return nowFav;
 }
+
+/** Refresh category favorite markers.
+ * @returns {void} No return value.
+ */
 function refreshCategoryStars() {
   document.querySelectorAll(".cat-star-btn[data-cat-id]").forEach(function (btn) {
     btn.classList.toggle("active", Favourites.isCategory("live", btn.dataset.catId));
@@ -82,6 +132,10 @@ function refreshCategoryStars() {
 
 // ── Categories / sidebar ──────────────────────────────────────────────────────
 
+/** Build sidebar categories and favorite sections.
+ * @param {Array<Object>} categories - Category definitions.
+ * @returns {void} No return value.
+ */
 function renderCategories(categories) {
   var container = document.getElementById("categories");
   container.innerHTML = "";
@@ -152,6 +206,11 @@ function renderCategories(categories) {
    star adds the whole category to Favourites. Same shape as a channel row
    (name + ★), so the D-pad rule is the one the user already knows — RIGHT from
    the name lands on the star. */
+/** Build the DOM row for one category.
+ * @param {*} cat - Input for makeCategoryRow().
+ * @param {*} catSection - Input for makeCategoryRow().
+ * @returns {void} No return value.
+ */
 function makeCategoryRow(cat, catSection) {
   var id = String(cat.category_id);
   var row = document.createElement("div");
@@ -182,6 +241,10 @@ function makeCategoryRow(cat, catSection) {
   row.appendChild(star);
   return row;
 }
+
+/** Highlight the selected category or group.
+ * @returns {void} No return value.
+ */
 function updateSidebarActive() {
   document.querySelectorAll(".cat-btn, .cat-sub-btn, .cat-section-hdr").forEach(function (b) {
     return b.classList.remove("active");
@@ -203,6 +266,10 @@ function updateSidebarActive() {
     (_document$getElementB = document.getElementById("cat-section-cats")) === null || _document$getElementB === void 0 || _document$getElementB.classList.add("open");
   }
 }
+
+/** Build the favorites-group section.
+ * @returns {void} No return value.
+ */
 function renderFavSectionList() {
   var list = document.getElementById("fav-section-list");
   if (!list) return;
@@ -290,6 +357,9 @@ function renderFavSectionList() {
 
 // ── Group context menu ────────────────────────────────────────────────────────
 
+/** Open the create-group prompt.
+ * @returns {void} No return value.
+ */
 function promptNewGroup() {
   showInputModal("New Favourite Group", "Group name", "", function (name) {
     if (!name) return;
@@ -297,6 +367,11 @@ function promptNewGroup() {
     renderFavSectionList();
   });
 }
+/** Open the group-rename prompt.
+ * @param {string} id - DOM element or stored object ID.
+ * @param {string} currentName - Current group title.
+ * @returns {void} No return value.
+ */
 function promptRenameGroup(id, currentName) {
   showInputModal("Rename Group", "Group name", currentName, function (name) {
     if (!name) return;
@@ -304,6 +379,12 @@ function promptRenameGroup(id, currentName) {
     renderFavSectionList();
   });
 }
+
+/** Open the context menu for a group.
+ * @param {KeyboardEvent} e - Remote or keyboard event.
+ * @param {string} gid - Favorites group ID.
+ * @returns {void} No return value.
+ */
 function showGroupContextMenu(e, gid) {
   closeContextMenus();
   var menu = document.createElement("div");
@@ -344,6 +425,9 @@ function showGroupContextMenu(e, gid) {
     return document.addEventListener("click", _dismiss);
   }, 0);
 }
+/** Close any open group context menus.
+ * @returns {void} No return value.
+ */
 function closeContextMenus() {
   document.querySelectorAll(".ctx-menu").forEach(function (m) {
     return m.remove();
@@ -352,6 +436,12 @@ function closeContextMenus() {
 
 // ── Assign panel ──────────────────────────────────────────────────────────────
 
+/** Open the channel-to-group assignment panel.
+ * @param {KeyboardEvent} e - Remote or keyboard event.
+ * @param {string} sid - Channel stream ID.
+ * @param {HTMLElement} anchorEl - Element that anchors the panel.
+ * @returns {void} No return value.
+ */
 function showAssignPanel(e, sid, anchorEl) {
   e.stopPropagation();
   closeAssignPanels();
@@ -399,6 +489,11 @@ function showAssignPanel(e, sid, anchorEl) {
   _focusAssignItem(panel, items);
 }
 var _assignHistoryPushed = false;
+
+/** Close assignment panels and optionally update browser history.
+ * @param {boolean} popHistory - Whether to update navigation history.
+ * @returns {void} No return value.
+ */
 function closeAssignPanels() {
   var popHistory = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
   document.querySelectorAll(".assign-panel").forEach(function (p) {
@@ -411,6 +506,10 @@ function closeAssignPanels() {
     _assignHistoryPushed = false;
   }
 }
+/** Refresh a channel's assignment button.
+ * @param {string} sid - Channel stream ID.
+ * @returns {void} No return value.
+ */
 function updateAssignBtnState(sid) {
   var entry = rowCache.get(String(sid));
   if (!(entry !== null && entry !== void 0 && entry.assignBtn)) return;
@@ -419,6 +518,13 @@ function updateAssignBtnState(sid) {
 
 // ── Input modal ───────────────────────────────────────────────────────────────
 
+/** Show a reusable input prompt and invoke its callback.
+ * @param {string} heading - Modal heading.
+ * @param {string} label - Input prompt label.
+ * @param {string} value - Initial input value.
+ * @param {Function} callback - Function called with the submitted value.
+ * @returns {*} Value described above.
+ */
 function showInputModal(heading, label, value, callback) {
   var overlay = document.createElement("div");
   overlay.className = "modal-overlay";

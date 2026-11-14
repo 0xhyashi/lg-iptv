@@ -106,6 +106,11 @@ window.Subs = function () {
     uk: 'Ukrainian',
     ukr: 'Ukrainian'
   };
+
+  /** Lang Name for subtitle discovery.
+   * @param {*} code - Input for langName().
+   * @returns {*} Function result.
+   */
   function langName(code) {
     if (!code) return '';
     var c = String(code).toLowerCase().replace(/[_-].*$/, ''); // en-GB → en
@@ -114,6 +119,11 @@ window.Subs = function () {
 
   /* ── Shape detection ──────────────────────────────────────────────────── */
   var URL_KEYS = ['url', 'file', 'src', 'link', 'subtitle_file', 'path', 'href'];
+
+  /** Url From for subtitle discovery.
+   * @param {*} obj - Input for urlFrom().
+   * @returns {*} Function result.
+   */
   function urlFrom(obj) {
     for (var i = 0; i < URL_KEYS.length; i++) {
       var v = obj[URL_KEYS[i]];
@@ -121,9 +131,19 @@ window.Subs = function () {
     }
     return '';
   }
+
+  /** Lang From for subtitle discovery.
+   * @param {*} obj - Input for langFrom().
+   * @returns {*} Function result.
+   */
   function langFrom(obj) {
     return obj.lang || obj.language || obj.tags && (obj.tags.language || obj.tags.LANGUAGE) || '';
   }
+
+  /** Title From for subtitle discovery.
+   * @param {*} obj - Input for titleFrom().
+   * @returns {*} Function result.
+   */
   function titleFrom(obj) {
     return obj.title || obj.name || obj.label || obj.tags && (obj.tags.title || obj.tags.TITLE) || '';
   }
@@ -131,6 +151,10 @@ window.Subs = function () {
   /* An ffprobe stream descriptor: no URL, but it self-identifies with an
      index and/or a codec. Anything with neither a URL nor these markers is
      simply unusable and is counted as "unknown" rather than guessed at. */
+  /** Looks Embedded for subtitle discovery.
+   * @param {*} obj - Input for looksEmbedded().
+   * @returns {*} Function result.
+   */
   function looksEmbedded(obj) {
     if (obj.codec_type === 'subtitle') return true;
     if (obj.codec_name && obj.index !== undefined) return true;
@@ -140,6 +164,10 @@ window.Subs = function () {
   /* Some panels return the whole `subtitles` value as a base64 or
      URL-encoded JSON string rather than as JSON. Unwrap one layer of that
      before giving up; anything deeper is not worth chasing. */
+  /** Unwrap String for subtitle discovery.
+   * @param {*} raw - Input for unwrapString().
+   * @returns {*} Function result.
+   */
   function unwrapString(raw) {
     var s = String(raw).trim();
     if (!s) return null;
@@ -162,6 +190,11 @@ window.Subs = function () {
   /* ── Core normaliser ──────────────────────────────────────────────────────
      Takes any of the five shapes and returns { files, embedded, unknown }.
      `cfg` is only needed to resolve relative paths against the IPTV server. */
+  /** Parse for subtitle discovery.
+   * @param {*} raw - Input for parse().
+   * @param {Object} cfg - Provider configuration.
+   * @returns {*} Function result.
+   */
   function parse(raw, cfg) {
     var out = {
       files: [],
@@ -215,6 +248,14 @@ window.Subs = function () {
     }
     return out;
   }
+
+  /** Make File for subtitle discovery.
+   * @param {string} url - URL.
+   * @param {*} lang - Input for makeFile().
+   * @param {*} title - Input for makeFile().
+   * @param {Object} cfg - Provider configuration.
+   * @returns {*} Function result.
+   */
   function makeFile(url, lang, title, cfg) {
     var abs = typeof Config !== 'undefined' ? Config.absUrl(cfg, url) : url;
     return {
@@ -228,10 +269,19 @@ window.Subs = function () {
      "…/Inception.en.srt" or "…/subs_eng.srt" is a strong enough hint to
      label the entry with, and a wrong label is still better than five
      identical "Subtitles" rows. */
+  /** Guess Lang From Url for subtitle discovery.
+   * @param {string} url - URL.
+   * @returns {*} Function result.
+   */
   function guessLangFromUrl(url) {
     var m = /[._-]([a-z]{2,3})\.(?:srt|vtt|ass|ssa|sub)$/i.exec(String(url || ''));
     return m && LANG_NAMES[m[1].toLowerCase()] ? m[1].toLowerCase() : '';
   }
+
+  /** Is Array for subtitle discovery.
+   * @param {*} v - Input for isArray().
+   * @returns {boolean} Whether the condition holds.
+   */
   function isArray(v) {
     return Object.prototype.toString.call(v) === '[object Array]';
   }
@@ -242,9 +292,20 @@ window.Subs = function () {
      rather than short-circuiting on the first that exists. Merging (rather
      than picking one) matters because some panels put the files in one and
      the ffprobe streams in the other. */
+  /** From Vod Info for subtitle discovery.
+   * @param {*} data - Response or input data.
+   * @param {Object} cfg - Provider configuration.
+   * @returns {*} Function result.
+   */
   function fromVodInfo(data, cfg) {
     return merge([parse(pick(data && data.info), cfg), parse(pick(data && data.movie_data), cfg), parse(pick(data), cfg)]);
   }
+
+  /** From Episode for subtitle discovery.
+   * @param {*} ep - Input for fromEpisode().
+   * @param {Object} cfg - Provider configuration.
+   * @returns {*} Function result.
+   */
   function fromEpisode(ep, cfg) {
     return merge([parse(pick(ep && ep.info), cfg), parse(pick(ep), cfg)]);
   }
@@ -255,8 +316,12 @@ window.Subs = function () {
      They need opposite responses — one is the provider's limit, the other is
      our bug — and there is no console on a TV to tell them apart. So the reply
      describes itself, in place, on the GREEN overlay.
-      Reports the shape rather than the contents: enough to recognise a missed
+       Reports the shape rather than the contents: enough to recognise a missed
      format, without putting a wall of provider JSON on screen. */
+  /** Describe Payload for subtitle discovery.
+   * @param {*} data - Response or input data.
+   * @returns {*} Function result.
+   */
   function describePayload(data) {
     if (data === null || data === undefined) return 'reply empty';
     if (_typeof(data) !== 'object') return 'reply was ' + _typeof(data);
@@ -277,6 +342,10 @@ window.Subs = function () {
   }
 
   /* Which of the keys we look at exist on this object, and what's in them. */
+  /** Sub Key Report for subtitle discovery.
+   * @param {*} o - Input for subKeyReport().
+   * @returns {*} Function result.
+   */
   function subKeyReport(o) {
     var keys = ['subtitles', 'subtitle', 'subs', 'sub', 'subtitle_tracks', 'text_tracks', 'streams'];
     var out = [];
@@ -303,6 +372,12 @@ window.Subs = function () {
        wrapping, taking the last keys with it. */
     return 'none; has ' + present.join(', ');
   }
+
+  /** Shape Of for subtitle discovery.
+   * @param {*} v - Input for shapeOf().
+   * @param {*} isStreams - Input for shapeOf().
+   * @returns {*} Function result.
+   */
   function shapeOf(v, isStreams) {
     if (v === null || v === undefined) return 'null';
     if (isArray(v)) {
@@ -322,6 +397,11 @@ window.Subs = function () {
     if (_typeof(v) === 'object') return 'object{' + ownKeys(v).slice(0, 6).join(',') + '}';
     return String(_typeof(v));
   }
+
+  /** Own Keys for subtitle discovery.
+   * @param {*} o - Input for ownKeys().
+   * @returns {*} Function result.
+   */
   function ownKeys(o) {
     var out = [];
     for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) out.push(k);
@@ -333,6 +413,11 @@ window.Subs = function () {
      the answer, but every KEY and every short value survives — when the
      question is "where does this provider hide its subtitles", the answer is
      a key name, and no summary can anticipate which one. */
+  /** Raw Sample for subtitle discovery.
+   * @param {*} data - Response or input data.
+   * @param {*} max - Input for rawSample().
+   * @returns {*} Function result.
+   */
   function rawSample(data, max) {
     max = max || 1800;
     if (data === null || data === undefined) return 'reply was empty';
@@ -362,6 +447,11 @@ window.Subs = function () {
      audio ones — findable, but only if you filter by codec_type rather than
      expecting a dedicated key. */
   var PICK_KEYS = ['subtitles', 'subtitle', 'subs', 'sub', 'subtitle_tracks', 'text_tracks'];
+
+  /** Pick for subtitle discovery.
+   * @param {*} o - Input for pick().
+   * @returns {*} Function result.
+   */
   function pick(o) {
     if (!o) return null;
     /* Each candidate key must be tested for CONTENT, not truthiness. An
@@ -380,6 +470,11 @@ window.Subs = function () {
     }
     return subtitleStreams(o.streams) || subtitleStreams(o.ffprobe) || null;
   }
+
+  /** Has Content for subtitle discovery.
+   * @param {*} v - Input for hasContent().
+   * @returns {boolean} Whether the condition holds.
+   */
   function hasContent(v) {
     if (v === null || v === undefined || v === false) return false;
     if (isArray(v)) return v.length > 0;
@@ -393,6 +488,10 @@ window.Subs = function () {
   /* The subtitle entries out of a mixed ffprobe stream list, or null if there
      is no such list to read. Null rather than [] so callers can tell "no
      stream list" from "a stream list with no subtitles in it". */
+  /** Subtitle Streams for subtitle discovery.
+   * @param {*} streams - Input for subtitleStreams().
+   * @returns {*} Function result.
+   */
   function subtitleStreams(streams) {
     if (!isArray(streams)) return null;
     var out = [];
@@ -402,6 +501,11 @@ window.Subs = function () {
     }
     return out.length ? out : null;
   }
+
+  /** Merge for subtitle discovery.
+   * @param {*} results - Input for merge().
+   * @returns {*} Function result.
+   */
   function merge(results) {
     var out = {
       files: [],
@@ -436,10 +540,10 @@ window.Subs = function () {
      speculative request — but only when the API gave us no files, and only
      with two guards, because the same URL on a panel that ignores extensions
      returns the MOVIE:
-        • a Range header caps what we ask for at 128 KB
+         • a Range header caps what we ask for at 128 KB
        • the response is rejected before its body is read unless the
          content-type looks textual and the length is subtitle-sized
-      Then the body itself must actually look like SRT or WebVTT. A panel's
+       Then the body itself must actually look like SRT or WebVTT. A panel's
      404 page is text/html of a plausible size and would otherwise sail
      through as a "subtitle" that renders as markup over the video. */
   /* SRT and VTT go to a <track> after conversion; ASS/SSA are drawn by
@@ -451,6 +555,11 @@ window.Subs = function () {
   var PROBE_LANGS = ['en', 'eng'];
   var PROBE_MAX = 512 * 1024;
   var PROBE_TIMEOUT = 3500;
+
+  /** Looks Like Subtitle for subtitle discovery.
+   * @param {string} text - Text to process.
+   * @returns {*} Function result.
+   */
   function looksLikeSubtitle(text) {
     if (!text) return false;
     var head = String(text).slice(0, 4096);
@@ -472,9 +581,17 @@ window.Subs = function () {
      real subtitles for months. There is no console on a TV, so the probe
      keeps its own record. */
   var _probeLog = [];
+  /** Probe Log for subtitle discovery.
+   * @returns {*} Function result.
+   */
   function probeLog() {
     return _probeLog.slice();
   }
+
+  /** Probe One for subtitle discovery.
+   * @param {string} url - URL.
+   * @returns {*} Function result.
+   */
   function probeOne(url) {
     var name = String(url).replace(/^.*\//, '').replace(/\?.*$/, '');
     return Net.request(url, {
@@ -524,6 +641,11 @@ window.Subs = function () {
       return null;
     });
   }
+
+  /** Probe All for subtitle discovery.
+   * @param {*} urls - Input for probeAll().
+   * @returns {*} Function result.
+   */
   function probeAll(urls) {
     var pending = [];
     for (var i = 0; i < urls.length; i++) pending.push(probeOne(urls[i]));
@@ -535,11 +657,15 @@ window.Subs = function () {
   }
 
   /* `streamUrl` is the playback URL — the extension is swapped on a copy.
-      Done in two stages so the common case stays cheap. Stage one is the plain
+       Done in two stages so the common case stays cheap. Stage one is the plain
      name the video has; only if that finds nothing does stage two try the
      language-tagged names ("movie.en.srt" beside "movie.mkv"), which is how a
      lot of providers label them and which the old single-stage probe never
      looked for at all. */
+  /** Probe Sidecars for subtitle discovery.
+   * @param {*} streamUrl - Input for probeSidecars().
+   * @returns {*} Function result.
+   */
   function probeSidecars(streamUrl) {
     var stem = String(streamUrl || '').replace(/\.[a-z0-9]{2,4}(\?[^#]*)?$/i, '');
     if (!stem || stem === streamUrl) return Promise.resolve([]);
@@ -572,6 +698,11 @@ window.Subs = function () {
      What the player shows instead of a bare "no subtitles". Every branch here
      names something the user can actually do next; a message that only states
      a limitation is not worth showing. */
+  /** Describe for subtitle discovery.
+   * @param {Object} result - Result.
+   * @param {Object} opts - Options.
+   * @returns {*} Function result.
+   */
   function describe(result, opts) {
     opts = opts || {};
     var r = result || {
@@ -615,6 +746,12 @@ window.Subs = function () {
      subtitles" is to write down what happened and show it in Settings →
      Diagnostics. One record, overwritten each time — this is a debugging aid,
      not a history. */
+  /** Record Diag for subtitle discovery.
+   * @param {*} title - Input for recordDiag().
+   * @param {Object} result - Result.
+   * @param {*} extra - Input for recordDiag().
+   * @returns {*} Function result.
+   */
   function recordDiag(title, result, extra) {
     var r = result || {
       files: [],
@@ -658,6 +795,11 @@ window.Subs = function () {
     Store.set(DIAG_KEY, rec);
     return rec;
   }
+
+  /** Update Diag for subtitle discovery.
+   * @param {*} patch - Input for updateDiag().
+   * @returns {void} No return value.
+   */
   function updateDiag(patch) {
     var rec = Store.get(DIAG_KEY, null);
     if (!rec) return;
@@ -672,6 +814,10 @@ window.Subs = function () {
      Timestamps missing an hours field ("00:12,500") are a real thing in
      hand-made SRT files and are normalised, because WebVTT rejects them
      outright and the whole track would silently show nothing. */
+  /** To Vtt for subtitle discovery.
+   * @param {string} text - Text to process.
+   * @returns {*} Function result.
+   */
   function toVtt(text) {
     var s = String(text || '').replace(/^﻿/, '').replace(/\r+/g, '').trim();
     if (/^WEBVTT/.test(s)) return s;

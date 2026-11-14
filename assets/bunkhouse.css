@@ -3,7 +3,7 @@
  * TV categories, video rendering and the IPTV decoder are unchanged.
  */
 #bunkhouse-switch {display:flex;gap:.5rem;padding:.75rem;border-bottom:1px solid #35455a;}
-#bunkhouse-switch button {flex:1 1 50%;min-width:0;padding:.85rem .3rem;background:linear-gradient(#273450,#101529);border:2px solid #546386;color:#c9d5ec;box-shadow:inset 1px 1px 1px #899bc1,2px 2px 2px #060915;border-radius:6px;font:700 1.1rem 'Courier New',monospace;cursor:pointer;}
+#bunkhouse-switch button {flex:1 1 33.333%;min-width:0;padding:.85rem .3rem;background:linear-gradient(#273450,#101529);border:2px solid #546386;color:#c9d5ec;box-shadow:inset 1px 1px 1px #899bc1,2px 2px 2px #060915;border-radius:6px;font:700 1.1rem 'Courier New',monospace;cursor:pointer;}
 #bunkhouse-switch button.active {background:linear-gradient(#293b28,#07180e);border-color:#91ff57;color:#a4ff51;box-shadow:0 0 12px rgba(98,255,93,.4),inset 0 0 10px rgba(95,255,72,.2);}
 #bunkhouse-switch button:focus,.bk-station:focus {outline:3px solid #b8ff67;outline-offset:1px;}
 #radio-stations {min-height:0;overflow-y:auto;box-sizing:border-box;padding:.6rem;}

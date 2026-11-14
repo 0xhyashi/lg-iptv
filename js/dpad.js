@@ -84,6 +84,7 @@ function _restoreZoneFocus() {
     if      (tvFocusZone === "sidebar-header") _focusSidebarHeader();
     else if (tvFocusZone === "sidebar-cats")   tvFocusSidebarItem(tvSidebarIndex);
     else if (tvFocusZone === "channel-list")   tvFocusRow(tvRowIndex);
+    else if (tvFocusZone === "media-tabs")    document.getElementById("media-tv").focus();
     else setTVZone(tvFocusZone);
 }
 
@@ -144,6 +145,27 @@ function onTVKeyDown(e) {
     if (modal)       { _handleModalKey(e, modal);             return; }
     if (assignPanel) { _handleAssignPanelKey(e, assignPanel); return; }
     if (ctxMenu)     { _handleCtxMenuKey(e, ctxMenu);         return; }
+    // Media tabs must accept LG D-pad focus in both TV and radio modes.
+    // This runs before the hidden channel grid can consume ENTER or arrows.
+    var focusedTab = document.activeElement;
+    var mediaIds = ["media-tv", "media-radio", "media-ham", "guide-vod", "guide-catchup"];
+    var mediaIndex = mediaIds.indexOf(focusedTab && focusedTab.id);
+    if (mediaIndex !== -1) {
+        if (kc === _KEY.LEFT || kc === _KEY.RIGHT) {
+            e.preventDefault();
+            document.getElementById(mediaIds[Math.max(0,Math.min(mediaIds.length-1, mediaIndex + (kc === _KEY.LEFT ? -1 : 1)))]).focus();
+            return;
+        }
+        if (kc === _KEY.ENTER) { e.preventDefault(); focusedTab.click(); return; }
+        if (kc === _KEY.DOWN) {
+            e.preventDefault();
+            if (document.body.classList.contains("radio-mode")) {
+                if (_bkRadioButtons && _bkRadioButtons.length) _bkRadioButtons[_bkStationIndex].focus();
+            } else setTVZone("channel-list");
+            return;
+        }
+        if (kc === _KEY.UP) { e.preventDefault();document.getElementById("search").focus();return; }
+    }
     // Bunkhouse radio mode is a real separate navigation surface; station
     // buttons in the sidebar own UP/DOWN/ENTER rather than the hidden TV grid.
     if (typeof WeatherChannel !== "undefined" && WeatherChannel.handleKey(e, kc)) return;
@@ -183,6 +205,11 @@ function onTVKeyDown(e) {
             const d = kc === _KEY.UP ? -1 : 1;
             if (isFs) { channelStep(d); showOSD(); return; }
             if (tvFocusZone === "channel-list") {
+                if (d < 0 && tvRowIndex === 0 && !isFs) {
+                    tvFocusZone = "media-tabs";
+                    document.getElementById("media-tv").focus();
+                    return;
+                }
                 if (tvRowSubZone === "reorder-up"   && d > 0) { tvRowSubZone = "reorder-down"; tvFocusRowButtons(); return; }
                 if (tvRowSubZone === "reorder-down" && d < 0) { tvRowSubZone = "reorder-up";   tvFocusRowButtons(); return; }
                 tvRowSubZone = "row";
@@ -190,7 +217,10 @@ function onTVKeyDown(e) {
                 tvFocusRow(tvRowIndex);
             } else if (tvFocusZone === "sidebar-cats") {
                 const items = getSidebarFocusables();
-                if (d < 0 && tvSidebarIndex === 0) setTVZone("search");
+                if (d < 0 && tvSidebarIndex === 0) {
+                    tvFocusZone = "media-tabs";
+                    document.getElementById("media-tv").focus();
+                }
                 else {
                     tvSidebarIndex = Math.max(0, Math.min(items.length - 1, tvSidebarIndex + d));
                     // Rows without a star can't hold the star sub-zone.

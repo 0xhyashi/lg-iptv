@@ -172,6 +172,25 @@ async function _initAppXtream(setStatus) {
     } catch (err) { setStatus("ERR: " + err.message, true); }
 }
 
+/** Keep the classic cable-guide clock in sync with the TV's local time.
+ * @returns {void} Starts a single one-minute clock update on this page.
+ */
+function setupGuideClock() {
+    var target = document.getElementById("guide-clock");
+    if (!target) return;
+    /** Show the current local date and time in the guide masthead.
+     * @returns {void} Updates the masthead text.
+     */
+    function drawGuideClock() {
+        var now = new Date();
+        var day = now.toLocaleDateString("en-US", {weekday:"short",month:"short",day:"numeric"});
+        var hour = now.toLocaleTimeString("en-US", {hour:"numeric",minute:"2-digit"});
+        target.textContent = day.toUpperCase() + "  " + hour;
+    }
+    drawGuideClock();
+    setInterval(drawGuideClock, 60000);
+}
+
 /** Render categories and start Live TV's supporting services.
  * @param {Array<Object>} categories - Category definitions.
  * @param {string} playlistEpgUrl - Provider's EPG URL.
@@ -183,6 +202,7 @@ function _bootUI(categories, playlistEpgUrl) {
     setupPip();
     setupRadioUI();
     setupTimelineNav();
+    setupGuideClock();
 
     activeCategory = Favourites.isEmpty() ? "all" : "favs";
     activeFavGroup = "all";
@@ -251,6 +271,7 @@ function bunkhouseRadioChannels() {
 function bunkhouseSetMode(mode) {
     var radio = mode === "radio";
     document.body.classList.toggle("radio-mode", radio);
+    document.body.classList.toggle("guide-mode", !radio);
     var tv = document.getElementById("media-tv"), r = document.getElementById("media-radio");
     if (tv) tv.classList.toggle("active", !radio);
     if (r) r.classList.toggle("active", radio);
@@ -325,18 +346,22 @@ function bunkhouseHandleKey(e, key) {
         bunkhouseStationStep(key === 38 ? -1 : 1);
         return true;
     }
-    if (key === 37) { // LEFT selects the media navigation
+    if (key === 37 || key === 39) {
+        // Move across TV / RADIO / HAM tabs with the D-pad.
+        var tabs = ["media-tv", "media-radio", "media-ham", "guide-vod", "guide-catchup"];
+        var tabIndex = tabs.indexOf(focus && focus.id);
         e.preventDefault();
-        document.getElementById("media-tv").focus();
-        return true;
-    }
-    if (key === 39) { // RIGHT focuses pause / resume control
-        e.preventDefault();
-        document.getElementById("radio-toggle").focus();
+        if (key === 37) {
+            document.getElementById(tabs[Math.max(0, tabIndex - 1)]).focus();
+        } else if (tabIndex >= 0 && tabIndex < tabs.length - 1) {
+            document.getElementById(tabs[tabIndex + 1]).focus();
+        } else {
+            document.getElementById("radio-toggle").focus();
+        }
         return true;
     }
     if (key === 13) { // ENTER
-        if (focus && /^(media-tv|media-radio|radio-toggle|radio-prev|radio-next)$/.test(focus.id)) {
+        if (focus && /^(media-tv|media-radio|media-ham|guide-vod|guide-catchup|radio-toggle|radio-prev|radio-next)$/.test(focus.id)) {
             e.preventDefault();focus.click();return true;
         }
         if (_bkRadioButtons[_bkStationIndex]) {
@@ -348,14 +373,29 @@ function bunkhouseHandleKey(e, key) {
     }
     return false;
 }
+/** Open the separate SDR screen after releasing existing audio/video players.
+ * @returns {void} Navigates to the HAM RADIO page.
+ */
+function bunkhouseOpenHam() {
+    stopRadio();
+    WeatherChannel.close();
+    player.stop();
+    window.location.href = "../pages/hamradio.html";
+}
 /** Create station buttons and wire TV/Radio tabs.
  * @returns {void} No return value.
  */
 function setupBunkhouseNavigation() {
     var tv=document.getElementById("media-tv"),radio=document.getElementById("media-radio");
+    var ham=document.getElementById("media-ham");
     if (!tv || !radio) return;
     tv.addEventListener("click",function(){bunkhouseChangeMode("tv");});
     radio.addEventListener("click",function(){bunkhouseChangeMode("radio");});
+    if (ham) ham.addEventListener("click",bunkhouseOpenHam);
+    var vod=document.getElementById("guide-vod");
+    var catchup=document.getElementById("guide-catchup");
+    if (vod) vod.addEventListener("click",function(){stopRadio();WeatherChannel.close();player.stop();window.location.href="../pages/vod.html";});
+    if (catchup) catchup.addEventListener("click",function(){stopRadio();WeatherChannel.close();player.stop();window.location.href="../pages/catchup.html";});
     var panel=document.getElementById("radio-stations");
     if (!panel) return;
     panel.innerHTML="";
@@ -550,6 +590,31 @@ function channelStep(delta) {
     { stream_id: "japan-extra-20", name: "九州・沖縄 街ネタ", category_id: "japan-lifestyle", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01287-rakutentvjapan-local-contents-cmaf-rakutenjp/playlist.m3u8", _source: "m3u" }
   ];
 
+  // Curated entries from iptv-org/iptv streams/us.m3u (checked 2026-11-10).
+  // Streams may expire or be region-restricted; playback is not verified on webOS.
+  // HGTV is an unofficial third-party relay: isolated under Test Streams.
+  // No dedicated Antiques Roadshow stream was listed in the U.S. playlist.
+  var cableChannels = [
+    { stream_id: "us-cable-01", name: "Create (PBS)", category_id: "home-food", stream_icon: "", stream_url: "https://create.lls.pbs.org/index.m3u8", _source: "m3u" },
+    { stream_id: "us-cable-02", name: "Cooking Panda", category_id: "home-food", stream_icon: "", stream_url: "https://stream-us-east-1.getpublica.com/playlist.m3u8?network_id=46", _source: "m3u" },
+    { stream_id: "us-cable-03", name: "Bloomberg TV US", category_id: "news-business", stream_icon: "", stream_url: "https://bloomberg.com/media-manifest/streams/us.m3u8", _source: "m3u" },
+    { stream_id: "us-cable-04", name: "Bloomberg TV+", category_id: "news-business", stream_icon: "", stream_url: "https://bloomberg.com/media-manifest/streams/phoenix-us.m3u8", _source: "m3u" },
+    { stream_id: "us-cable-05", name: "Bloomberg Originals", category_id: "news-business", stream_icon: "", stream_url: "https://bloomberg.com/media-manifest/streams/qt.m3u8", _source: "m3u" },
+    { stream_id: "us-cable-06", name: "NBC News NOW", category_id: "news-business", stream_icon: "", stream_url: "https://d1bl6tskrpq9ze.cloudfront.net/hls/master.m3u8?ads.xumo_channelId=99984003", _source: "m3u" },
+    { stream_id: "us-cable-07", name: "Cheddar News", category_id: "news-business", stream_icon: "", stream_url: "https://hls.livecdn.io/cheddar.com/cheddar/playlist.m3u8", _source: "m3u" },
+    { stream_id: "us-cable-08", name: "Fox Weather", category_id: "news-business", stream_icon: "", stream_url: "https://247wlive.foxweather.com/stream/index.m3u8", _source: "m3u" },
+    { stream_id: "us-cable-09", name: "CBS News Los Angeles", category_id: "news-business", stream_icon: "", stream_url: "https://dai.google.com/linear/hls/pa/event/K_2aA7OVRTacJJli1oSi8w/stream/42e4ec14-fe53-469b-bc85-677ed0b245f4:ATL/variant/344ab3b460bc514714f94805d600b130/bandwidth/2121247.m3u8", _source: "m3u" },
+    { stream_id: "us-cable-10", name: "Documentary+", category_id: "entertainment", stream_icon: "", stream_url: "https://ef79b15c8c7c46c7a9de9d33001dbd07.mediatailor.us-west-2.amazonaws.com/v1/master/ba62fe743df0fe93366eba3a257d792884136c7f/LINEAR-859-DOCUMENTARYPLUS-DOCUMENTARYPLUS/mt/documentaryplus/859/hls/master/playlist.m3u8", _source: "m3u" },
+    { stream_id: "us-cable-11", name: "FilmRise Classic TV", category_id: "entertainment", stream_icon: "", stream_url: "https://d2tv4k5moji5m7.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-lu4pzh9l4b57p/master.m3u8", _source: "m3u" },
+    { stream_id: "us-cable-12", name: "Comet", category_id: "entertainment", stream_icon: "", stream_url: "https://fast-channels.sinclairstoryline.com/COMET/index.m3u8", _source: "m3u" },
+    { stream_id: "us-cable-13", name: "Charge!", category_id: "entertainment", stream_icon: "", stream_url: "https://fast-channels.sinclairstoryline.com/CHARGE/index.m3u8", _source: "m3u" },
+    { stream_id: "us-cable-14", name: "Court TV", category_id: "entertainment", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01438-ewscrippscompan-courttv-tablo/playlist.m3u8", _source: "m3u" },
+    { stream_id: "us-cable-15", name: "Bounce XL", category_id: "entertainment", stream_icon: "", stream_url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01438-ewscrippscompan-bouncexl-tablo/playlist.m3u8", _source: "m3u" },
+    { stream_id: "us-cable-16", name: "CBS Sports Golazo Network", category_id: "sports", stream_icon: "", stream_url: "https://dai.google.com/linear/hls/event/7f3Wv6f7QEKfQna22jHqLQ/master.m3u8", _source: "m3u" },
+    { stream_id: "us-cable-17", name: "Fubo Sports Network", category_id: "sports", stream_icon: "", stream_url: "https://aegis-cloudfront-1.tubi.video/c2ac89da-5c69-439e-b85d-d87de0548b54/5.m3u8", _source: "m3u" },
+    { stream_id: "us-cable-18", name: "HGTV (unofficial test)", category_id: "test-streams", stream_icon: "", stream_url: "http://tvsen7.aynascope.net/hgtv/index.m3u8", _source: "m3u" }
+  ];
+
     var japanPlaylistUrl = "https://iptv-org.github.io/iptv/countries/jp.m3u";
   // Direct public audio endpoints (MP3). All three returned audio bytes in
   // a US network check on 2026-11-07. Shonan's URL comes from its official site.
@@ -574,6 +639,11 @@ function channelStep(delta) {
 
   var categories = [
     { category_id: "toonami", category_name: "Toonami Aftermath" },
+    { category_id: "home-food", category_name: "Home & Food" },
+    { category_id: "news-business", category_name: "News & Business" },
+    { category_id: "entertainment", category_name: "Documentaries & Entertainment" },
+    { category_id: "sports", category_name: "Sports" },
+    { category_id: "test-streams", category_name: "Test Streams (Unofficial)" },
     { category_id: "retro-weather", category_name: "Retro Weather" },
     { category_id: "radio", category_name: "Radio Stations" },
     { category_id: "japan", category_name: "Japan TV (IPTV-org)" },
@@ -615,17 +685,17 @@ function channelStep(delta) {
       seenUrls[verifiedJapanExtras[v].stream_url] = true;
     }
     japanese = japanese.filter(function (ch) { return !seenUrls[ch.stream_url]; });
-    allChannels = toonamiChannels.concat(weatherChannels, verifiedJapanExtras, radioChannels, japanese);
+    allChannels = toonamiChannels.concat(cableChannels, weatherChannels, verifiedJapanExtras, radioChannels, japanese);
     updateSidebarActive();
     applyFilters(true);
     status.textContent = allChannels.length + " channels (4 Toonami + 1 WeatherStar + " +
-        verifiedJapanExtras.length + " verified extras + 8 radio + " + japanese.length +
+        verifiedJapanExtras.length + " verified extras + " + cableChannels.length + " cable-style + 8 radio + " + japanese.length +
         " Japan directory" + (cached ? ", cached" : "") + ")";
     return true;
   }
 
   epgCache = loadEpgDiskCache();
-  allChannels = toonamiChannels.concat(weatherChannels, verifiedJapanExtras, radioChannels);
+  allChannels = toonamiChannels.concat(cableChannels, weatherChannels, verifiedJapanExtras, radioChannels);
   status.textContent = allChannels.length + " channels - loading Japan TV directory...";
   _bootUI(categories, "");
   setupBunkhouseNavigation();

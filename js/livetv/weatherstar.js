@@ -30,6 +30,8 @@ var WeatherChannel = (function () {
     var soundPaused = false;
     var loadSerial = 0;
     var nwsError = ""; // Most recent NWS access failure reported by the local iframe.
+    var weatherWatchdog = null;
+    var forecastRendered = false;
 
     /** Find a WeatherStar control by its DOM ID.
      * @param {string} id - DOM element or stored object ID.
@@ -77,6 +79,39 @@ var WeatherChannel = (function () {
     function setMessage(text) {
         var status = $("weatherstar-status");
         if (status) status.textContent = text;
+    }
+    /** Show a readable forecast loading/error screen in place of a blank iframe.
+     * @param {string} text - Message; empty string hides the diagnostic.
+     * @returns {void} Updates the diagnostic overlay.
+     */
+    function showForecastDiagnostic(text) {
+        var overlay = $("weatherstar-diagnostics");
+        var message = $("weatherstar-diagnostics-message");
+        if (overlay) overlay.style.display = text ? "flex" : "none";
+        if (message && text) message.textContent = text;
+    }
+    /** Cancel the pending forecast-display readiness timeout.
+     * @returns {void} Stops the timer.
+     */
+    function stopWeatherWatchdog() {
+        if (weatherWatchdog !== null) {
+            clearTimeout(weatherWatchdog);
+            weatherWatchdog = null;
+        }
+    }
+    /** Warn after a long blank forecast without claiming the iframe worked.
+     * @returns {void} Schedules an on-screen diagnostic.
+     */
+    function startWeatherWatchdog() {
+        stopWeatherWatchdog();
+        if (typeof setTimeout !== "function") return;
+        weatherWatchdog = setTimeout(function () {
+            weatherWatchdog = null;
+            if (!active || forecastRendered) return;
+            showForecastDiagnostic(nwsError
+                ? "NWS request failed: " + nwsError
+                : "The original WeatherStar display has not started. This may be a webOS browser compatibility, network, or forecast-service problem. Try RETRY FORECAST.");
+        }, 18000);
     }
     /** Update soundtrack controls to reflect current playback.
      * @returns {void} No return value.
@@ -275,6 +310,9 @@ var WeatherChannel = (function () {
         // Never let previous location resolutions reload a different channel.
         var navigationId = ++loadSerial;
         nwsError = "";
+        forecastRendered = false;
+        stopWeatherWatchdog();
+        showForecastDiagnostic("Starting original WeatherStar 4000+ forecast for " + getCity() + "…");
         stopExternal();
         var frame = $("weatherstar-frame");
         if (!frame) return;
@@ -288,9 +326,11 @@ var WeatherChannel = (function () {
         resolveCoordinates(city).then(function(coords) {
             if (!active || navigationId !== loadSerial) return;
             frame.src = weatherURL(coords);
+            startWeatherWatchdog();
             setMessage("Loading local WeatherStar 4000+ forecast…");
         }).catch(function(error) {
             if (!active || navigationId !== loadSerial) return;
+            showForecastDiagnostic("Cannot find location: " + (error && error.message || "lookup failed") + ". Try a US ZIP code or latitude,longitude.");
             setMessage("Cannot find location: " + (error && error.message || "lookup failed") +
                 ". Try a US ZIP code or latitude,longitude.");
         });
@@ -317,6 +357,9 @@ var WeatherChannel = (function () {
         if (!active) return;
         active = false;
         ++loadSerial;
+        stopWeatherWatchdog();
+        forecastRendered = false;
+        showForecastDiagnostic("");
         stopExternal();
         var root = $("weatherstar-view");
         if (root) root.style.display = "none";
@@ -423,7 +466,7 @@ var WeatherChannel = (function () {
             if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
             var ids = ["weatherstar-city","weatherstar-location-go",
                 "weatherstar-soundtrack","weatherstar-music","weatherstar-retry",
-                "weatherstar-fullscreen","weatherstar-exit"];
+                "weatherstar-fullscreen","weatherstar-ham","weatherstar-exit"];
             var idx = ids.indexOf(fid);
             var newIdx = idx === -1 ? 2 : (idx + ids.length + (key === 37 ? -1 : 1)) % ids.length;
             var target = $(ids[newIdx]);
@@ -436,7 +479,7 @@ var WeatherChannel = (function () {
                 if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
                 cycleSound(1);return true;
             }
-            if (/^weatherstar-(?:music|retry|fullscreen|exit|location-go)$/.test(fid)) {
+            if (/^weatherstar-(?:music|retry|fullscreen|ham|exit|location-go)$/.test(fid)) {
                 e.preventDefault();
                 if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
                 focus.click();return true;
@@ -520,6 +563,11 @@ var WeatherChannel = (function () {
         if (exit) exit.addEventListener("click",function(e){e.stopPropagation();backToChannels();});
         var fullscreen = $("weatherstar-fullscreen");
         if (fullscreen) fullscreen.addEventListener("click",function(e){e.stopPropagation();toggleFullscreen();});
+        var ham = $("weatherstar-ham");
+        if (ham) ham.addEventListener("click",function(e){
+            e.stopPropagation();
+            if (typeof bunkhouseOpenHam === "function") bunkhouseOpenHam();
+        });
         var source = $("weatherstar-retry");
         if (source) source.addEventListener("click",function(e){
             e.stopPropagation();navigate();
@@ -552,17 +600,27 @@ var WeatherChannel = (function () {
             if (!active || !frame || event.source !== frame.contentWindow) return;
             var data = event.data;
             if (!data || data.bunkhouseWeatherstar !== 1) return;
-            if (data.type === "error") {
+            if (data.type === "display") {
+                forecastRendered = true;
+                stopWeatherWatchdog();
+                showForecastDiagnostic("");
+                setMessage("Original WeatherStar 4000+ forecast is displaying.");
+            } else if (data.type === "error") {
+                showForecastDiagnostic("WEATHERSTAR ERROR: " + data.message);
                 setMessage("WEATHERSTAR ERROR: " + data.message);
             } else if (data.type === "nws-error") {
                 nwsError = String(data.message || "request failed");
+                showForecastDiagnostic("NWS lookup: " + nwsError + ". Press RETRY FORECAST after checking the connection.");
                 setMessage("NWS lookup: " + nwsError + " — press RETRY FORECAST to try again.");
             } else if (data.type === "status") {
+                if (!forecastRendered && nwsError) showForecastDiagnostic("NWS lookup: " + nwsError + " — " + data.message);
                 setMessage(nwsError
                     ? "NWS lookup: " + nwsError + " — " + data.message
                     : "WeatherStar: " + data.message);
             }
         });
+        var diagnosticRetry = $("weatherstar-diagnostics-retry");
+        if (diagnosticRetry) diagnosticRetry.addEventListener("click",navigate);
         frame.addEventListener("load",onFrameLoaded);
     }
     return {setup:setup,open:open,close:close,

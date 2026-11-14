@@ -60,19 +60,35 @@ window.Episodes = function () {
   var _video = null;
   var _onPlay = null; // caller-supplied: start this playlist entry
 
+  /** Intro Map for episode progression.
+   * @returns {*} Value produced by the operation.
+   */
   function introMap() {
     return Store.get(INTRO_KEY, {}) || {};
   }
+
+  /** Series Key for episode progression.
+   * @returns {*} Value produced by the operation.
+   */
   function seriesKey() {
     if (!_meta || _meta.type !== 'episode') return '';
     return String(_meta.series_id || _meta.search_name || '');
   }
+
+  /** Learned Intro End for episode progression.
+   * @returns {*} Value produced by the operation.
+   */
   function learnedIntroEnd() {
     var k = seriesKey();
     if (!k) return 0;
     var v = introMap()[k];
     return typeof v === 'number' && v > 0 ? v : 0;
   }
+
+  /** Remember Intro End for episode progression.
+   * @param {*} seconds - Input for rememberIntroEnd().
+   * @returns {*} Value produced by the operation.
+   */
   function rememberIntroEnd(seconds) {
     var k = seriesKey();
     if (!k || !(seconds > 0)) return;
@@ -84,9 +100,9 @@ window.Episodes = function () {
   /* ── Playlist ─────────────────────────────────────────────────────────────
      Two ways to get one, and the second is what makes the Next button
      dependable.
-      The fast path is the season the VOD page sent along in the play metadata:
+       The fast path is the season the VOD page sent along in the play metadata:
      no request, available the instant the page loads.
-      The fallback is fetching it here from series_id. That path exists because
+       The fallback is fetching it here from series_id. That path exists because
      the fast one has too many ways to come up empty — resuming from Continue
      Watching, a localStorage write that hit quota, returning to a title by
      any route that didn't come through the episode list. Every one of those
@@ -99,10 +115,16 @@ window.Episodes = function () {
   var _fetching = false;
   var _why = ''; // why there is (or isn't) a next episode
 
+  /** Playlist for episode progression.
+   * @returns {*} Value produced by the operation.
+   */
   function playlist() {
     if (_meta && _meta.playlist && _meta.playlist.length) return _meta.playlist;
     return _resolved;
   }
+  /** Index for episode progression.
+   * @returns {*} Value produced by the operation.
+   */
   function index() {
     if (_meta && _meta.playlist && _meta.playlist.length) {
       return typeof _meta.playlist_index === 'number' ? _meta.playlist_index : -1;
@@ -112,6 +134,10 @@ window.Episodes = function () {
 
   /* Build the same slim entries vod/detail.js builds, from a raw episode
      list, so both paths produce identical playlists. */
+  /** Slim Episodes for episode progression.
+   * @param {Array} list - Input collection.
+   * @returns {*} Value produced by the operation.
+   */
   function slimEpisodes(list) {
     var out = [];
     for (var i = 0; i < list.length && i < 120; i++) {
@@ -131,6 +157,10 @@ window.Episodes = function () {
     }
     return out;
   }
+
+  /** Cfg for episode progression.
+   * @returns {*} Value produced by the operation.
+   */
   function _cfg() {
     try {
       return Config.resolve();
@@ -147,10 +177,17 @@ window.Episodes = function () {
      one is in flight, so a failure that returned quietly used to leave it
      waiting for a signal that never came — an episode whose season lookup
      failed got no subtitles AND no fallback, permanently. */
+  /** Settle for episode progression.
+   * @returns {void} Updates module or UI state.
+   */
   function settle() {
     _fetching = false;
     if (typeof _onReady === 'function') _onReady();
   }
+
+  /** Resolve Season for episode progression.
+   * @returns {*} Value produced by the operation.
+   */
   function resolveSeason() {
     if (_fetching) return;
     if (playlist()) {
@@ -239,12 +276,20 @@ window.Episodes = function () {
       settle();
     });
   }
+
+  /** Next Entry for episode progression.
+   * @returns {*} Value produced by the operation.
+   */
   function nextEntry() {
     var pl = playlist(),
       i = index();
     if (!pl || i < 0 || i + 1 >= pl.length) return null;
     return pl[i + 1];
   }
+
+  /** Has Next for episode progression.
+   * @returns {boolean} Whether the condition holds.
+   */
   function hasNext() {
     return !!nextEntry();
   }
@@ -254,17 +299,28 @@ window.Episodes = function () {
      looking up the season for Next episode also answers "what subtitles does
      this episode have" — player/subtitles.js reuses it rather than making the
      same request twice. Null when there is no resolved season. */
+  /** Current Subs for episode progression.
+   * @returns {*} Value produced by the operation.
+   */
   function currentSubs() {
     var pl = playlist(),
       i = index();
     if (!pl || i < 0 || !pl[i]) return null;
     return pl[i].subs || null;
   }
+
+  /** Next Label for episode progression.
+   * @returns {*} Value produced by the operation.
+   */
   function nextLabel() {
     var e = nextEntry();
     if (!e) return '';
     return e.num !== '' && e.num != null ? 'Episode ' + e.num : e.title || 'Next episode';
   }
+
+  /** Play Next for episode progression.
+   * @returns {*} Value produced by the operation.
+   */
   function playNext() {
     var pl = playlist(),
       i = index();
@@ -277,6 +333,9 @@ window.Episodes = function () {
   }
 
   /* ── Skip intro ───────────────────────────────────────────────────────── */
+  /** Intro Visible for episode progression.
+   * @returns {*} Value produced by the operation.
+   */
   function introVisible() {
     if (!_video || !_meta || _meta.type !== 'episode') return false;
     var dur = _video.duration;
@@ -289,6 +348,9 @@ window.Episodes = function () {
 
   /* Jump past the intro and remember where that was, so every later episode
      of the same series lands in exactly the same place. */
+  /** Skip Intro for episode progression.
+   * @returns {*} Value produced by the operation.
+   */
   function skipIntro() {
     if (!_video) return;
     var learned = learnedIntroEnd();
@@ -304,6 +366,9 @@ window.Episodes = function () {
 
   /* Forget a series' learned intro — offered in the player menu, because a
      skip learned from a mis-press otherwise sticks for every episode. */
+  /** Forget Intro for episode progression.
+   * @returns {*} Value produced by the operation.
+   */
   function forgetIntro() {
     var k = seriesKey();
     if (!k) return false;
@@ -313,11 +378,18 @@ window.Episodes = function () {
     Store.set(INTRO_KEY, map);
     return true;
   }
+
+  /** Has Learned Intro for episode progression.
+   * @returns {boolean} Whether the condition holds.
+   */
   function hasLearnedIntro() {
     return learnedIntroEnd() > 0;
   }
 
   /* ── Outro / end of episode ───────────────────────────────────────────── */
+  /** Outro Visible for episode progression.
+   * @returns {*} Value produced by the operation.
+   */
   function outroVisible() {
     if (!_video || !hasNext()) return false;
     var dur = _video.duration,
@@ -325,6 +397,11 @@ window.Episodes = function () {
     if (!isFinite(dur) || dur <= 0) return false;
     return dur - t <= OUTRO_TAIL_SEC || t / dur >= OUTRO_TAIL_PCT;
   }
+
+  /** Init for episode progression.
+   * @param {Object} opts - Options.
+   * @returns {void} Updates module or UI state.
+   */
   function init(opts) {
     _meta = opts.meta || null;
     _metaNote = opts.metaNote || '';
@@ -342,6 +419,9 @@ window.Episodes = function () {
 
   /* True while the season is still being fetched — the UI uses this to avoid
      declaring "no next episode" before the answer is in. */
+  /** Resolving for episode progression.
+   * @returns {*} Value produced by the operation.
+   */
   function resolving() {
     return _fetching;
   }
@@ -349,6 +429,9 @@ window.Episodes = function () {
   /* The full picture, for the GREEN diagnostics overlay. "No next episode" is
      true for a dozen different reasons and useless on its own; this reports
      the facts the answer actually depends on. */
+  /** Describe for episode progression.
+   * @returns {*} Value produced by the operation.
+   */
   function describe() {
     var pl = playlist(),
       i = index();

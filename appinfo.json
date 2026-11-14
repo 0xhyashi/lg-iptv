@@ -1,10 +1,10 @@
 {
   "id": "com.oxhyashi.toonamitest",
-  "version": "1.0.44",
+  "version": "1.0.48",
   "vendor": "0xhyashi",
   "type": "web",
-  "main": "index.html",
-  "title": "Bunkhouse TV + Radio + Weather",
+  "main": "pages/livetv.html",
+  "title": "Bunkhouse TV Guide + Radio + HAM",
   "icon": "icon.png",
   "largeIcon": "icon_large.png",
   "iconColor": "#000000",

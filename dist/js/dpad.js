@@ -1,7 +1,10 @@
 "use strict";
 
-// D-pad / LG TV Remote Navigation
-// Requires "disableBackHistoryAPI": true in appinfo.json
+/* dpad.js — routes LG remote keys to TV, Bunkhouse radio and WeatherStar.
+ * Owns focus zones, numeric entry and back navigation for Live TV.
+ * Requires disableBackHistoryAPI: true in appinfo.json.
+ * Uses DOM globals from livetv/state.js and frontend modules.
+ */
 
 var tvFocusZone = "channel-list";
 var tvRowIndex = 0;
@@ -29,6 +32,10 @@ var _assignPanelIndex = 0;
 //   tvGoBack();                    // exit app → webOS Home / exit popup
 //   tvGoBack("../index.html");     // navigate back to homepage
 
+/** Navigate out of Live TV to its previous page.
+ * @param {string} backUrl - Back navigation URL.
+ * @returns {void} No return value.
+ */
 function tvGoBack(backUrl) {
   if (backUrl) {
     window.location.href = backUrl;
@@ -41,9 +48,17 @@ function tvGoBack(backUrl) {
 // If not called, Back exits the app via webOS.platformBack().
 //
 // Usage (at page init):  tvSetBackUrl("../index.html");
+/** Remember where Back should return.
+ * @param {string} url - Target URL.
+ * @returns {void} No return value.
+ */
 function tvSetBackUrl(url) {
   window._tvBackUrl = url;
 }
+
+/** Install the single Live TV remote key handler.
+ * @returns {void} No return value.
+ */
 function initTVNavigation() {
   window.addEventListener("keydown", onTVKeyDown, {
     capture: true,
@@ -67,15 +82,27 @@ function initTVNavigation() {
     }
   });
 }
+
+/** Restore focus for the active UI zone.
+ * @returns {void} No return value.
+ */
 function _restoreZoneFocus() {
-  if (tvFocusZone === "sidebar-header") _focusSidebarHeader();else if (tvFocusZone === "sidebar-cats") tvFocusSidebarItem(tvSidebarIndex);else if (tvFocusZone === "channel-list") tvFocusRow(tvRowIndex);else setTVZone(tvFocusZone);
+  if (tvFocusZone === "sidebar-header") _focusSidebarHeader();else if (tvFocusZone === "sidebar-cats") tvFocusSidebarItem(tvSidebarIndex);else if (tvFocusZone === "channel-list") tvFocusRow(tvRowIndex);else if (tvFocusZone === "media-tabs") document.getElementById("media-tv").focus();else setTVZone(tvFocusZone);
 }
 
 /* Delegates to Dom, which also maps named keys (`e.key`) for environments that
    dispatch those with keyCode 0 — the simulator among them. */
+/** Normalize remote or keyboard key codes.
+ * @param {KeyboardEvent} e - Remote or keyboard event.
+ * @returns {number} Calculated numeric value.
+ */
 function _keyCode(e) {
   return typeof Dom !== "undefined" ? Dom.keyCode(e) : e.keyCode || e.which;
 }
+/** Identify the LG Back key.
+ * @param {KeyboardEvent} e - Remote or keyboard event.
+ * @returns {boolean} Whether the requested condition is met.
+ */
 function _isBack(e) {
   return _keyCode(e) === 461;
 }
@@ -93,6 +120,11 @@ var _KEY = {
   CH_UP_ALT: 33,
   CH_DN_ALT: 34
 };
+
+/** Route one remote key to modal, radio, weather or TV navigation.
+ * @param {KeyboardEvent} e - Remote or keyboard event.
+ * @returns {void} No return value.
+ */
 function onTVKeyDown(e) {
   var kc = _keyCode(e);
 
@@ -107,7 +139,13 @@ function onTVKeyDown(e) {
   // button free to mean something at the page level.
   if (kc === 406 /* BLUE */ || kc === 77 /* 'm' — desktop testing */) {
     e.preventDefault();
-    if (typeof openMultiview === "function") openMultiview();
+    // In Retro Weather, BLUE cycles Nightwave / Classic / SomaFM.
+    // For regular TV BLUE remains Multiview; radio keeps Saturn mode.
+    if (currentChannel && currentChannel._weatherstar && typeof WeatherChannel !== "undefined") {
+      WeatherChannel.cycleSound(1);
+    } else if ((!currentChannel || !currentChannel._radio) && typeof openMultiview === "function") {
+      openMultiview();
+    }
     return;
   }
   var modal = document.querySelector(".modal-overlay");
@@ -125,6 +163,39 @@ function onTVKeyDown(e) {
     _handleCtxMenuKey(e, ctxMenu);
     return;
   }
+  // Media tabs must accept LG D-pad focus in both TV and radio modes.
+  // This runs before the hidden channel grid can consume ENTER or arrows.
+  var focusedTab = document.activeElement;
+  var mediaIds = ["media-tv", "media-radio", "media-ham", "guide-vod", "guide-catchup"];
+  var mediaIndex = mediaIds.indexOf(focusedTab && focusedTab.id);
+  if (mediaIndex !== -1) {
+    if (kc === _KEY.LEFT || kc === _KEY.RIGHT) {
+      e.preventDefault();
+      document.getElementById(mediaIds[Math.max(0, Math.min(mediaIds.length - 1, mediaIndex + (kc === _KEY.LEFT ? -1 : 1)))]).focus();
+      return;
+    }
+    if (kc === _KEY.ENTER) {
+      e.preventDefault();
+      focusedTab.click();
+      return;
+    }
+    if (kc === _KEY.DOWN) {
+      e.preventDefault();
+      if (document.body.classList.contains("radio-mode")) {
+        if (_bkRadioButtons && _bkRadioButtons.length) _bkRadioButtons[_bkStationIndex].focus();
+      } else setTVZone("channel-list");
+      return;
+    }
+    if (kc === _KEY.UP) {
+      e.preventDefault();
+      document.getElementById("search").focus();
+      return;
+    }
+  }
+  // Bunkhouse radio mode is a real separate navigation surface; station
+  // buttons in the sidebar own UP/DOWN/ENTER rather than the hidden TV grid.
+  if (typeof WeatherChannel !== "undefined" && WeatherChannel.handleKey(e, kc)) return;
+  if (typeof bunkhouseHandleKey === "function" && bunkhouseHandleKey(e, kc)) return;
 
   // If an input/select is focused (on-screen keyboard open), only handle Back
   // to dismiss — all other keys go to the input as normal.
@@ -162,6 +233,11 @@ function onTVKeyDown(e) {
           return;
         }
         if (tvFocusZone === "channel-list") {
+          if (d < 0 && tvRowIndex === 0 && !isFs) {
+            tvFocusZone = "media-tabs";
+            document.getElementById("media-tv").focus();
+            return;
+          }
           if (tvRowSubZone === "reorder-up" && d > 0) {
             tvRowSubZone = "reorder-down";
             tvFocusRowButtons();
@@ -177,7 +253,10 @@ function onTVKeyDown(e) {
           tvFocusRow(tvRowIndex);
         } else if (tvFocusZone === "sidebar-cats") {
           var items = getSidebarFocusables();
-          if (d < 0 && tvSidebarIndex === 0) setTVZone("search");else {
+          if (d < 0 && tvSidebarIndex === 0) {
+            tvFocusZone = "media-tabs";
+            document.getElementById("media-tv").focus();
+          } else {
             tvSidebarIndex = Math.max(0, Math.min(items.length - 1, tvSidebarIndex + d));
             // Rows without a star can't hold the star sub-zone.
             if (!_sidebarStarFor(tvSidebarIndex)) tvSidebarSubZone = "item";
@@ -416,6 +495,9 @@ function onTVKeyDown(e) {
 /* What a typed channel number means on the Live TV page: pick that row out of
    the list currently on screen, play it, and move the focus ring to it so the
    list agrees with what is playing. */
+/** Expose the filtered channel list for numeric remote entry.
+ * @returns {Object} Value described above.
+ */
 function _liveChannelTarget() {
   return {
     total: function total() {
@@ -443,6 +525,11 @@ function _liveChannelTarget() {
    that reached us and did nothing; Settings → Diagnostics lists them, so the
    next mystery button takes one look instead of a guess. */
 var _UNHANDLED_KEYS_KEY = "iptv_unhandled_keys";
+
+/** Record an unsupported key for diagnostics.
+ * @param {*} kc - Input for _noteUnhandledKey().
+ * @returns {void} No return value.
+ */
 function _noteUnhandledKey(kc) {
   if (!kc || typeof Store === "undefined") return;
   var seen = Store.get(_UNHANDLED_KEYS_KEY, []) || [];
@@ -453,6 +540,10 @@ function _noteUnhandledKey(kc) {
 
 // ── Zone management ───────────────────────────────────────────────────────────
 
+/** Switch the focused TV navigation region.
+ * @param {*} zone - Input for setTVZone().
+ * @returns {void} No return value.
+ */
 function setTVZone(zone) {
   tvFocusZone = zone;
   tvRowSubZone = "row";
@@ -480,6 +571,10 @@ function setTVZone(zone) {
     (_document$getElementB2 = document.getElementById("search")) === null || _document$getElementB2 === void 0 || _document$getElementB2.classList.add("tv-focus-visible");
   }
 }
+
+/** Focus the sidebar's search or header controls.
+ * @returns {void} No return value.
+ */
 function _focusSidebarHeader() {
   _clearFocus();
   var btns = [document.getElementById("home-btn"), document.getElementById("settings-btn")];
@@ -491,6 +586,9 @@ function _focusSidebarHeader() {
 
 // ── Focus helpers ─────────────────────────────────────────────────────────────
 
+/** Collect selectable sidebar entries.
+ * @returns {Array<HTMLElement>} Value described above.
+ */
 function getSidebarFocusables() {
   var panel = document.querySelector(".sidebar-panel.active");
   if (!panel) return [];
@@ -498,6 +596,10 @@ function getSidebarFocusables() {
     return el.offsetParent !== null;
   });
 }
+
+/** Remove all TV focus highlights.
+ * @returns {void} No return value.
+ */
 function _clearFocus() {
   document.querySelectorAll(".tv-focus-visible").forEach(function (el) {
     return el.classList.remove("tv-focus-visible");
@@ -506,12 +608,21 @@ function _clearFocus() {
 
 /* The ★ belonging to a sidebar row, or null when that row has none (the All
    button, section headers, "+ New Group"). */
+/** Find a sidebar category favorite control.
+ * @param {number} idx - Zero-based selection index.
+ * @returns {HTMLElement|null} Matching element, or null.
+ */
 function _sidebarStarFor(idx) {
   var _el$closest;
   var el = getSidebarFocusables()[idx];
   var row = el === null || el === void 0 || (_el$closest = el.closest) === null || _el$closest === void 0 ? void 0 : _el$closest.call(el, ".cat-row");
   return row ? row.querySelector(".cat-star-btn") : null;
 }
+
+/** Focus a sidebar row by index.
+ * @param {number} idx - Zero-based selection index.
+ * @returns {void} No return value.
+ */
 function tvFocusSidebarItem(idx) {
   _clearFocus();
   var el = getSidebarFocusables()[idx];
@@ -522,6 +633,11 @@ function tvFocusSidebarItem(idx) {
     block: "nearest"
   });
 }
+
+/** Focus a TV channel row by index.
+ * @param {number} idx - Zero-based selection index.
+ * @returns {void} No return value.
+ */
 function tvFocusRow(idx) {
   _clearFocus();
   document.querySelectorAll(".tv-row-active").forEach(function (el) {
@@ -540,6 +656,10 @@ function tvFocusRow(idx) {
     }
   });
 }
+
+/** Move focus among row-specific actions.
+ * @returns {void} No return value.
+ */
 function tvFocusRowButtons() {
   _clearFocus();
   var ch = _vsChannels[tvRowIndex];
@@ -567,6 +687,10 @@ function tvFocusRowButtons() {
    lookup ran against a row that had not been built yet, found nothing, and
    silently drew no ring at all. Syncing _vsScrollTop and rendering here closes
    that window; the later scroll-driven render is then a no-op repaint. */
+/** Scroll to a virtualized channel row.
+ * @param {number} idx - Zero-based selection index.
+ * @returns {void} No return value.
+ */
 function scrollTVRowIntoView(idx) {
   var wrap = document.getElementById("channel-list-wrap");
   if (!wrap) return;
@@ -578,6 +702,11 @@ function scrollTVRowIntoView(idx) {
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
+/** Handle keyboard movement in a modal.
+ * @param {KeyboardEvent} e - Remote or keyboard event.
+ * @param {HTMLElement} modal - Open modal DOM node.
+ * @returns {void} No return value.
+ */
 function _handleModalKey(e, modal) {
   if (_isBack(e)) {
     e.preventDefault();
@@ -615,6 +744,12 @@ function _handleModalKey(e, modal) {
     return;
   }
 }
+
+/** Focus a specific modal control.
+ * @param {HTMLElement} modal - Open modal DOM node.
+ * @param {HTMLElement} el - Element to focus.
+ * @returns {void} No return value.
+ */
 function _setModalFocus(modal, el) {
   modal.querySelectorAll(".tv-focus-visible").forEach(function (x) {
     return x.classList.remove("tv-focus-visible");
@@ -627,6 +762,11 @@ function _setModalFocus(modal, el) {
 
 // ── Assign panel ──────────────────────────────────────────────────────────────
 
+/** Navigate the favorites assignment panel.
+ * @param {KeyboardEvent} e - Remote or keyboard event.
+ * @param {HTMLElement} panel - Open sidebar panel.
+ * @returns {void} No return value.
+ */
 function _handleAssignPanelKey(e, panel) {
   if (_isBack(e)) {
     e.preventDefault();
@@ -664,6 +804,12 @@ function _handleAssignPanelKey(e, panel) {
   }
   e.preventDefault();
 }
+
+/** Focus an assignment panel item.
+ * @param {HTMLElement} panel - Open sidebar panel.
+ * @param {Array<HTMLElement>} items - Selectable menu items.
+ * @returns {void} No return value.
+ */
 function _focusAssignItem(panel, items) {
   panel.querySelectorAll(".tv-focus-visible").forEach(function (el) {
     return el.classList.remove("tv-focus-visible");
@@ -679,6 +825,11 @@ function _focusAssignItem(panel, items) {
 
 // ── Context menu ──────────────────────────────────────────────────────────────
 
+/** Navigate a sidebar context menu.
+ * @param {KeyboardEvent} e - Remote or keyboard event.
+ * @param {HTMLElement} menu - Open context menu.
+ * @returns {void} No return value.
+ */
 function _handleCtxMenuKey(e, menu) {
   if (_isBack(e)) {
     e.preventDefault();
@@ -709,6 +860,12 @@ function _handleCtxMenuKey(e, menu) {
   }
   e.preventDefault();
 }
+
+/** Focus an item in a context menu.
+ * @param {HTMLElement} menu - Open context menu.
+ * @param {Array<HTMLElement>} items - Selectable menu items.
+ * @returns {void} No return value.
+ */
 function _focusCtxItem(menu, items) {
   menu.querySelectorAll(".tv-focus-visible").forEach(function (el) {
     return el.classList.remove("tv-focus-visible");

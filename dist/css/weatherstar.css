@@ -1,0 +1,229 @@
+/* Generated from assets/weatherstar.css by tools/build-css.js — edit the source, not this file. */
+#weatherstar-view {
+    display: none;
+    position: absolute;
+    z-index: 4;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 0;
+    background: #020915;
+    color: #d8e9ff;
+    font-family: 'Courier New', monospace;
+}
+#weatherstar-toolbar {
+    -webkit-flex: 0 0 auto;
+    flex: 0 0 auto;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-align-items: center;
+    align-items: center;
+    padding: .42rem .65rem;
+    box-sizing: border-box;
+    gap: .45rem;
+    border-bottom: 2px ridge #5b77a5;
+    background: linear-gradient(180deg, #1c3366, #071b3d);
+    min-height: 45px;
+}
+html.no-flex-gap #weatherstar-toolbar > * + * {
+    margin-left: .45rem;
+}
+#weatherstar-toolbar strong {
+    font-size: .8rem;
+    color: #ffd76a;
+    margin-right: auto;
+    white-space: nowrap;
+}
+#weatherstar-toolbar button,
+#weatherstar-toolbar input,
+#weatherstar-toolbar select {
+    border: 1px solid #7895b4;
+    border-radius: 2px;
+    padding: .38rem .55rem;
+    box-sizing: border-box;
+    background: #122f4e;
+    color: #f4f8ff;
+    font: bold .7rem 'Courier New', monospace;
+}
+#weatherstar-toolbar input {
+    -webkit-flex: 1 1 15%;
+    flex: 1 1 15%;
+    width: 150px;
+    min-width: 75px;
+    background: #071324;
+    border: 1px solid #99b5db;
+    font-weight: normal;
+}
+#weatherstar-soundtrack-label {
+    color: #ffe1a3;
+    font-size: .66rem;
+    white-space: nowrap;
+    font-weight: bold;
+}
+#weatherstar-toolbar select {
+    -webkit-flex: 1 1 24%;
+    flex: 1 1 24%;
+    min-width: 125px;
+    max-width: 270px;
+    background: #081b37;
+    border-color: #c5ac64;
+    color: #ffecb6;
+    font-size: .73rem;
+    cursor: pointer;
+}
+#weatherstar-toolbar select option {
+    background: #081b37;
+    color: #f0e6cc;
+}
+#weatherstar-external-audio {
+    display: none;
+}
+#weatherstar-toolbar button {
+    cursor: pointer;
+    white-space: nowrap;
+}
+#weatherstar-toolbar button:focus,
+#weatherstar-toolbar select:focus,
+#weatherstar-toolbar input:focus {
+    outline: 2px solid #ffda57;
+    outline-offset: 1px;
+}
+#weatherstar-toolbar #weatherstar-exit {
+    background: #733d29;
+    border-color: #b77e62;
+}
+#weatherstar-frame {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    -webkit-flex: 1 1 auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    background: #010612;
+    border: 0;
+}
+#weatherstar-status {
+    -webkit-flex: 0 0 auto;
+    flex: 0 0 auto;
+    color: #adcce9;
+    background: #081629;
+    border-top: 1px solid #344e78;
+    box-sizing: border-box;
+    font-size: .65rem;
+    padding: .24rem .65rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+body.livetv-fs #weatherstar-toolbar {
+    padding: .5rem .8rem;
+}
+body.livetv-fs #weatherstar-toolbar button,
+body.livetv-fs #weatherstar-toolbar select,
+body.livetv-fs #weatherstar-toolbar input {
+    font-size: .86rem;
+}
+@media (max-width: 1050px) {
+    #weatherstar-toolbar {
+        -webkit-flex-wrap: wrap;
+        flex-wrap: wrap;
+        gap: .2rem;
+    }
+    html.no-flex-gap #weatherstar-toolbar > * {
+        margin-right: .2rem;
+        margin-bottom: .2rem;
+    }
+    #weatherstar-toolbar strong {
+        display: none;
+    }
+    #weatherstar-toolbar input {
+        -webkit-flex-basis: 30%;
+        flex-basis: 30%;
+        width: 90px;
+    }
+    #weatherstar-toolbar button {
+        font-size: .56rem;
+        padding: .25rem .3rem;
+    }
+    #weatherstar-toolbar select {
+        min-width: 100px;
+        max-width: 180px;
+        font-size: .6rem;
+        padding: .22rem .3rem;
+    }
+    #weatherstar-soundtrack-label {
+        display: none;
+    }
+    #weatherstar-status {
+        font-size: .55rem;
+    }
+}
+#weatherstar-view {
+    position: absolute;
+}
+#weatherstar-diagnostics {
+    position: absolute;
+    top: 46px;
+    left: 0;
+    right: 0;
+    bottom: 20px;
+    z-index: 3;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
+    padding: 2.5rem;
+    background: #06156f;
+    color: #fff7bc;
+    border: 3px solid #d8c469;
+    font-family: 'Courier New',monospace;
+}
+#weatherstar-diagnostics strong {
+    display: block;
+    max-width: 90%;
+    font-size: 1.65rem;
+    letter-spacing: .07em;
+    color: #ffeb87;
+    margin-bottom: 1.4rem;
+}
+#weatherstar-diagnostics-message {
+    font-size: 1rem;
+    max-width: 90%;
+    line-height: 1.5;
+    color: #e5f0ff;
+}
+.weatherstar-diagnostics-note {
+    font-size: .75rem;
+    color: #b6cbed;
+    margin-top: 1rem;
+    max-width: 75%;
+    line-height: 1.5;
+}
+#weatherstar-diagnostics-retry {
+    display: block;
+    font: bold 1rem 'Courier New',monospace;
+    border: 2px outset #f0d46a;
+    padding: .8rem 1.2rem;
+    margin-top: 1.5rem;
+    background: #ffdb58;
+    color: #031553;
+    cursor: pointer;
+}
+#weatherstar-diagnostics-retry:focus {
+    outline: 3px solid #fff;
+    outline-offset: 3px;
+}
+html.no-flex-gap:not(#_nfg1):not(#_nfg2) #weatherstar-toolbar strong {
+    margin-right: auto;
+}

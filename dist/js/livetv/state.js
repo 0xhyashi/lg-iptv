@@ -17,9 +17,19 @@
 // Thin delegates to core/store.js. Kept as free functions because they are used
 // on nearly every line of this page and `Store.get` reads worse at that density.
 
+/** Load for Live TV shared state.
+ * @param {string} key - Stored key or key-code.
+ * @param {*} fallback - Input to load().
+ * @returns {*} Result of the operation.
+ */
 function load(key, fallback) {
   return Store.get(key, fallback);
 }
+/** Save for Live TV shared state.
+ * @param {string} key - Stored key or key-code.
+ * @param {*} val - Input to save().
+ * @returns {void} Updates the relevant state or UI.
+ */
 function save(key, val) {
   return Store.set(key, val);
 }

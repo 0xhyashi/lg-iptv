@@ -12,22 +12,23 @@
     <link rel="stylesheet" href="../dist/css/bunkhouse.css" />
     <link rel="stylesheet" href="../dist/css/weatherstar.css" />
     <link rel="stylesheet" href="../dist/css/multiview.css" />
+    <link rel="stylesheet" href="../dist/css/tvguide.css" />
     <!-- Blocking on purpose: detects the video pipeline and sets the UI scale
          before first paint. Must stay in <head> and must stay synchronous. -->
     <script src="../assets/boot.js"></script>
 </head>
-<body>
+<body class="guide-mode">
     <div id="app">
         <aside id="sidebar">
             <div id="sidebar-header">
                 <div id="brand">
-                    <button id="home-btn" title="Home" onclick="history.back()">
+                    <button id="home-btn" title="Channel guide" onclick="setTVZone('channel-list')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M3 9.5L12 3l9 6.5V21a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/>
                             <polyline points="9 22 9 12 15 12 15 22"/>
                         </svg>
                     </button>
-                    <span>Bunkhouse <small>v1.0.44</small></span>
+                    <span>Bunkhouse <small>v1.0.47</small></span>
                     <button id="settings-btn" title="Settings" onclick="location.href='../pages/settings.html'">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="3"/>
@@ -41,7 +42,12 @@
             <nav id="bunkhouse-switch" aria-label="Media type">
                 <button id="media-tv" class="active" type="button">▣ <span>TV</span></button>
                 <button id="media-radio" type="button">♫ <span>RADIO</span></button>
+                <button id="media-ham" type="button">◉ <span>HAM</span></button>
             </nav>
+            <div id="guide-utilities">
+                <button id="guide-vod" type="button">VOD LIBRARY</button>
+                <button id="guide-catchup" type="button">CATCH-UP</button>
+            </div>
             <div id="panel-channels" class="sidebar-panel active">
                 <div id="categories"></div>
                 <div id="radio-stations" style="display:none;"></div>
@@ -50,6 +56,7 @@
         </aside>
 
         <main id="main">
+            <div id="guide-masthead"><span id="guide-title">BUNKHOUSE TV GUIDE</span><span id="guide-clock">LIVE PROGRAM LISTINGS</span></div>
             <div id="preview-bar">
                 <div id="preview-info">
                     <div id="preview-channel-name">Select a channel</div>
@@ -145,6 +152,7 @@
                             </select>
                             <button id="weatherstar-music" type="button">▶ PLAY SOUND</button>
                             <button id="weatherstar-retry" type="button">RETRY FORECAST</button>
+                            <button id="weatherstar-ham" type="button">HAM RADIO</button>
                             <button id="weatherstar-fullscreen" type="button">FULL SCREEN</button>
                             <button id="weatherstar-exit" type="button">◀ TV</button>
                         </div>
@@ -153,6 +161,12 @@
                         <audio id="weatherstar-external-audio" preload="none"></audio>
                         <iframe id="weatherstar-frame" title="WeatherStar 4000+ original forecast"
                                 src="about:blank" allow="autoplay" referrerpolicy="no-referrer"></iframe>
+                        <div id="weatherstar-diagnostics" role="status" aria-live="polite" style="display:none;">
+                            <strong>WEATHERSTAR 4000+ / STARTING</strong>
+                            <p id="weatherstar-diagnostics-message">Initializing original forecast renderer…</p>
+                            <p class="weatherstar-diagnostics-note">Original forecast graphics are preserved. If the receiver cannot start, the error appears here instead of a black screen.</p>
+                            <button id="weatherstar-diagnostics-retry" type="button">RETRY FORECAST</button>
+                        </div>
                         <div id="weatherstar-status" aria-live="polite">Select WeatherStar 4000+ to load local forecasts.</div>
                     </div>
                     <div id="player-msg">Select a channel</div>

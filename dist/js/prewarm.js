@@ -18,6 +18,9 @@
   var CAT_CACHE_KEY = 'iptv_cat_v2';
   var CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours — matches livetv/channels.js
 
+  /** Run for offline-friendly channel cache warmup.
+   * @returns {*} Value produced by the operation.
+   */
   function run() {
     if (Config.sourceType() !== 'xtream') return;
     /* Already warm — cacheGet returns null once past the TTL. Reading it

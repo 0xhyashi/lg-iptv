@@ -16,12 +16,26 @@
 window.Dom = function () {
   'use strict';
 
+  /** $ for shared DOM helpers and LG remote keys.
+   * @param {*} sel - Input to $().
+   * @param {*} root - Input to $().
+   * @returns {*} Result of the operation.
+   */
   function $(sel, root) {
     return (root || document).querySelector(sel);
   }
+  /** $$ for shared DOM helpers and LG remote keys.
+   * @param {*} sel - Input to $$().
+   * @param {*} root - Input to $$().
+   * @returns {*} Result of the operation.
+   */
   function $$(sel, root) {
     return Array.prototype.slice.call((root || document).querySelectorAll(sel));
   }
+  /** By Id for shared DOM helpers and LG remote keys.
+   * @param {string} id - Identifier.
+   * @returns {*} Result of the operation.
+   */
   function byId(id) {
     return document.getElementById(id);
   }
@@ -29,6 +43,10 @@ window.Dom = function () {
   /* Escapes the four characters that matter inside an HTML text node or a
      double-quoted attribute. Single quotes are not escaped, so never
      interpolate into a single-quoted attribute. */
+  /** Esc Html for shared DOM helpers and LG remote keys.
+   * @param {*} s - Input to escHtml().
+   * @returns {*} Result of the operation.
+   */
   function escHtml(s) {
     return String(s === null || s === undefined ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
@@ -36,6 +54,12 @@ window.Dom = function () {
   /* el('div.foo.bar', { id: 'x' }, [child, 'text'])
      The tag string accepts CSS-ish class shorthand because nearly every
      element here is "a div with two classes and some text". */
+  /** El for shared DOM helpers and LG remote keys.
+   * @param {*} spec - Input to el().
+   * @param {*} props - Input to el().
+   * @param {*} children - Input to el().
+   * @returns {*} Result of the operation.
+   */
   function el(spec, props, children) {
     var parts = String(spec || 'div').split('.');
     var node = document.createElement(parts[0] || 'div');
@@ -62,18 +86,39 @@ window.Dom = function () {
     }
     return node;
   }
+
+  /** Is Array for shared DOM helpers and LG remote keys.
+   * @param {*} v - Input to isArray().
+   * @returns {boolean} Whether the condition is met.
+   */
   function isArray(v) {
     return Object.prototype.toString.call(v) === '[object Array]';
   }
+
+  /** Clear for shared DOM helpers and LG remote keys.
+   * @param {*} node - Input to clear().
+   * @returns {void} Updates the relevant state or UI.
+   */
   function clear(node) {
     if (node) node.innerHTML = '';
   }
+
+  /** Show for shared DOM helpers and LG remote keys.
+   * @param {*} node - Input to show().
+   * @param {*} on - Input to show().
+   * @returns {void} Updates the relevant state or UI.
+   */
   function show(node, on) {
     if (node) node.style.display = on ? '' : 'none';
   }
 
   /* ── Focus ring ───────────────────────────────────────────────────────── */
   var RING = 'tv-focus-visible';
+
+  /** Clear Rings for shared DOM helpers and LG remote keys.
+   * @param {*} root - Input to clearRings().
+   * @returns {void} Updates the relevant state or UI.
+   */
   function clearRings(root) {
     var rings = $$('.' + RING, root);
     for (var i = 0; i < rings.length; i++) rings[i].classList.remove(RING);
@@ -81,6 +126,11 @@ window.Dom = function () {
 
   /* Moves the single focus ring. `scroll` defaults to true — a ring the user
      cannot see is worse than no ring, and every caller wanted it. */
+  /** Focus Ring for shared DOM helpers and LG remote keys.
+   * @param {*} node - Input to focusRing().
+   * @param {*} scroll - Input to focusRing().
+   * @returns {void} Updates the relevant state or UI.
+   */
   function focusRing(node, scroll) {
     clearRings();
     if (!node) return null;
@@ -97,6 +147,11 @@ window.Dom = function () {
     }
     return node;
   }
+
+  /** Has Ring for shared DOM helpers and LG remote keys.
+   * @param {*} node - Input to hasRing().
+   * @returns {boolean} Whether the condition is met.
+   */
   function hasRing(node) {
     return !!(node && node.classList.contains(RING));
   }
@@ -104,9 +159,19 @@ window.Dom = function () {
   /* Only elements the user can actually reach: rendered, not disabled.
      offsetParent is null for display:none subtrees (and for position:fixed
      elements, which is why fixed overlays list their own focusables). */
+  /** Visible for shared DOM helpers and LG remote keys.
+   * @param {*} node - Input to visible().
+   * @returns {*} Result of the operation.
+   */
   function visible(node) {
     return !!(node && !node.disabled && node.offsetParent !== null);
   }
+
+  /** Focusables for shared DOM helpers and LG remote keys.
+   * @param {*} root - Input to focusables().
+   * @param {*} selector - Input to focusables().
+   * @returns {void} Updates the relevant state or UI.
+   */
   function focusables(root, selector) {
     return $$(selector || 'input, select, button, [tabindex]', root).filter(visible);
   }
@@ -179,6 +244,11 @@ window.Dom = function () {
     MediaFastForward: KEY.FF,
     MediaRewind: KEY.RW
   };
+
+  /** Key Code for shared DOM helpers and LG remote keys.
+   * @param {Event} e - Browser event.
+   * @returns {*} Result of the operation.
+   */
   function keyCode(e) {
     var kc = e.keyCode || e.which;
     if (kc) return kc;
@@ -189,10 +259,18 @@ window.Dom = function () {
     if (name.length === 1 && name >= '0' && name <= '9') return 48 + +name;
     return 0;
   }
+  /** Is Back for shared DOM helpers and LG remote keys.
+   * @param {Event} e - Browser event.
+   * @returns {boolean} Whether the condition is met.
+   */
   function isBack(e) {
     var k = keyCode(e);
     return k === KEY.BACK || k === KEY.ESC;
   }
+  /** Is Nav for shared DOM helpers and LG remote keys.
+   * @param {Event} e - Browser event.
+   * @returns {boolean} Whether the condition is met.
+   */
   function isNav(e) {
     var k = keyCode(e);
     return k === KEY.LEFT || k === KEY.RIGHT || k === KEY.UP || k === KEY.DOWN || k === KEY.ENTER;
@@ -204,6 +282,9 @@ window.Dom = function () {
      exists when their webOSTV.js library is loaded — and this app doesn't
      load it — so that call alone threw and BACK did nothing. PalmSystem is
      the platform object webOSTV.js itself wraps, present on every version. */
+  /** Exit App for shared DOM helpers and LG remote keys.
+   * @returns {*} Result of the operation.
+   */
   function exitApp() {
     try {
       if (typeof webOS !== 'undefined' && webOS.platformBack) {
@@ -224,6 +305,9 @@ window.Dom = function () {
 
   /* True when an on-screen keyboard is open over a text field, which means
      the D-pad belongs to the field and not to the page. */
+  /** Typing for shared DOM helpers and LG remote keys.
+   * @returns {*} Result of the operation.
+   */
   function typing() {
     var a = document.activeElement;
     if (!a) return false;

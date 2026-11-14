@@ -42,6 +42,10 @@ window.PlayerSubs = function () {
   var _busy = false;
   var _done = false; // stop once files are attached
   var _probed = false;
+
+  /** Cfg for video subtitle selection.
+   * @returns {*} Value produced by the operation.
+   */
   function cfg() {
     try {
       return Config.resolve();
@@ -49,6 +53,10 @@ window.PlayerSubs = function () {
       return null;
     }
   }
+
+  /** Empty for video subtitle selection.
+   * @returns {*} Value produced by the operation.
+   */
   function empty() {
     return {
       files: [],
@@ -56,6 +64,10 @@ window.PlayerSubs = function () {
       unknown: 0
     };
   }
+  /** Has Files for video subtitle selection.
+   * @param {*} r - Input for hasFiles().
+   * @returns {boolean} Whether the condition holds.
+   */
   function hasFiles(r) {
     return !!(r && r.files && r.files.length);
   }
@@ -68,6 +80,11 @@ window.PlayerSubs = function () {
   /* Hand a result to the player: files become <track>s, and the embedded list
      is what lets the subtitle menu explain an empty list truthfully instead of
      claiming the title has none. Returns true once real files are attached. */
+  /** Apply for video subtitle selection.
+   * @param {*} result - Operation result.
+   * @param {*} source - Input for apply().
+   * @returns {void} Updates module or UI state.
+   */
   function apply(result, source) {
     if (!result || !_player) return false;
     _found = result;
@@ -88,6 +105,9 @@ window.PlayerSubs = function () {
   }
 
   /* ── The chain ────────────────────────────────────────────────────────── */
+  /** Resolve for video subtitle selection.
+   * @returns {*} Value produced by the operation.
+   */
   function resolve() {
     /* Deliberately NOT gated on _meta. A rejected handover still plays —
        the player falls back to the url in its own query string — so the one
@@ -154,6 +174,11 @@ window.PlayerSubs = function () {
      show what fits on screen. Settings → Diagnostics persists and has room —
      which is what "does this provider EVER return subtitles" needs, as
      opposed to "did it for this title". */
+  /** Record Reply for video subtitle selection.
+   * @param {Object} data - Input response.
+   * @param {*} result - Operation result.
+   * @returns {*} Value produced by the operation.
+   */
   function recordReply(data, result) {
     if (typeof Subs === 'undefined' || !Subs.recordDiag) return;
     try {
@@ -168,6 +193,10 @@ window.PlayerSubs = function () {
   /* 4. Last resort: a file sitting next to the stream that the panel never
         mentioned. Guarded inside Subs.probeSidecars so it cannot pull down a
         movie by mistake, and only ever attempted once. */
+  /** Probe Sidecar for video subtitle selection.
+   * @param {*} base - Input for probeSidecar().
+   * @returns {*} Value produced by the operation.
+   */
   function probeSidecar(base) {
     if (_probed || _done) return;
     _probed = true;
@@ -202,6 +231,10 @@ window.PlayerSubs = function () {
   }
 
   /* ── Entry points ─────────────────────────────────────────────────────── */
+  /** Init for video subtitle selection.
+   * @param {Object} opts - Options.
+   * @returns {void} Updates module or UI state.
+   */
   function init(opts) {
     _meta = opts.meta || null;
     _player = opts.player || null;
@@ -235,6 +268,9 @@ window.PlayerSubs = function () {
 
   /* Called again once the season arrives, since that may be where this
      episode's subtitles were. */
+  /** Refresh for video subtitle selection.
+   * @returns {void} Updates module or UI state.
+   */
   function refresh() {
     resolve();
   }
@@ -242,6 +278,9 @@ window.PlayerSubs = function () {
   /* One line for the GREEN diagnostics overlay: where the loaded subtitles
      came from, or why there are none. The same question the episode line
      answers for Next episode. */
+  /** Describe for video subtitle selection.
+   * @returns {*} Value produced by the operation.
+   */
   function describe() {
     if (!_player) return 'not started';
     var files = _found && _found.files ? _found.files.length : 0;
